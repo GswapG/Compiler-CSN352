@@ -172,6 +172,7 @@ cython_debug/
 
 #vscode
 .vscode
-
+*.exe
+bin
 #dev files
 # features.txt
