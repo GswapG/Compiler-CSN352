@@ -2,7 +2,7 @@
 This is a compiler for a C like language made as a course project for CSN352: Compiler Design course at IIT Roorkee.
 
 # For devs - 
-Read <mark>todo.md</mark>
+Read [TODO](todo.md)
 
 ## How to run 
 ### Lexer
