@@ -1,5 +1,5 @@
 import ply.lex as lex
-from token_defs import *
+from src.defs.token_defs import *
 import os, re
 # Track line start positions
 line_start_positions = [0]
@@ -10,7 +10,7 @@ states = (
 )
 
 # Simple Token definitions
-t_CHAR = r'\'.\''
+t_CHAR = r'(\'.\')|(\'\\.\')'
 
 # Ignored characters
 t_ignore = ' \t'
@@ -36,7 +36,6 @@ def t_COMMENT(t):
     pass
 
 # Keyword matching
-
 def t_KEYWORD(t):
     r'[a-zA-Z_][a-zA-Z_0-9]*'
     t.type = reserved_keywords.get(t.value,'IDENTIFIER')    # Check for reserved words
@@ -142,8 +141,12 @@ def t_newline(t):
 
 # Error handling
 def t_error(t):
-    print(f"Illegal character '{t.value[0]}' at line {t.lineno}, position {t.lexpos}")
-    t.lexer.skip(1)
+    if t.value[0].isdigit():
+        print(f"Illegal number format: {t.value}")
+        t.lexer.skip(len(t.value))
+    else:    
+        print(f"Illegal character '{t.value[0]}' at line {t.lineno}, position {t.lexpos}")
+        t.lexer.skip(1)
 
 def t_mcomment_error(t):
     print(f"Illegal character '{t.value[0]}' inside comment at line {t.lineno}, position {t.lexpos}")
@@ -228,3 +231,6 @@ if __name__ == "__main__":
     lexer = lex.lex()
     output_tables = test(lexer)
     pretty_print_testcases(output_tables)
+    
+
+

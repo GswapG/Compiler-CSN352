@@ -1,6 +1,9 @@
 # Compiler-CSN352
 This is a compiler for a C like language made as a course project for CSN352: Compiler Design course at IIT Roorkee.
 
+# For devs - 
+Read <mark>todo.md</mark>
+
 ## How to run 
 ### Lexer
 1.  Put your testcases in 'testcases' folder as '.c' files.
