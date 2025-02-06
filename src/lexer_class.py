@@ -41,7 +41,7 @@ class Lexer(object):
         t.lexer.lineno += t.value.count('\n')  
         pass
 
-    # Single-line comments
+    # Single-line comment
     def t_COMMENT(self,t):
         r'//.*'
         pass
@@ -54,7 +54,7 @@ class Lexer(object):
 
     # String literal matching
     def t_STRING(self,t):
-        r'"(\\.|(?!\").)*"'
+        r'"([^"\\n]|\.)*"'
         t.value = t.value[1:-1]
         t.value = t.value.encode().decode('unicode_escape')
         return t
@@ -67,7 +67,7 @@ class Lexer(object):
 
     # Integer matching
     def t_INTEGER(self,t):
-        r'\d+'
+        r'-?\d+'
         t.value = int(t.value)
         return t
 

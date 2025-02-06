@@ -18,3 +18,4 @@
     '\n'
     'asdf'
     123lmao
+    int *ptr;
