@@ -7,7 +7,8 @@
 
 # TODO
 - [x] character matching - add support for escape sequences.
-- [ ] 'abcd' is matched as abcd-identifier, find a fix or delay to parsing
-- [ ] 123abc is split as 123-int and abc-identifier, parit says parsing me fix hoga
+- [x] 'abcd' is matched as abcd-identifier, find a fix or delay to parsing
+- [x] 123abc is split as 123-int and abc-identifier, parit says parsing me fix hoga
 - [ ] Add testcases to cover all types of tokens and situation exhaustively
+- [ ] negative int support
 - [x] Write a 'run' script for both windows and linux

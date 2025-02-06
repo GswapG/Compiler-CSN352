@@ -9,10 +9,12 @@ class Lexer(object):
 
     -Create a folder 'testcases' in the same directory 
     """
+
     tokens = tokens
     def __init__(self):
         self.line_start_positions = [0]
         self.lexer = None
+
     # Lexer states
     states = (
         ('mcomment', 'exclusive'),
@@ -24,6 +26,7 @@ class Lexer(object):
     # Ignored characters
     t_ignore = ' \t'
     t_mcomment_ignore = ' \t'  
+
     # Multiline comment
     def t_mcomment(self,t):
         r'/\*'
@@ -44,7 +47,6 @@ class Lexer(object):
         pass
 
     # Keyword matching
-
     def t_KEYWORD(self,t):
         r'[a-zA-Z_][a-zA-Z_0-9]*'
         t.type = reserved_keywords.get(t.value,'IDENTIFIER')    # Check for reserved words
@@ -98,7 +100,6 @@ class Lexer(object):
         r'&|\||\^|~|<<|>>'
         t.type = bitwise_operators.get(t.value)
         return t
-
 
     # Parentheses
     def t_LPAREN(self,t):
@@ -177,7 +178,9 @@ class Lexer(object):
     def test(self):
         directory_path = './testcases'
         ret = []
-        for file_name in os.listdir(directory_path):
+        test_files = os.listdir(directory_path)
+        test_files.sort()
+        for file_name in test_files:
             # Check if the file is a .c file
             if file_name.endswith('.c'):
                 file_path = os.path.join(directory_path, file_name)
