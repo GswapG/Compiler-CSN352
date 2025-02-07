@@ -29,32 +29,32 @@ class Lexer(object):
     t_mcomment_ignore = ' \t'  
 
     # Multiline comment
-    def t_mcomment(self,t):
+    def t_mcomment(self, t):
         r'/\*'
         t.lexer.begin('mcomment')
 
-    def t_mcomment_end(self,t):
+    def t_mcomment_end(self, t):
         r'\*/'
         t.lexer.begin('INITIAL')
 
-    def t_mcomment_body(self,t):
+    def t_mcomment_body(self, t):
         r'(.|\n)*?(?=\*/)'
         t.lexer.lineno += t.value.count('\n')  
         pass
 
     # Single-line comment
-    def t_COMMENT(self,t):
+    def t_COMMENT(self, t):
         r'//.*'
         pass
 
     # Keyword matching
-    def t_KEYWORD(self,t):
+    def t_KEYWORD(self, t):
         r'[a-zA-Z_][a-zA-Z_0-9]*'
         t.type = reserved_keywords.get(t.value,'IDENTIFIER')    # Check for reserved words
         return t
 
     # String literal matching
-    def t_STRING(self,t):
+    def t_STRING(self, t):
         r'"(\\.|(?!\\n").)*"'
         # t.value = t.value[1:-1]
         # adding quotes in string literals
@@ -62,13 +62,13 @@ class Lexer(object):
         return t
 
     # Float matching
-    def t_FLOAT(self,t):
+    def t_FLOAT(self, t):
         r'\d+\.\d*'
         t.value = float(t.value)
         return t
 
     # Integer matching
-    def t_INTEGER(self,t):
+    def t_INTEGER(self, t):
         r'-?\d+'
         t.value = int(t.value)
         return t
@@ -80,31 +80,31 @@ class Lexer(object):
         return t
     
     # Logical Operator matching
-    def t_LOGICAL(self,t):
+    def t_LOGICAL(self, t):
         r'&&|\|\||!'
         t.type = logical_operators.get(t.value)
         return t
     
      # Bitwise Operator matching
-    def t_BITWISE(self,t):
+    def t_BITWISE(self, t):
         r'&|\||\^|~|<<|>>'
         t.type = bitwise_operators.get(t.value)
         return t
     
     # Relational Operator matching
-    def t_RELATIONAL(self,t):
+    def t_RELATIONAL(self, t):
         r'==|!=|>=|<=|>|<'
         t.type = relational_operators.get(t.value)
         return t
 
     # Assignment Operator matching
-    def t_ASSIGNMENT(self,t):
+    def t_ASSIGNMENT(self, t):
         r'=|\+=|\-=|\*=|/=|%='
         t.type = assignment_operators.get(t.value)
         return t
 
     # Arithmetic Operator matching
-    def t_ARITHMETIC_EXCLUDING_INCREMENT(self,t):
+    def t_ARITHMETIC_EXCLUDING_INCREMENT(self, t):
         r'\+\+|\-\-|\*|\/|%|\+|\-'
         t.type = arithmetic_operators.get(t.value)
         return t
@@ -115,60 +115,60 @@ class Lexer(object):
         return t
 
     # Parentheses
-    def t_LPAREN(self,t):
+    def t_LPAREN(self, t):
         r'\('
         return t
 
-    def t_RPAREN(self,t):
+    def t_RPAREN(self, t):
         r'\)'
         return t
 
     # Curly Braces
-    def t_LBRACE(self,t):
+    def t_LBRACE(self, t):
         r'\{'
         return t
 
-    def t_RBRACE(self,t):
+    def t_RBRACE(self, t):
         r'\}'
         return t
 
     # Square Brackets
-    def t_LBRACKET(self,t):
+    def t_LBRACKET(self, t):
         r'\['
         return t
 
-    def t_RBRACKET(self,t):
+    def t_RBRACKET(self, t):
         r'\]'
         return t
 
     # Semicolon
-    def t_SEMICOLON(self,t):
+    def t_SEMICOLON(self, t):
         r';'
         return t
 
     # Comma
-    def t_COMMA(self,t):
+    def t_COMMA(self, t):
         r','
         return t
 
     # Period
-    def t_PERIOD(self,t):
+    def t_PERIOD(self, t):
         r'\.'
         return t
 
     # Newline handling
-    def t_newline(self,t):
+    def t_newline(self, t):
         r'\n+'
         t.lexer.lineno += len(t.value)
         self.line_start_positions.append(t.lexpos + len(t.value))
 
     # Error handling
-    def t_error(self,t):
+    def t_error(self, t):
         error = f"Illegal character '{t.value[0]}' at line {t.lineno}, position {t.lexpos}"
         self.error_list.append(error)
         t.lexer.skip(1)
 
-    def t_mcomment_error(self,t):
+    def t_mcomment_error(self, t):
         error = f"Illegal character '{t.value[0]}' inside comment at line {t.lineno}, position {t.lexpos}"
         self.error_list.append(error)
         t.lexer.skip(1)

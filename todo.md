@@ -14,5 +14,5 @@
 - [x] Write a 'run' script for both windows and linux
 - [ ] string literal (states)
 - [x] separate errors for each file 
-- [ ] ternary operators ? and :
+- [x] ternary operators ? and :
 - [ ] maximum length identifiers check and report them in errors
