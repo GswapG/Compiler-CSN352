@@ -200,6 +200,7 @@ class Lexer(object):
         test_files = os.listdir(directory_path)
         test_files.sort()
         for file_name in test_files:
+            self.lexer.lineno = 0
             # Check if the file is a .c file
             if file_name.endswith('.c'):
                 file_path = os.path.join(directory_path, file_name)
@@ -234,8 +235,8 @@ class Lexer(object):
             # Calculate column widths dynamically for each test case
             lexeme_width = max_lexeme_length
             token_width = max_lexeme_length
-            lineno_width = max_lexeme_length   # Fixed width for line number
-            linepos_width = max_lexeme_length  # Fixed width for line position
+            lineno_width = 10   # Fixed width for line number
+            linepos_width = 10  # Fixed width for line position
 
             output_table = table[0]
             error_table = table[1]
@@ -257,9 +258,9 @@ class Lexer(object):
             # Print all tokens in the test case
             for lexeme, token, lineno, linepos in output_table:
                 lexeme_str = escape_repr(lexeme)
-                lexeme_display = lexeme_str[:max_lexeme_length] + ("..." if len(lexeme_str) > max_lexeme_length else "")
+                lexeme_display = lexeme_str[:max_lexeme_length-3] + ("..." if len(lexeme_str) > max_lexeme_length else "")
                 
-                print(f"{lexeme_display.ljust(lexeme_width)}  {token.ljust(token_width)}  {str(lineno - total_line).ljust(lineno_width)}  {str(linepos).ljust(linepos_width)}")
+                print(f"{lexeme_display.ljust(lexeme_width)}  {token.ljust(token_width)}  {str(lineno).ljust(lineno_width)}  {str(linepos).ljust(linepos_width)}")
                 file_line = lineno
             print('-' * len(header))
             for error in error_table:
