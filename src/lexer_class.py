@@ -72,9 +72,33 @@ class Lexer(object):
         t.value = int(t.value)
         return t
 
+    # Bitwise Assignment Operator matching
+    def t_BITWISE_ASSIGNMENT(self, t):
+        r'&=|\|=|\^=|<<=|>>='
+        t.type = bitwise_assignment_operators.get(t.value)
+        return t
+    
+    # Logical Operator matching
+    def t_LOGICAL(self,t):
+        r'&&|\|\||!'
+        t.type = logical_operators.get(t.value)
+        return t
+    
+     # Bitwise Operator matching
+    def t_BITWISE(self,t):
+        r'&|\||\^|~|<<|>>'
+        t.type = bitwise_operators.get(t.value)
+        return t
+    
+    # Relational Operator matching
+    def t_RELATIONAL(self,t):
+        r'==|!=|>=|<=|>|<'
+        t.type = relational_operators.get(t.value)
+        return t
+
     # Assignment Operator matching
     def t_ASSIGNMENT(self,t):
-        r'=|\+=|\-=|\*=|/=|%=|&=|\|=|\^=|<<=|>>='
+        r'=|\+=|\-=|\*=|/=|%='
         t.type = assignment_operators.get(t.value)
         return t
 
@@ -82,24 +106,6 @@ class Lexer(object):
     def t_ARITHMETIC_EXCLUDING_INCREMENT(self,t):
         r'\+\+|\-\-|\*|\/|%|\+|\-'
         t.type = arithmetic_operators.get(t.value)
-        return t
-
-    # Relational Operator matching
-    def t_RELATIONAL(self,t):
-        r'==|!=|>=|<=|>|<'
-        t.type = relational_operators.get(t.value)
-        return t
-
-    # Logical Operator matching
-    def t_LOGICAL(self,t):
-        r'&&|\|\||!'
-        t.type = logical_operators.get(t.value)
-        return t
-
-    # Bitwise Operator matching
-    def t_BITWISE(self,t):
-        r'&|\||\^|~|<<|>>'
-        t.type = bitwise_operators.get(t.value)
         return t
 
     # Parentheses

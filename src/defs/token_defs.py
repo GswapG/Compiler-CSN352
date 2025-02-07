@@ -84,6 +84,14 @@ logical_operators = {
     '!': 'LOGICAL_NOT'
 }
 
+bitwise_assignment_operators = {
+    '&=': 'BITWISE_AND_ASSIGN',
+    '|=': 'BITWISE_OR_ASSIGN',
+    '^=': 'BITWISE_XOR_ASSIGN',
+    '<<=': 'LEFT_SHIFT_ASSIGN',
+    '>>=': 'RIGHT_SHIFT_ASSIGN'
+}
+
 # Assignment Operators Dictionary
 assignment_operators = {
     '=': 'ASSIGN',
@@ -91,12 +99,7 @@ assignment_operators = {
     '-=': 'SUBTRACT_ASSIGN',
     '*=': 'MULTIPLY_ASSIGN',
     '/=': 'DIVIDE_ASSIGN',
-    '%=': 'MODULUS_ASSIGN',
-    '&=': 'BITWISE_AND_ASSIGN',
-    '|=': 'BITWISE_OR_ASSIGN',
-    '^=': 'BITWISE_XOR_ASSIGN',
-    '<<=': 'LEFT_SHIFT_ASSIGN',
-    '>>=': 'RIGHT_SHIFT_ASSIGN'
+    '%=': 'MODULUS_ASSIGN'
 }
 
 # Random paranthesis and things like that
@@ -123,4 +126,5 @@ tokens = [
 + list(relational_operators.values()) \
 + list(bitwise_operators.values()) \
 + list(logical_operators.values()) \
-+ list(assignment_operators.values()) 
++ list(assignment_operators.values()) \
++ list(bitwise_assignment_operators.values())
