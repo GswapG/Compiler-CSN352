@@ -164,12 +164,16 @@ class Lexer(object):
 
     # Error handling
     def t_error(self, t):
-        error = f"Illegal character '{t.value[0]}' at line {t.lineno}, position {t.lexpos}"
+        current_line_start = next(pos for pos in reversed(self.line_start_positions) if pos <= t.lexpos)
+        linepos = t.lexpos - current_line_start
+        error = f"Illegal character '{t.value[0]}' at line {t.lineno}, position {linepos}"
         self.error_list.append(error)
         t.lexer.skip(1)
 
     def t_mcomment_error(self, t):
-        error = f"Illegal character '{t.value[0]}' inside comment at line {t.lineno}, position {t.lexpos}"
+        current_line_start = next(pos for pos in reversed(self.line_start_positions) if pos <= t.lexpos)
+        linepos = t.lexpos - current_line_start
+        error = f"Illegal character '{t.value[0]}' inside comment at line {t.lineno}, position {linepos}"
         self.error_list.append(error)
         t.lexer.skip(1)
 
@@ -224,26 +228,29 @@ class Lexer(object):
                 return re.sub(r'[\n\r\t]', lambda m: repr(m.group(0))[1:-1], lexeme)
             return str(lexeme)
         
+        total_line = 0
         for case_idx, table in enumerate(testcases, start=1):
+            file_line = 0
             # Calculate column widths dynamically for each test case
-            lexeme_width = 0
-            token_width = 0
-            lineno_width = 8   # Fixed width for line number
-            linepos_width = 8  # Fixed width for line position
+            lexeme_width = max_lexeme_length
+            token_width = max_lexeme_length
+            lineno_width = max_lexeme_length   # Fixed width for line number
+            linepos_width = max_lexeme_length  # Fixed width for line position
 
             output_table = table[0]
             error_table = table[1]
             
-            for lexeme, token, lineno, linepos in output_table:
-                lexeme_str = escape_repr(lexeme)  
-                lexeme_display = lexeme_str[:max_lexeme_length] + ("..." if len(lexeme_str) > max_lexeme_length else "")
+            # for lexeme, token, lineno, linepos in output_table:
+            #     lexeme_str = escape_repr(lexeme)  
+            #     lexeme_display = lexeme_str[:max_lexeme_length] + ("..." if len(lexeme_str) > max_lexeme_length else "")
                 
-                lexeme_width = max(lexeme_width, len(lexeme_display))
-                token_width = max(token_width, len(token))
+            #     lexeme_width = max(lexeme_width, len(lexeme_display))
+            #     token_width = max(token_width, len(token))
             
             # Print header for each test case
-            print(f"\n=== Test Case {case_idx} ===")
-            header = f"{'Lexeme'.ljust(lexeme_width)}  {'Token'.ljust(token_width)}  {'Line No.'.rjust(lineno_width)}  {'Line Pos.'.rjust(linepos_width)}"
+            format_length = (126 - len(f"  Test Case {case_idx}  ")) // 2
+            print(f"\n{"="*(format_length)}  Test Case {case_idx}  {"="*(format_length)}")
+            header = f"{'Lexeme'.ljust(lexeme_width)}  {'Token'.ljust(token_width)}  {'Line No.'.ljust(lineno_width)}  {'Line Pos.'.ljust(linepos_width)}"
             print(header)
             print('-' * len(header))
             
@@ -252,10 +259,13 @@ class Lexer(object):
                 lexeme_str = escape_repr(lexeme)
                 lexeme_display = lexeme_str[:max_lexeme_length] + ("..." if len(lexeme_str) > max_lexeme_length else "")
                 
-                print(f"{lexeme_display.ljust(lexeme_width)}  {token.ljust(token_width)}  {str(lineno).rjust(lineno_width)}  {str(linepos).rjust(linepos_width)}")
-
+                print(f"{lexeme_display.ljust(lexeme_width)}  {token.ljust(token_width)}  {str(lineno - total_line).ljust(lineno_width)}  {str(linepos).ljust(linepos_width)}")
+                file_line = lineno
+            print('-' * len(header))
             for error in error_table:
-                print(error)
+                print(f"Error: {error}")
+            total_line = file_line
+            total_line -= 1
 
 if __name__ == "__main__":
     lexer = Lexer()
