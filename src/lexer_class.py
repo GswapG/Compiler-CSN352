@@ -249,7 +249,7 @@ class Lexer(object):
             
             # Print header for each test case
             format_length = (126 - len(f"  Test Case {case_idx}  ")) // 2
-            print(f"\n{"="*(format_length)}  Test Case {case_idx}  {"="*(format_length)}")
+            print(f"\n{'='*(format_length)}  Test Case {case_idx}  {'='*(format_length)}")
             header = f"{'Lexeme'.ljust(lexeme_width)}  {'Token'.ljust(token_width)}  {'Line No.'.ljust(lineno_width)}  {'Line Pos.'.ljust(linepos_width)}"
             print(header)
             print('-' * len(header))
