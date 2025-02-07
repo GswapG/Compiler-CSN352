@@ -84,6 +84,7 @@ logical_operators = {
     '!': 'LOGICAL_NOT'
 }
 
+# Bitwise Assignment Operators Dictionary
 bitwise_assignment_operators = {
     '&=': 'BITWISE_AND_ASSIGN',
     '|=': 'BITWISE_OR_ASSIGN',
@@ -102,10 +103,18 @@ assignment_operators = {
     '%=': 'MODULUS_ASSIGN'
 }
 
+# Ternary Operators Dictionary
+ternary_operators = {
+    '?': 'TERNARY_0',
+    ':': 'TERNARY_1'
+}
+
 # Random paranthesis and things like that
 punctuators = {
 
 }
+
+
 tokens = [
     'INTEGER',
     'FLOAT',
@@ -127,4 +136,5 @@ tokens = [
 + list(bitwise_operators.values()) \
 + list(logical_operators.values()) \
 + list(assignment_operators.values()) \
-+ list(bitwise_assignment_operators.values())
++ list(bitwise_assignment_operators.values()) \
++ list(ternary_operators.values())

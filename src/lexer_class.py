@@ -108,6 +108,11 @@ class Lexer(object):
         r'\+\+|\-\-|\*|\/|%|\+|\-'
         t.type = arithmetic_operators.get(t.value)
         return t
+    
+    def t_TERNARY(self, t):
+        r'\?|\:'
+        t.type = ternary_operators.get(t.value)
+        return t
 
     # Parentheses
     def t_LPAREN(self,t):
