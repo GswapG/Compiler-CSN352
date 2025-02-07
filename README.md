@@ -9,11 +9,9 @@ Read [TODO](todo.md)
 1.  Put your testcases in 'testcases' folder as '.c' files.
 2.  Run the following command in the project root-
 ```bash
-python lexer.py
+python main.py
 ```
-
-## Features
-# Lexer for C-like Language
+or run `run.sh` on Linux, `run.bat` on Windows.
 
 ## Overview
 This project is a **Lexer for a C-like language**, built using `ply.lex`. It tokenizes source code, handling various language constructs such as keywords, operators, comments, and literals. The lexer supports multi-line comments, single-line comments, and error handling.
