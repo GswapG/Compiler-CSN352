@@ -11,3 +11,5 @@ Read [TODO](todo.md)
 ```bash
 python lexer.py
 ```
+
+## Features

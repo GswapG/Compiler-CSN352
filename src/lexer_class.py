@@ -63,7 +63,7 @@ class Lexer(object):
     # Float matching
     def t_FLOAT(self,t):
         r'\d+\.\d*'
-        # t.value = float(t.value)
+        t.value = float(t.value)
         return t
 
     # Integer matching

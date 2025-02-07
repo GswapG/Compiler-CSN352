@@ -12,3 +12,7 @@
 - [x] Add testcases to cover all types of tokens and situation exhaustively
 - [x] negative int support
 - [x] Write a 'run' script for both windows and linux
+- [ ] string literal (states)
+- [ ] separate errors for each file 
+- [ ] ternary operators ? and :
+- [ ] maximum length identifiers check and report them in errors

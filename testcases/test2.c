@@ -10,6 +10,7 @@
     /*hello
     hahah
     multiline commment*/
+    + - * / % +-
     ++ -- + - * / %
     == != > < >= <= 
     & | ^ ~ << >>
