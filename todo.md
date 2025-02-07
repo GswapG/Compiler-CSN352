@@ -13,6 +13,6 @@
 - [x] negative int support
 - [x] Write a 'run' script for both windows and linux
 - [ ] string literal (states)
-- [ ] separate errors for each file 
+- [x] separate errors for each file 
 - [ ] ternary operators ? and :
 - [ ] maximum length identifiers check and report them in errors

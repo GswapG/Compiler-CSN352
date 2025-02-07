@@ -14,6 +14,7 @@ class Lexer(object):
     def __init__(self):
         self.line_start_positions = [0]
         self.lexer = None
+        self.error_list = []
 
     # Lexer states
     states = (
@@ -158,11 +159,13 @@ class Lexer(object):
 
     # Error handling
     def t_error(self,t):
-        print(f"Illegal character '{t.value[0]}' at line {t.lineno}, position {t.lexpos}")
+        error = f"Illegal character '{t.value[0]}' at line {t.lineno}, position {t.lexpos}"
+        self.error_list.append(error)
         t.lexer.skip(1)
 
     def t_mcomment_error(self,t):
-        print(f"Illegal character '{t.value[0]}' inside comment at line {t.lineno}, position {t.lexpos}")
+        error = f"Illegal character '{t.value[0]}' inside comment at line {t.lineno}, position {t.lexpos}"
+        self.error_list.append(error)
         t.lexer.skip(1)
 
     def build(self,**kwargs):
@@ -193,7 +196,12 @@ class Lexer(object):
                 file_path = os.path.join(directory_path, file_name)
                 test_data = self.read_c_file(file_path)
                 self.lexer.input(test_data)
-                ret.append(self.generate_output_table())
+
+                output_table = self.generate_output_table()
+                error_table = self.error_list
+
+                self.error_list = []
+                ret.append((output_table, error_table))
         return ret
 
     def pretty_print_testcases(self,testcases, max_lexeme_length=30):
@@ -211,14 +219,17 @@ class Lexer(object):
                 return re.sub(r'[\n\r\t]', lambda m: repr(m.group(0))[1:-1], lexeme)
             return str(lexeme)
         
-        for case_idx, testcase in enumerate(testcases, start=1):
+        for case_idx, table in enumerate(testcases, start=1):
             # Calculate column widths dynamically for each test case
             lexeme_width = 0
             token_width = 0
             lineno_width = 8   # Fixed width for line number
             linepos_width = 8  # Fixed width for line position
+
+            output_table = table[0]
+            error_table = table[1]
             
-            for lexeme, token, lineno, linepos in testcase:
+            for lexeme, token, lineno, linepos in output_table:
                 lexeme_str = escape_repr(lexeme)  
                 lexeme_display = lexeme_str[:max_lexeme_length] + ("..." if len(lexeme_str) > max_lexeme_length else "")
                 
@@ -232,14 +243,17 @@ class Lexer(object):
             print('-' * len(header))
             
             # Print all tokens in the test case
-            for lexeme, token, lineno, linepos in testcase:
+            for lexeme, token, lineno, linepos in output_table:
                 lexeme_str = escape_repr(lexeme)
                 lexeme_display = lexeme_str[:max_lexeme_length] + ("..." if len(lexeme_str) > max_lexeme_length else "")
                 
                 print(f"{lexeme_display.ljust(lexeme_width)}  {token.ljust(token_width)}  {str(lineno).rjust(lineno_width)}  {str(linepos).rjust(linepos_width)}")
 
+            for error in error_table:
+                print(error)
+
 if __name__ == "__main__":
     lexer = Lexer()
     lexer.build()
-    output_tables = lexer.test()
-    lexer.pretty_print_testcases(output_tables)
+    tables = lexer.test()
+    lexer.pretty_print_testcases(tables)
