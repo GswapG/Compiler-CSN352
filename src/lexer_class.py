@@ -58,25 +58,28 @@ class Lexer(object):
         r'\"([^\\\n]|(\\.))*?\"'
         # t.value = t.value[1:-1]
         # adding quotes in string literals
+        t.type = 'STRING_LITERAL'
         t.value = t.value.encode().decode('unicode_escape')
         return t
 
     # Float matching
     def t_FLOAT(self, t):
         r'\d+\.\d*'
+        t.type = 'CONSTANT'
         t.value = float(t.value)
         return t
 
     # Integer matching
     def t_INTEGER(self, t):
         r'\d+'
+        t.type = 'CONSTANT'
         t.value = int(t.value)
         return t
 
     # Bitwise Assignment Operator matching
     def t_BITWISE_ASSIGNMENT(self, t):
         r'&=|\|=|\^=|<<=|>>='
-        t.type = bitwise_assignment_operators.get(t.value)
+        t.type = assignment_operators.get(t.value)
         return t
     
     # Logical Operator matching
@@ -108,7 +111,7 @@ class Lexer(object):
         r'\+\+|\-\-|\*|\/|%|\+|\-'
         t.type = arithmetic_operators.get(t.value)
         return t
-    
+
     def t_TERNARY(self, t):
         r'\?|\:'
         t.type = ternary_operators.get(t.value)
@@ -260,7 +263,7 @@ class Lexer(object):
                 lexeme_str = escape_repr(lexeme)
                 lexeme_display = lexeme_str[:max_lexeme_length-3] + ("..." if len(lexeme_str) > max_lexeme_length else "")
                 
-                print(f"{lexeme_display.ljust(lexeme_width)}  {token.ljust(token_width)}  {str(lineno).ljust(lineno_width)}  {str(linepos).ljust(linepos_width)}")
+                print(f"{lexeme_display.ljust(lexeme_width)}  {str(token).ljust(token_width)}  {str(lineno).ljust(lineno_width)}  {str(linepos).ljust(linepos_width)}")
                 file_line = lineno
             print('-' * len(header))
             for error in error_table:
