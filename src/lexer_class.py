@@ -55,7 +55,7 @@ class Lexer(object):
 
     # String literal matching
     def t_STRING(self, t):
-        r'"(\\.|(?!\\n").)*"'
+        r'\"([^\\\n]|(\\.))*?\"'
         # t.value = t.value[1:-1]
         # adding quotes in string literals
         t.value = t.value.encode().decode('unicode_escape')

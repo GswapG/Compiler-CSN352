@@ -152,10 +152,6 @@ def t_mcomment_error(t):
     print(f"Illegal character '{t.value[0]}' inside comment at line {t.lineno}, position {t.lexpos}")
     t.lexer.skip(1)
 
-
-
-
-
 # Some utils
 def read_c_file(path):
     with open(path, 'r') as f:
