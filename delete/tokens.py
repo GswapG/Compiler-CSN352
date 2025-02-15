@@ -128,7 +128,7 @@ other_tokens = {
     'ENUMERATION_CONSTANT': 'IDENTIFIER',  # Changed to match grammar
     'PTR_OP': 'PTR_OP',
     'FUNC_NAME': 'IDENTIFIER',  # Changed to match grammar
-    'TYPE_NAME': 'TYPE_NAME'
+    #'TYPE_NAME': 'TYPE_NAME'
 }
 
 # Combine all tokens into a single list
