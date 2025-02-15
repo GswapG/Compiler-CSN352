@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import ply.yacc as yacc
+import os
 from lexer import *
 from tokens import tokens  # Assuming you have a matching lexer
 
@@ -52,8 +53,8 @@ def p_generic_assoc_list(p):
     pass
 
 def p_generic_association(p):
-    '''generic_association : type_name ':' assignment_expression
-                          | DEFAULT ':' assignment_expression'''
+    '''generic_association : type_name COLON assignment_expression
+                          | DEFAULT COLON assignment_expression'''
     pass
 
 # Postfix expressions
@@ -162,7 +163,7 @@ def p_logical_or_expression(p):
 
 def p_conditional_expression(p):
     '''conditional_expression : logical_or_expression
-                             | logical_or_expression QUESTION expression ':' conditional_expression'''
+                             | logical_or_expression QUESTION expression COLON conditional_expression'''
     pass
 
 def p_assignment_expression(p):
@@ -284,7 +285,7 @@ def p_struct_declarator_list(p):
 	                          | struct_declarator_list COMMA struct_declarator'''
 def p_struct_declarator(p):
     '''struct_declarator : COLON constant_expression
-	                     | declarator ':' constant_expression
+	                     | declarator COLON constant_expression
 	                     | declarator'''
 def p_enum_specifier(p):
     '''enum_specifier : ENUM LBRACE enumerator_list RBRACE
@@ -468,9 +469,9 @@ def p_statement(p):
     pass
 
 def p_labeled_statement(p):
-    '''labeled_statement : IDENTIFIER ':' statement
-                        | CASE constant_expression ':' statement
-                        | DEFAULT ':' statement'''
+    '''labeled_statement : IDENTIFIER COLON statement
+                        | CASE constant_expression COLON statement
+                        | DEFAULT COLON statement'''
     pass
 
 def p_compound_statement(p):
@@ -531,18 +532,16 @@ def p_error(p):
     else:
         print("Syntax error at EOF")
 
-# Build the parser
+
 parser = yacc.yacc()
-data = '''
-int main()
-{
-int i=0;
-printf(i);
-int j=0;
-for(int k=0;k<10;k++)
-{
-int x=2;
-}
-}
-'''
-parser.parse(data)
+testcases_dir = './testcases'
+# Iterate over all files in the directory
+for filename in os.listdir(testcases_dir):
+    filepath = os.path.join(testcases_dir, filename)
+    if os.path.isfile(filepath):
+        with open(filepath, 'r') as file:
+            data = file.read()
+        print(f"Parsing file: {filepath}")
+        result = parser.parse(data)
+        # Optionally process or print the result for each file
+        print(result)

@@ -142,7 +142,7 @@ def t_COMMA(t):
     return t
 
 # Period
-def t_PERIOD(t):
+def t_DOT(t):
     r'\.'
     return t
 
