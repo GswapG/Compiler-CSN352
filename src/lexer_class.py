@@ -69,7 +69,7 @@ class Lexer(object):
 
     # Integer matching
     def t_INTEGER(self, t):
-        r'-?\d+'
+        r'\d+'
         t.value = int(t.value)
         return t
 
