@@ -386,8 +386,8 @@ def p_selection_statement(p):
 def p_iteration_statement(p):
     '''iteration_statement : WHILE LPAREN expression RPAREN statement
                            | DO statement WHILE LPAREN expression RPAREN SEMICOLON
-                           | FOR LPAREN expression_statement expression_statement RPAREN statement
-                           | FOR LPAREN expression_statement expression_statement expression RPAREN statement
+                           | FOR LPAREN declaration expression_statement RPAREN statement
+                           | FOR LPAREN declaration expression_statement expression RPAREN statement
     '''
 
 def p_jump_statement(p):
@@ -421,13 +421,20 @@ def p_error(p):
 
 parser = yacc.yacc() 
 
-while True:
-    try:
-        s = input("Enter expression: ")
-    except EOFError:
-        break
-    if not s:
-        continue
-    print(s.encode('unicode-escape'))
-    result = parser.parse(s)
-    print(result)
+# while True:
+    # try:
+    #     s = input("Enter expression: ")
+    # except EOFError:
+    #     break
+    # if not s:
+    #     continue
+    # print(s.encode('unicode-escape'))
+data = """
+int main(){
+    int i = 0;
+    func(0);
+    int j = 0;
+}
+"""
+result = parser.parse(data)
+print(result)
