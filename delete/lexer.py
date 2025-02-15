@@ -58,7 +58,7 @@ def t_FLOAT(t):
 
 # Integer matching
 def t_INTEGER(t):
-    r'-?\d+'
+    r'\d+'
     t.type = 'CONSTANT'
     t.value = int(t.value)
     return t
