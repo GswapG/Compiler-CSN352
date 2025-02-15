@@ -45,25 +45,28 @@ def t_STRING(t):
     r'\"([^\\\n]|(\\.))*?\"'
     # t.value = t.value[1:-1]
     # adding quotes in string literals
+    t.type = 'STRING_LITERAL'
     t.value = t.value.encode().decode('unicode_escape')
     return t
 
 # Float matching
 def t_FLOAT(t):
     r'\d+\.\d*'
+    t.type = 'CONSTANT'
     t.value = float(t.value)
     return t
 
 # Integer matching
 def t_INTEGER(t):
     r'-?\d+'
+    t.type = 'CONSTANT'
     t.value = int(t.value)
     return t
 
 # Bitwise Assignment Operator matching
 def t_BITWISE_ASSIGNMENT(t):
     r'&=|\|=|\^=|<<=|>>='
-    t.type = bitwise_assignment_operators.get(t.value)
+    t.type = assignment_operators.get(t.value)
     return t
 
 # Logical Operator matching

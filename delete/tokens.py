@@ -52,7 +52,9 @@ arithmetic_operators = {
     '-': 'MINUS',
     '*': 'TIMES',
     '/': 'DIVIDE',
-    '%': 'MOD'
+    '%': 'MOD',
+    '++': 'INC_OP',
+    '--': 'DEC_OP'
 }
 
 # Relational Operators Dictionary
@@ -84,7 +86,7 @@ logical_operators = {
 
 # Assignment Operators Dictionary
 assignment_operators = {
-    '=': 'EQUALS',
+    '=': 'ASSIGN',
     '+=': 'ADD_ASSIGN',
     '-=': 'SUB_ASSIGN',
     '*=': 'MUL_ASSIGN',
@@ -95,12 +97,6 @@ assignment_operators = {
     '&=': 'AND_ASSIGN',
     '^=': 'XOR_ASSIGN',
     '|=': 'OR_ASSIGN'
-}
-
-# Increment/Decrement Operators
-inc_dec_operators = {
-    '++': 'INC_OP',
-    '--': 'DEC_OP'
 }
 
 # Ternary Operators Dictionary
@@ -126,27 +122,27 @@ punctuators = {
 # Other Tokens
 other_tokens = {
     'IDENTIFIER': 'IDENTIFIER',
-    'I_CONSTANT': 'I_CONSTANT',
-    'F_CONSTANT': 'F_CONSTANT',
+    'I_CONSTANT': 'CONSTANT',  # Changed to match grammar
+    'F_CONSTANT': 'CONSTANT',  # Changed to match grammar
     'STRING_LITERAL': 'STRING_LITERAL',
-    'ENUMERATION_CONSTANT': 'ENUMERATION_CONSTANT',
+    'ENUMERATION_CONSTANT': 'IDENTIFIER',  # Changed to match grammar
     'PTR_OP': 'PTR_OP',
-    'FUNC_NAME': 'FUNC_NAME'
+    'FUNC_NAME': 'IDENTIFIER',  # Changed to match grammar
+    'TYPE_NAME': 'TYPE_NAME'
 }
 
 # Combine all tokens into a single list
-tokens = [
-    'INTEGER',
-] + (
+tokens = (
     list(reserved_keywords.values()) +
     list(arithmetic_operators.values()) +
     list(relational_operators.values()) +
     list(bitwise_operators.values()) +
     list(logical_operators.values()) +
     list(assignment_operators.values()) +
-    list(inc_dec_operators.values()) +
     list(ternary_operators.values()) +
     list(punctuators.values()) +
     list(other_tokens.values())
 )
 
+# Ensure no duplicates
+tokens = list(set(tokens))
