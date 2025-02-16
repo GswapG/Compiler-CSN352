@@ -522,13 +522,16 @@ def p_function_definition(p):
     '''function_definition : declaration_specifiers declarator declaration_list compound_statement
                            | declaration_specifiers declarator compound_statement'''
     pass
+
 def p_declaration_list(p):
     '''declaration_list : declaration
 	                    | declaration_list declaration'''
+    pass
+
 # Error handling
 def p_error(p):
     if p:
-        print(f"Syntax error at '{p}' (line {p.lineno})")
+        print(f"Syntax error at '{p}' (line {p.lineno}): {lines[p.lineno - 1]}")
     else:
         print("Syntax error at EOF")
 
@@ -542,6 +545,9 @@ for filename in os.listdir(testcases_dir):
         with open(filepath, 'r') as file:
             data = file.read()
         print(f"Parsing file: {filepath}")
-        result = parser.parse(data)
+        lines = data.split('\n')
+
+        parser.parse(data)
+
         # Optionally process or print the result for each file
-        print(result)
+

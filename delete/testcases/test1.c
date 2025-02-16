@@ -132,11 +132,17 @@ int main(void) {
 
     /* Array of function pointers */
     func_ptr functions[2];
-    functions[0] = add;
-    functions[1] = multiply;
-    for (i = 0; i < 2; i++) {
-        result = functions[i](a, b);
-    }
+    // functions[0] = add;
+    // functions[1] = multiply;
+    // for (i = 0; i < 2; i++) {
+    //     result = functions[i](a, b);
+    // }
+
+    while (1 == 1) {
+        for (int i = 1, j = 1; i <= 100 && j <= 1000; i++) {
+            printf("what the fuck is this %d\n%d", i, j);
+        }
+    }   
 
     asm_example();
 
