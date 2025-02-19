@@ -316,7 +316,11 @@ def p_declaration(p):
     '''declaration : declaration_specifiers SEMICOLON
                   | declaration_specifiers init_declarator_list SEMICOLON
                   | static_assert_declaration'''
-    p[0] = Node("declaration", [p[1], p[2]])
+    # p[0] = Node("declaration", [p[1], p[2]])
+    if len(p) == 4:
+        p[0] = Node("declaration",[p[1],p[2]])
+    else :
+        p[0] = Node("declaration",[p[1]]) #fixed
 
 def p_declaration_specifiers(p):
     '''declaration_specifiers : storage_class_specifier
