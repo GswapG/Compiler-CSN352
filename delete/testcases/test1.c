@@ -149,6 +149,14 @@ int main(void) {
     one_func();
     two_func();
     three_func();
-
+    if(a){
+        func();
+    }
+    else if(b){
+        func2();
+    }
+    else{
+        func3();
+    }
     return 0;
 }

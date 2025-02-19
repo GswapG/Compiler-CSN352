@@ -178,3 +178,5 @@ bin
 # features.txt
 tempCodeRunnerFile*
 parser.out
+ast
+ast.*

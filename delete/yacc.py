@@ -379,8 +379,8 @@ def p_type_specifier(p):
 
 # Structures and Unions
 def p_struct_or_union_specifier(p):
-    '''struct_or_union_specifier : struct_or_union LBRACE struct_declaration_list RBRACE
-                                | struct_or_union IDENTIFIER LBRACE struct_declaration_list RBRACE
+    '''struct_or_union_specifier : struct_or_union LBRACE struct_declaration_list RBRACE 
+                                | struct_or_union IDENTIFIER LBRACE struct_declaration_list RBRACE 
                                 | struct_or_union IDENTIFIER'''
     if len(p) == 5:
         p[0] = Node("struct_or_union_specifier", [p[1], p[3]])
@@ -817,10 +817,10 @@ def p_selection_statement(p):
     '''selection_statement : IF LPAREN expression RPAREN statement ELSE statement
                           | IF LPAREN expression RPAREN statement
                           | SWITCH LPAREN expression RPAREN statement'''
-    if len(p) == 6:
-        p[0] = Node("selection_statement", [p[3], p[5]])
-    elif len(p) == 4:
-        p[0] = Node("selection_statement", [p[3], p[1]])
+    if len(p) == 8:
+        p[0] = Node("selection_statement", [p[1], p[3], p[5], p[6], p[7]])
+    elif len(p) == 6:
+        p[0] = Node("selection_statement", [p[1], p[3], p[5]])
 
 
 def p_iteration_statement(p):
@@ -882,12 +882,14 @@ testcases_dir = './testcases'
 
 #         parser.parse(data)
 data = '''
-struct hello{
-    int a;
-    int b;
-};
 int main(){
     int v = 'v';
+    if(a){
+        func2();
+    }
+    else{
+        func();
+    }
 }
 '''
 lines = data.split('\n')
