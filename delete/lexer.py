@@ -9,7 +9,7 @@ states = (
 )
 
 # Simple tokens
-t_CHAR = r'(\'.\')|(\'\\.\')'
+t_CHAR_CONSTANT = r'(\'.\')|(\'\\.\')'
 
 # Ignored characters
 t_ignore = ' \t'

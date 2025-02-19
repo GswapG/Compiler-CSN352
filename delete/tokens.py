@@ -124,6 +124,7 @@ other_tokens = {
     'IDENTIFIER': 'IDENTIFIER',
     'I_CONSTANT': 'CONSTANT',  # Changed to match grammar
     'F_CONSTANT': 'CONSTANT',  # Changed to match grammar
+    'CHAR_CONSTANT' : 'CHAR_CONSTANT',
     'STRING_LITERAL': 'STRING_LITERAL',
     'ENUMERATION_CONSTANT': 'IDENTIFIER',  # Changed to match grammar
     'PTR_OP': 'PTR_OP',

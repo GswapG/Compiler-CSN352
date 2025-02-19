@@ -4,7 +4,7 @@ import os
 from lexer import *
 from collections import deque
 from tokens import tokens  # Assuming you have a matching lexer
-
+from graphviz import Digraph
 # AST
 
 class Node:
@@ -14,6 +14,25 @@ class Node:
             self.children = children
         else:
             children = []
+    def __repr__(self):
+        return f"Node({self.type})"
+
+    def to_graph(self, graph=None):
+        if graph is None:
+            graph = Digraph()
+            graph.node(str(id(self)), label=self.type)
+        
+        for child in self.children:
+            if isinstance(child, Node):
+                graph.node(str(id(child)), label=child.type)
+                graph.edge(str(id(self)), str(id(child)))
+                child.to_graph(graph)
+            else:
+                child_id = f"{id(self)}_{id(child)}"
+                graph.node(child_id, label=str(child))
+                graph.edge(str(id(self)), child_id)
+        
+        return graph
     
 def dfs(node, indent=0):
     """Recursively prints the AST."""
@@ -71,6 +90,7 @@ def p_primary_expression(p):
 
 def p_constant(p):
     '''constant : CONSTANT
+                | CHAR_CONSTANT
                 | enumeration_constant'''
     p[0] = Node("constant", [p[1]])  # Include the constant value
 
@@ -493,10 +513,12 @@ def p_declarator(p):
     '''declarator : pointer direct_declarator
                  | direct_declarator'''
     if len(p) == 3:
+        print('1')
         p[0] = Node("declarator", [p[1], p[2]])
     else:
         p[0] = Node("declarator", [p[1]])
-    pass
+        print('2')
+    
 
 def p_direct_declarator(p):
     '''direct_declarator : IDENTIFIER
@@ -513,7 +535,7 @@ def p_direct_declarator(p):
                         | direct_declarator LPAREN parameter_type_list RPAREN
                         | direct_declarator LPAREN RPAREN
                         | direct_declarator LPAREN identifier_list RPAREN '''
-    pass
+    ## FIX HERE ##
 
 # Pointers
 def p_pointer(p):
@@ -806,14 +828,15 @@ testcases_dir = './testcases'
 #         parser.parse(data)
 data = '''
 int main(){
-    char * ptr = "hello world";
+    int v = 'v';
 }
 '''
 lines = data.split('\n')
 root = parser.parse(data)
 # root.traverse()
-print(root)
+graph = root.to_graph()
+graph.render('ast', format='png', view=True)
 # dfs(root)
-level_order(root)
+# level_order(root)
 # Optionally process or print the result for each file
 
