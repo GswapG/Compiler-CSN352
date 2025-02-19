@@ -522,7 +522,7 @@ def p_declarator(p):
 
 def p_direct_declarator(p):
     '''direct_declarator : IDENTIFIER
-                        | LPAREN declarator RPAREN
+                        | LPAREN declarator RPAREN 
                         | direct_declarator LBRACKET RBRACKET
                         | direct_declarator LBRACKET TIMES RBRACKET
                         | direct_declarator LBRACKET STATIC type_qualifier_list assignment_expression RBRACKET
@@ -535,7 +535,58 @@ def p_direct_declarator(p):
                         | direct_declarator LPAREN parameter_type_list RPAREN
                         | direct_declarator LPAREN RPAREN
                         | direct_declarator LPAREN identifier_list RPAREN '''
-    ## FIX HERE ##
+    
+    # IDENTIFIER case
+    if len(p) == 2:
+        p[0] = Node("direct_declarator", [p[1]])
+    
+    # LPAREN declarator RPAREN case
+    elif len(p) == 4 and p[1] == '(':
+        p[0] = Node("direct_declarator", [p[2]])
+    
+    # direct_declarator LBRACKET RBRACKET case
+    elif len(p) == 4 and p[2] == '[':
+        p[0] = Node("array_declarator", [p[1]])
+    
+    # direct_declarator LBRACKET TIMES RBRACKET case
+    elif len(p) == 5 and p[2] == '[' and p[3] == '*':
+        p[0] = Node("vla_declarator", [p[1]])
+    
+    # direct_declarator LBRACKET assignment_expression RBRACKET case
+    elif len(p) == 5 and p[2] == '[' and p[3] != '*':
+        p[0] = Node("array_declarator", [p[1], p[3]])
+    
+    # direct_declarator LPAREN RPAREN case
+    elif len(p) == 4 and p[2] == '(' and p[3] == ')':
+        p[0] = Node("function_declarator", [p[1]])
+    
+    # direct_declarator LPAREN parameter_type_list RPAREN or identifier_list case
+    elif len(p) == 5 and p[2] == '(':
+        p[0] = Node("function_declarator", [p[1], p[3]])
+    
+    # direct_declarator LBRACKET type_qualifier_list RBRACKET case
+    elif len(p) == 5 and p[2] == '[' and p[3] != '*':
+        p[0] = Node("qualified_array_declarator", [p[1], p[3]])
+    
+    # direct_declarator LBRACKET STATIC assignment_expression RBRACKET case
+    elif len(p) == 6 and p[2] == '[' and p[3] == 'static':
+        p[0] = Node("static_array_declarator", [p[1], p[4]])
+    
+    # direct_declarator LBRACKET type_qualifier_list TIMES RBRACKET case
+    elif len(p) == 6 and p[2] == '[' and p[4] == '*':
+        p[0] = Node("qualified_vla_declarator", [p[1], p[3]])
+    
+    # direct_declarator LBRACKET type_qualifier_list assignment_expression RBRACKET case
+    elif len(p) == 6 and p[2] == '[' and p[4] != '*':
+        p[0] = Node("qualified_array_declarator", [p[1], p[3], p[4]])
+    
+    # direct_declarator LBRACKET STATIC type_qualifier_list assignment_expression RBRACKET case
+    elif len(p) == 7 and p[3] == 'static':
+        p[0] = Node("static_qualified_array_declarator", [p[1], p[4], p[5]])
+    
+    # direct_declarator LBRACKET type_qualifier_list STATIC assignment_expression RBRACKET case
+    elif len(p) == 7 and p[4] == 'static':
+        p[0] = Node("qualified_static_array_declarator", [p[1], p[3], p[5]])
 
 # Pointers
 def p_pointer(p):
@@ -827,6 +878,9 @@ testcases_dir = './testcases'
 
 #         parser.parse(data)
 data = '''
+void fun(){
+char c = 'c';
+}
 int main(){
     int v = 'v';
 }
