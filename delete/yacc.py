@@ -901,6 +901,6 @@ for filename in os.listdir(testcases_dir):
 
         root = parser.parse(data)
         graph = root.to_graph()
-        graph.render(f'renderedTrees/ast{i}', format='png')
+        graph.render(f'renderedTrees/parseTree{i}', format='png')
         i += 1
 
