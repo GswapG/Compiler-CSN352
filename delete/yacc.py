@@ -462,14 +462,12 @@ def p_enum_specifier(p):
                      | ENUM IDENTIFIER LBRACE enumerator_list RBRACE
                      | ENUM IDENTIFIER LBRACE enumerator_list COMMA RBRACE
                      | ENUM IDENTIFIER'''
-    if len(p) == 4:
-        p[0] = Node("enum_specifier", [p[1], p[3]])
-    elif len(p) == 5:
-        p[0] = Node("enum_specifier", [p[1], p[2], p[4]])
-    elif len(p) == 6:
-        p[0] = Node("enum_specifier", [p[1], p[2], p[4], p[5]])
-    else:
+    if len(p) == 3:
         p[0] = Node("enum_specifier", [p[1], p[2]])
+    elif len(p) == 6 and p[1] == '{':
+        p[0] = Node("enum_specifier", [p[1], p[3]])
+    else:
+        p[0] = Node("enum_specifier", [p[1], p[2], p[4]])
     pass
 
 def p_enumerator_list(p):
@@ -782,10 +780,10 @@ def p_labeled_statement(p):
                         | DEFAULT COLON statement'''
     if len(p) == 4 and p[2] == ':':
         p[0] = Node("labeled_statement", [p[1], p[3]])
-    elif len(p) == 4 and p[1] == 'case':
-        p[0] = Node("labeled_statement", [p[2], p[4]])
-    elif len(p) == 3:
-        p[0] = Node("labeled_statement", [p[1], p[2]])
+    elif len(p) == 5 and p[1] == 'case':
+        p[0] = Node("labeled_statement", [p[1], p[2], p[4]])
+    elif len(p) == 4:
+        p[0] = Node("labeled_statement", [p[1], p[3]])
 
 
 def p_compound_statement(p):
@@ -838,18 +836,29 @@ def p_iteration_statement(p):
                           | FOR LPAREN expression_statement expression_statement expression RPAREN statement
                           | FOR LPAREN declaration expression_statement RPAREN statement
                           | FOR LPAREN declaration expression_statement expression RPAREN statement'''
-    p[0] = Node("iteration_statement", [p[2], p[4]])
-
+    # p[0] = Node("iteration_statement", [p[2], p[4]])
+    # While loop vale
+    if p[1] == "while":
+        p[0] = Node("iteration_statement", [p[1], p[3],p[5]])
+    # Do while loop vale
+    elif p[1] == 'do':
+        p[0] = Node("iteration_statement", [p[1],p[2],p[3],p[5]])
+    # For loop vale
+    elif p[1] == 'for':
+        if len(p) == 7:
+            p[0] = Node("iteration_statement", [p[1], p[3], p[4],p[6]])
+        else:
+            p[0] = Node("iteration_statement", [p[1], p[3], p[4],p[5],p[7]])
 
 def p_jump_statement(p):
     '''jump_statement : GOTO IDENTIFIER SEMICOLON
                      | CONTINUE SEMICOLON
                      | BREAK SEMICOLON
                      | RETURN SEMICOLON
-                     | RETURN expression SEMICOLON '''
-    if len(p) == 2:
+                     | RETURN expression SEMICOLON'''
+    if len(p) == 3:
         p[0] = Node("jump_statement", [p[1]])
-    elif len(p) == 3:
+    elif len(p) == 4:
         p[0] = Node("jump_statement", [p[1], p[2]])
 
 
@@ -889,7 +898,7 @@ testcases_dir = './testcases'
 #         lines = data.split('\n')
 
 #         parser.parse(data)
-data = '''
+data = r'''
 /* Pure C Code Stress Test (No Preprocessor Processing) */
 
 /* Structures, Unions, and Enumerations */
@@ -990,6 +999,9 @@ void switch_example(int n) {
 
 /* Inline function (using C99 semantics) */
 static inline int inline_function(int a, int b) {
+    for(int i = 0;i<n;i++){
+        continue;
+    }
     return a - b;
 }
 
@@ -1029,6 +1041,13 @@ int main(void) {
     // // for (i = 0; i < 2; i++) {
     // //     result = functions[i](a, b);
     // // }
+
+    while (1 == 1) {
+         for (int i = 1, j = 1; i <= 100 && j <= 1000; i++) {
+             printf("what the fuck is this %d\n%d", i, j);
+         }
+         break;
+    }   
 
     asm_example();
 
