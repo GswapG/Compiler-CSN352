@@ -123,8 +123,8 @@ def p_generic_association(p):
 def p_postfix_expression(p):
     '''postfix_expression : primary_expression
                          | postfix_expression LBRACKET expression RBRACKET
-                         | postfix_expression LPAREN RPAREN
                          | postfix_expression LPAREN argument_expression_list RPAREN
+                         | postfix_expression LPAREN RPAREN
                          | postfix_expression DOT IDENTIFIER
                          | postfix_expression PTR_OP IDENTIFIER
                          | postfix_expression INC_OP
@@ -133,10 +133,18 @@ def p_postfix_expression(p):
                          | LPAREN type_name RPAREN LBRACE initializer_list COMMA RBRACE '''
     if len(p) == 2:
         p[0] = Node("postfix_expression", [p[1]])
-    elif len(p) == 4:
+    if len(p) == 3:
+        p[0] = Node("postfix_expression", [p[2]])
+    elif len(p) == 4 and p[3]!=")":
         p[0] = Node("postfix_expression", [p[1], p[3]])
+    elif len(p) == 4:
+        p[0] = Node("postfix_expression", [p[1]])
     elif len(p) == 5:
-        p[0] = Node("postfix_expression", [p[1], p[2], p[4]])
+        p[0] = Node("postfix_expression", [p[1], p[3]])
+    elif len(p) == 7:
+        p[0] = Node("postfix_expression", [p[2], p[5]])
+    elif len(p) == 8:
+        p[0] = Node("postfix_expression", [p[2], p[5]])
 
 def p_argument_expression_list(p):
     '''argument_expression_list : assignment_expression
@@ -379,8 +387,8 @@ def p_type_specifier(p):
 
 # Structures and Unions
 def p_struct_or_union_specifier(p):
-    '''struct_or_union_specifier : struct_or_union LBRACE struct_declaration_list RBRACE 
-                                | struct_or_union IDENTIFIER LBRACE struct_declaration_list RBRACE 
+    '''struct_or_union_specifier : struct_or_union LBRACE struct_declaration_list RBRACE
+                                | struct_or_union IDENTIFIER LBRACE struct_declaration_list RBRACE
                                 | struct_or_union IDENTIFIER'''
     if len(p) == 5:
         p[0] = Node("struct_or_union_specifier", [p[1], p[3]])
@@ -882,13 +890,17 @@ testcases_dir = './testcases'
 
 #         parser.parse(data)
 data = '''
+struct hello{
+    int a;
+    int b;
+};
 int main(){
-    int v = 'v';
     if(a){
-        func2();
+    func2();
+    int a=b+c;
     }
     else{
-        func();
+    func();
     }
 }
 '''
