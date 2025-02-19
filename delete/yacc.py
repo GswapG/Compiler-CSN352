@@ -378,9 +378,9 @@ def p_struct_or_union_specifier(p):
     '''struct_or_union_specifier : struct_or_union LBRACE struct_declaration_list RBRACE
                                 | struct_or_union IDENTIFIER LBRACE struct_declaration_list RBRACE
                                 | struct_or_union IDENTIFIER'''
-    if len(p) == 4:
+    if len(p) == 5:
         p[0] = Node("struct_or_union_specifier", [p[1], p[3]])
-    elif len(p) == 5:
+    elif len(p) == 6:
         p[0] = Node("struct_or_union_specifier", [p[1], p[2], p[4]])
     else:
         p[0] = Node("struct_or_union_specifier", [p[1], p[2]])
@@ -405,7 +405,7 @@ def p_struct_declaration(p):
     '''struct_declaration : specifier_qualifier_list SEMICOLON
                          | specifier_qualifier_list struct_declarator_list SEMICOLON
                          | static_assert_declaration'''
-    if len(p) == 3:
+    if len(p) == 4:
         p[0] = Node("struct_declaration", [p[1], p[2]])
     else:
         p[0] = Node("struct_declaration", [p[1]])
@@ -878,9 +878,10 @@ testcases_dir = './testcases'
 
 #         parser.parse(data)
 data = '''
-void fun(){
-char c = 'c';
-}
+struct hello{
+    int a;
+    int b;
+};
 int main(){
     int v = 'v';
 }
