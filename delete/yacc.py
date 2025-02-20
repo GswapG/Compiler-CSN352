@@ -329,6 +329,10 @@ def p_declaration(p):
     else :
         p[0] = Node("declaration",[p[1]]) #fixed
 
+def p_declaration_error(p):
+    '''declaration : declaration_specifiers init_declarator_list error'''
+    print("Error: Missing Semicolon")
+
 def p_declaration_specifiers(p):
     '''declaration_specifiers : storage_class_specifier
                               | storage_class_specifier declaration_specifiers
@@ -909,12 +913,12 @@ def p_error(p):
     print("========================================")
 
     # panic mode recovery 
-    while True:
-        tok = parser.token()
-        if not tok or tok.type == 'RBRACE' or tok.type == 'SEMICOLON':
-            break 
+    # while True:
+    #     tok = parser.token()
+    #     if not tok or tok.type == 'RBRACE' or tok.type == 'SEMICOLON':
+    #         break 
     
-    parser.restart()
+    # parser.restart()
 
 # Build parser
 parser = yacc.yacc()
