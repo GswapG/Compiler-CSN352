@@ -160,9 +160,16 @@ def p_postfix_expression_error(p):
     '''postfix_expression : postfix_expression LPAREN argument_expression_list error
                          | postfix_expression LPAREN error
                          | LPAREN type_name error LBRACE initializer_list RBRACE
-                         | LPAREN type_name error LBRACE initializer_list COMMA RBRACE '''
-    
-    print("Error: Missing ')' Paranthesis")
+                         | LPAREN type_name error LBRACE initializer_list COMMA RBRACE 
+                         | LPAREN type_name RPAREN LBRACE initializer_list error
+                         | LPAREN type_name RPAREN LBRACE initializer_list COMMA error '''
+    if p[1] == '(':
+        if p[3] == ')':
+            print("Error: Missing '}' Brace")
+        else:
+            print("Error: Missing ')' Paranthesis")
+    else:
+        print("Error: Missing ')' Paranthesis")
 
 def p_argument_expression_list(p):
     '''argument_expression_list : assignment_expression
@@ -436,6 +443,13 @@ def p_struct_or_union_specifier(p):
         p[0] = Node("struct_or_union_specifier", [p[1], p[2]])
     pass
 
+def p_struct_or_union_specifier_error(p):
+    '''struct_or_union_specifier : struct_or_union LBRACE struct_declaration_list error
+                                | struct_or_union IDENTIFIER LBRACE struct_declaration_list error'''
+
+    print("Error: Missing '}' Brace")
+
+
 def p_struct_or_union(p):
     '''struct_or_union : STRUCT
                       | UNION'''
@@ -511,6 +525,14 @@ def p_enum_specifier(p):
     else:
         p[0] = Node("enum_specifier", [p[1], p[2], p[4]])
     pass
+
+def p_enum_specifier_error(p):
+    '''enum_specifier : ENUM LBRACE enumerator_list error
+                     | ENUM LBRACE enumerator_list COMMA error
+                     | ENUM IDENTIFIER LBRACE enumerator_list error
+                     | ENUM IDENTIFIER LBRACE enumerator_list COMMA error'''
+
+    print("Error: Missing '}' Brace")
 
 def p_enumerator_list(p):
     '''enumerator_list : enumerator
@@ -789,6 +811,12 @@ def p_initializer(p):
     else:  
         p[0] = Node("initializer", [p[1]])  
 
+def p_initializer_error(p):
+    '''initializer : LBRACE initializer_list error
+                   | LBRACE initializer_list COMMA error'''
+
+    print("Error: Missing '}' Brace")
+
 
 def p_initializer_list(p):
     '''initializer_list : designation initializer
@@ -871,6 +899,11 @@ def p_compound_statement(p):
     else:
         p[0] = Node("compound_statement", [p[2]])
 
+def p_compound_statement_error(p):
+    '''compound_statement : LBRACE error
+                         | LBRACE block_item_list error '''
+
+    print("Error: Missing '}' Brace")
 
 def p_block_item_list(p):
     '''block_item_list : block_item
@@ -1006,7 +1039,10 @@ def find_column(input_str, token):
 
 def p_error(p):
     if not p:
-        print("Syntax error at EOF")
+        print("========================================")
+        print("SYNTAX ERROR:")
+        print("Error: Right Braces '}' mismatch")
+        print("========================================")
         return 
 
     col = find_column(input_text, p)
@@ -1022,7 +1058,7 @@ def p_error(p):
 
     pointer = " " * (col - 1) + "^"
     print(pointer)
-    
+
 # Build parser
 parser = yacc.yacc()
 testcases_dir = './testcases'
