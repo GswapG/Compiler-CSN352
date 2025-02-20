@@ -877,26 +877,59 @@ def p_declaration_list(p):
     else:
         p[0] = Node("declaration_list", [p[1], p[2]])
 
+current_filename = ""
+lines = ""
+input_text = ""
 
-# Error handling
+def find_column(input_str, token):
+    """Compute the column number of a token (1-indexed)."""
+    last_newline = input_str.rfind('\n', 0, token.lexpos)
+    if last_newline < 0:
+        last_newline = -1
+    return token.lexpos - last_newline
+
 def p_error(p):
-    if p:
-        print(f"Syntax error at '{p}' (line {p.lineno}): {lines[p.lineno - 1]}")
-    else:
+    if not p:
         print("Syntax error at EOF")
+        return 
+
+    col = find_column(input_text, p)
+
+    print("========================================")
+    print("SYNTAX ERROR:")
+    print(f"  At line {p.lineno}, column {col}")
+    print(f"  Offending token: {p.type} ('{p.value}')")
+    print("----------------------------------------")
+
+    error_line = lines[p.lineno - 1] if p.lineno - 1 < len(lines) else ""
+    print(error_line)
+
+    pointer = " " * (col - 1) + "^"
+    print(pointer)
+    print("========================================")
+
+    # panic mode recovery 
+    while True:
+        tok = parser.token()
+        if not tok or tok.type == 'RBRACE' or tok.type == 'SEMICOLON':
+            break 
+    
+    parser.restart()
 
 # Build parser
 parser = yacc.yacc()
 testcases_dir = './testcases'
 
 # Iterate over all files in the directory
-for filename in os.listdir(testcases_dir):
+for filename in os.listdir(testcases_dir): 
     filepath = os.path.join(testcases_dir, filename)
     i = 1
     if os.path.isfile(filepath):
         with open(filepath, 'r') as file:
             data = file.read()
         print(f"Parsing file: {filepath}")
+        current_filename = filepath
+        input_text = data
         lines = data.split('\n')
 
         root = parser.parse(data)
@@ -904,3 +937,5 @@ for filename in os.listdir(testcases_dir):
         graph.render(f'renderedTrees/parseTree{i}', format='png')
         i += 1
 
+    else:
+        print("Syntax error at EOF")
