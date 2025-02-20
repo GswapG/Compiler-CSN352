@@ -1120,6 +1120,29 @@ def p_error(p):
 parser = yacc.yacc()
 testcases_dir = './testcases'
 
+def print_symbol_table(symtab):
+    if not symtab:
+        print("Symbol table is empty")
+        return
+
+    # Calculate column widths
+    max_token = max(len(str(token)) for token, _ in symtab)
+    max_type = max(len(str(type_)) for _, type_ in symtab)
+    max_token = max(max_token, len("Token"))  # Ensure header fits
+    max_type = max(max_type, len("Type"))
+
+    # Define formatting strings
+    border = "+" + "-" * (max_token + 2) + "+" + "-" * (max_type + 2) + "+"
+    row_format = f"| {{:<{max_token}}} | {{:<{max_type}}} |"
+
+    # Print table
+    print(border)
+    print(row_format.format("Token", "Type"))
+    print(border)
+    for token, type_ in symtab:
+        print(row_format.format(str(token), str(type_)))
+    print(border)
+
 # Iterate over all files in the directory
 for filename in os.listdir(testcases_dir): 
     filepath = os.path.join(testcases_dir, filename)
@@ -1133,7 +1156,7 @@ for filename in os.listdir(testcases_dir):
         lines = data.split('\n')
 
         root = parser.parse(data)
-        print(symbol_table)
+        print_symbol_table(symbol_table)
         graph = root.to_graph()
         graph.render(f'renderedTrees/parseTree{i}', format='png')
         i += 1

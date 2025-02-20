@@ -1,37 +1,30 @@
-void hello(int a, int b, char x) {
+// union why {
+//     double c;
+//     float l;
+//     int ddd;
+// }
+// asdf;
+// int main(){
+//     int i = 1, j = 2;
+//     char c = ' ';
+//     double d;
 
-}
+//     unsigned long long char **p,*c;
+//     char hey [20][10];
+//     char arr[40] , brr[30] = {1};
 
-struct what {
-    double y, z;
-    float f;
-    int abc, def, ghi;
-};
+//     for (int k = 100, j = 10000; k <= 200; k++) {
 
-union why {
-    double c;
-    float l;
-    int ddd;
-};
+//     }
+//     5 = a;
+//     for()
+//     while (1) {
+//         unsigned int xyz;
 
-int main(){
-    int i = 1, j = 2;
-    char c = ' ';
-    double d;
+//     }
+// }
 
-    char **p, c;
-    char hey [10][10];
-    char arr[40] , brr[30] = {1};
 
-    for (int k = 100, j = 10000; k <= 200; k++) {
-
-    }
-
-    while (1) {
-        unsigned int xyz;
-
-    }
-}
 
 // VARIABLES
 // declaration .
