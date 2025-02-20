@@ -330,7 +330,9 @@ def p_declaration(p):
         p[0] = Node("declaration",[p[1]]) #fixed
 
 def p_declaration_error(p):
-    '''declaration : declaration_specifiers init_declarator_list error'''
+    '''declaration : declaration_specifiers error
+                  | declaration_specifiers init_declarator_list error'''
+    
     print("Error: Missing Semicolon")
 
 def p_declaration_specifiers(p):
@@ -428,6 +430,12 @@ def p_struct_declaration(p):
     else:
         p[0] = Node("struct_declaration", [p[1]])
     pass
+
+def p_struct_declaration_error(p):
+    '''struct_declaration : specifier_qualifier_list error
+                        | specifier_qualifier_list struct_declarator_list error'''
+
+    print(f"Error: Missing Semicolon")
 
 # Enums
 def p_specifier_qualifier_list(p):
@@ -763,8 +771,13 @@ def p_designator(p):
 
 # Static assertions
 def p_static_assert_declaration(p):
-    '''static_assert_declaration : STATIC_ASSERT LPAREN constant_expression COMMA STRING_LITERAL RPAREN SEMICOLON '''
+    '''static_assert_declaration : STATIC_ASSERT LPAREN constant_expression COMMA STRING_LITERAL RPAREN SEMICOLON'''
     p[0] = Node("static_assert_declaration", [p[3], p[5]])
+
+def p_static_assert_declaration_error(p):
+    '''static_assert_declaration : STATIC_ASSERT LPAREN constant_expression COMMA STRING_LITERAL RPAREN error'''
+
+    print("Error: Missing Semicolon")
 
 
 # Statements
@@ -822,6 +835,12 @@ def p_expression_statement(p):
     else:
         p[0] = Node("expression_statement", [p[1]])
 
+def p_expression_statement_error(p):
+    '''expression_statement : error
+                           | expression error'''
+    
+    print("Error: Missing Semicolon")
+
 
 def p_selection_statement(p):
     '''selection_statement : IF LPAREN expression RPAREN statement ELSE statement
@@ -854,6 +873,11 @@ def p_iteration_statement(p):
         else:
             p[0] = Node("iteration_statement", [p[1], p[3], p[4],p[5],p[7]])
 
+def p_iteration_statement_error(p):
+    '''iteration_statement : DO statement WHILE LPAREN expression RPAREN error'''
+
+    print("Error: Missing Semicolon")
+
 def p_jump_statement(p):
     '''jump_statement : GOTO IDENTIFIER SEMICOLON
                      | CONTINUE SEMICOLON
@@ -865,6 +889,14 @@ def p_jump_statement(p):
     elif len(p) == 4:
         p[0] = Node("jump_statement", [p[1], p[2]])
 
+def p_jump_statement_error(p):
+    '''jump_statement : GOTO IDENTIFIER error
+                     | CONTINUE error
+                     | BREAK error
+                     | RETURN error
+                     | RETURN expression error'''
+    
+    print("Error: Missing Semicolon")
 
 # Function definitions
 def p_function_definition(p):
@@ -902,7 +934,7 @@ def p_error(p):
     print("========================================")
     print("SYNTAX ERROR:")
     print(f"  At line {p.lineno}, column {col}")
-    print(f"  Offending token: {p.type} ('{p.value}')")
+    print(f"  Unexpected token: {p.type} ('{p.value}')")
     print("----------------------------------------")
 
     error_line = lines[p.lineno - 1] if p.lineno - 1 < len(lines) else ""
@@ -910,7 +942,6 @@ def p_error(p):
 
     pointer = " " * (col - 1) + "^"
     print(pointer)
-    print("========================================")
 
     # panic mode recovery 
     # while True:

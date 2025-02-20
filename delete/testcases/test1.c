@@ -1,3 +1,15 @@
+struct hello {
+    int a;
+};
+
 int main() {
-    int a = 5
+    char a = 5;
+    int b = 6;
+    do {
+        a = a * 2;
+    } while (a <= 100);
+
+    assert (a > 100);
+
+    return 0;
 }
