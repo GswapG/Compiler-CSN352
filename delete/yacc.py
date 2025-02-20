@@ -667,7 +667,6 @@ def p_direct_declarator(p):
     # IDENTIFIER case
     if len(p) == 2:
         p[0] = Node("direct_declarator", [p[1]])
-        print(p[1])
         p[0].vars.append(p[1])
     
     # LPAREN declarator RPAREN case
@@ -1117,7 +1116,6 @@ def p_error(p):
 
     pointer = " " * (col - 1) + "^"
     print(pointer)
-
 # Build parser
 parser = yacc.yacc()
 testcases_dir = './testcases'
@@ -1139,6 +1137,3 @@ for filename in os.listdir(testcases_dir):
         graph = root.to_graph()
         graph.render(f'renderedTrees/parseTree{i}', format='png')
         i += 1
-
-    else:
-        print("Syntax error at EOF")
