@@ -33,19 +33,104 @@ class Node:
         
         return graph
     
-def dfs(node, indent=0):
-    """Recursively prints the AST."""
-    # Check if the node is a string or a Node object
-    if isinstance(node, Node):
-        # Print the current node's type
-        print(" " * indent + f"Node: {node.type}")
-        
-        # Recursively print each child
+symbol_table = []
+variables_names = []
+    
+def get_type(node):
+    new_node = node
+    while isinstance(new_node, Node):
+        new_node = new_node.children[0]
+
+    return str(new_node)
+
+def get_names(node, imp_passed, array_passed, ptr_passed):
+    global variables_names
+
+    if imp_passed and not isinstance(node, Node):
+        if array_passed:
+            variables_names.append(str(node) + "_array")
+        elif ptr_passed:
+            variables_names.append(str(node) + "_ptr")
+        else:
+            variables_names.append(str(node))
+
+    elif isinstance(node, Node):
         for child in node.children:
-            dfs(child, indent + 4)
-    else:
-        print(" " * indent + f"Value: {node}")
-      
+            if not isinstance(child, Node):
+                get_names(child, (False | imp_passed), (False | array_passed), (False | ptr_passed))
+            else:
+                if str(child.type) == 'direct_declarator':
+                    if str(node.type) == 'array_declarator':
+                        get_names(child, (True | imp_passed), (True | array_passed), (False | ptr_passed))
+                        
+                    elif str(node.children[0].type) == 'pointer':
+                        get_names(child, (True | imp_passed), (False | array_passed), (True | ptr_passed))
+                    
+                    else:
+                        get_names(child, (True | imp_passed), (False | array_passed), (False | ptr_passed))
+                else:
+                    get_names(child, (False | imp_passed), (False | array_passed), (False | ptr_passed))
+
+func_names = []
+
+def get_funcname(node, passed):
+    global func_names
+
+    if passed and not isinstance(node, Node):
+        func_names.append(str(node))
+
+    elif isinstance(node, Node):
+        for child in node.children:
+            if not isinstance(child, Node):
+                get_funcname(child, (False | passed))
+            else:
+                if str(child.type) == 'function_declarator':
+                    get_funcname(child.children[0], (True | passed))
+                else:
+                    get_funcname(child, (False | passed))
+
+def dfs(node):
+    global variables_names, func_names
+    if isinstance(node,Node):
+
+        if str(node.type) == 'declaration' or str(node.type) == 'parameter_declaration':
+            try:
+                data_type = get_type(node.children[0])
+                get_names(node.children[1], False, False, False) 
+
+                for name in variables_names:
+                    symbol_table.append((name, data_type))
+                
+                variables_names = []
+
+            except:
+                pass
+
+        elif str(node.type) == 'struct_or_union_specifier':
+            data_type = get_type(node.children[0])
+            symbol_table.append((str(node.children[1]), data_type))
+            
+        elif str(node.type) == 'struct_declaration':
+            data_type = get_type(node.children[0])
+            get_names(node.children[1], False, False, False)
+
+            for name in variables_names:
+                symbol_table.append((name, data_type))
+            
+            variables_names = []
+
+        elif str(node.type) == 'function_definition':
+            data_type = get_type(node.children[0])
+            get_funcname(node.children[1], False)
+
+            for name in func_names:
+                symbol_table.append((name, data_type))
+
+            func_names = []
+
+        for child in node.children:
+            dfs(child)
+
 def level_order(node):
     queue = deque()
     queue.append(node)
@@ -437,7 +522,7 @@ def p_type_specifier(p):
 
 # Structures and Unions
 def p_struct_or_union_specifier(p):
-    '''struct_or_union_specifier : struct_or_union LBRACE struct_declaration_list RBRACE
+    '''struct_or_union_specifier : struct_or_union LBRACE struct_declaration_list RBRACE SEMICOLON
                                 | struct_or_union IDENTIFIER LBRACE struct_declaration_list RBRACE
                                 | struct_or_union IDENTIFIER'''
     if len(p) == 5:
@@ -1085,6 +1170,11 @@ for filename in os.listdir(testcases_dir):
         lines = data.split('\n')
 
         root = parser.parse(data)
+        dfs(root)
+
+        for entries in symbol_table:
+            print(entries[0], entries[1])
+
         graph = root.to_graph()
         graph.render(f'renderedTrees/parseTree{i}', format='png')
         i += 1
