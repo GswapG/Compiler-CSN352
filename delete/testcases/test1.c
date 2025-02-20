@@ -7,13 +7,13 @@ int main() {
     int b = 6;
     do {
         a = a * 2;
-     } while (a <= 100;
+     } while (a <= 100)
 
     for (; a<= 200; a++) {
-        a += 1;
+        a += 1
     }
 
-    assert (a > 100;
+    assert (a > 100)
 
     return 0;
 }

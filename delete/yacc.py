@@ -91,7 +91,7 @@ def p_primary_expression_error(p):
     '''primary_expression : LPAREN expression error'''
 
     print("Error: Missing ')' Paranthesis")
-    return
+
 
 def p_constant(p):
     '''constant : CONSTANT
@@ -156,20 +156,20 @@ def p_postfix_expression(p):
     elif len(p) == 8:
         p[0] = Node("postfix_expression", [p[2], p[5]])
 
-def p_postfix_expression_error(p):
+def p_postfix_expression_error_1(p):
+    '''postfix_expression : LPAREN type_name error LBRACE initializer_list RBRACE
+                         | LPAREN type_name error LBRACE initializer_list COMMA RBRACE '''
+
+    print("Error: Missing ')' Paranthesis")
+
+def p_postfix_expression_error_2(p):
     '''postfix_expression : postfix_expression LPAREN argument_expression_list error
                          | postfix_expression LPAREN error
-                         | LPAREN type_name error LBRACE initializer_list RBRACE
-                         | LPAREN type_name error LBRACE initializer_list COMMA RBRACE 
                          | LPAREN type_name RPAREN LBRACE initializer_list error
                          | LPAREN type_name RPAREN LBRACE initializer_list COMMA error '''
-    if p[1] == '(':
-        if p[3] == ')':
-            print("Error: Missing '}' Brace")
-        else:
-            print("Error: Missing ')' Paranthesis")
-    else:
-        print("Error: Missing ')' Paranthesis")
+    
+    print("Error: Missing '}' Brace")
+
 
 def p_argument_expression_list(p):
     '''argument_expression_list : assignment_expression
@@ -859,14 +859,20 @@ def p_static_assert_declaration(p):
     '''static_assert_declaration : STATIC_ASSERT LPAREN constant_expression COMMA STRING_LITERAL RPAREN SEMICOLON'''
     p[0] = Node("static_assert_declaration", [p[3], p[5]])
 
-def p_static_assert_declaration_error(p):
-    '''static_assert_declaration : STATIC_ASSERT LPAREN constant_expression COMMA STRING_LITERAL RPAREN error
-                                | STATIC_ASSERT LPAREN constant_expression COMMA STRING_LITERAL error SEMICOLON'''
-    if p[6] == ')':
-        print("Error: Missing Semicolon")
-    elif p[7] == ';':
-        print("Error: Missing ')' Paranthesis")
+def p_static_assert_declaration_error_1(p):
+    '''static_assert_declaration : STATIC_ASSERT LPAREN constant_expression COMMA STRING_LITERAL RPAREN error'''
 
+    print("Error: Missing Semicolon")
+        
+def p_static_assert_declaration_error_2(p):
+    '''static_assert_declaration : STATIC_ASSERT LPAREN constant_expression COMMA STRING_LITERAL error SEMICOLON'''
+
+    print("Error: Missing ')' Paranthesis")
+
+def p_static_assert_declaration_error_3(p):
+    '''static_assert_declaration : STATIC_ASSERT error constant_expression COMMA STRING_LITERAL RPAREN SEMICOLON'''
+
+    print("Error: Missing '(' Paranthesis")
 
 # Statements
 def p_statement(p):
@@ -973,23 +979,20 @@ def p_iteration_statement(p):
         else:
             p[0] = Node("iteration_statement", [p[1], p[3], p[4],p[5],p[7]])
 
-def p_iteration_statement_error(p):
+def p_iteration_statement_error_1(p):
     '''iteration_statement : WHILE LPAREN expression error statement
                           | DO statement WHILE LPAREN expression error SEMICOLON
-                          | DO statement WHILE LPAREN expression RPAREN error
                           | FOR LPAREN expression_statement expression_statement error statement
                           | FOR LPAREN expression_statement expression_statement expression error statement
                           | FOR LPAREN declaration expression_statement error statement
                           | FOR LPAREN declaration expression_statement expression error statement'''
     
-    if p[1] == 'do':
-        if p[6] == ')':
-            print("Error: Missing Semicolon")
-        else:
-            print("Error: Missing ')' Paranthesis")
-    else:
-        print("Error: Missing ')' Paranthesis")
+    print("Error: Missing ')' Paranthesis")
 
+def p_iteration_statement_error_2(p):
+    '''iteration_statement : DO statement WHILE LPAREN expression RPAREN error'''
+
+    print("Error: Missing Semicolon")
 
 def p_jump_statement(p):
     '''jump_statement : GOTO IDENTIFIER SEMICOLON
