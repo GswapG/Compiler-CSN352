@@ -34,6 +34,7 @@ reserved_keywords = {
     'void': 'VOID',
     'volatile': 'VOLATILE',
     'while': 'WHILE',
+    'until':'UNTIL',
     '_Alignas': 'ALIGNAS',
     '_Alignof': 'ALIGNOF',
     '_Atomic': 'ATOMIC',

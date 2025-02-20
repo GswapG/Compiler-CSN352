@@ -482,7 +482,7 @@ def p_struct_or_union_specifier(p):
     elif len(p) == 6:
         p[0] = Node("struct_or_union_specifier", [p[1], p[2], p[4]])
         # p[0].dtypes.append(str(p[1].children[0])+" "+p[2])
-        symbol_table.append((str(p[1].children[0]),p[2]))
+        symbol_table.append((p[2], str(p[1].children[0])))
     else:
         p[0] = Node("struct_or_union_specifier", [p[1], p[2]])
         p[0].dtypes.append(str(p[1].children[0])+ " " +p[2])
@@ -808,9 +808,9 @@ def p_type_name(p):
                 | specifier_qualifier_list'''
     if len(p) == 2:
         p[0] = Node("type_name", [p[1]])
-        p[0].dtypes = []
     else:
         p[0] = Node("type_name", [p[1], p[2]])
+    p[0].dtypes = []
     pass
 
 # Abstract declarators
@@ -1025,6 +1025,7 @@ def p_selection_statement_error(p):
 def p_iteration_statement(p):
     '''iteration_statement : WHILE LPAREN expression RPAREN statement
                           | DO statement WHILE LPAREN expression RPAREN SEMICOLON
+                          | DO statement UNTIL LPAREN expression RPAREN SEMICOLON
                           | FOR LPAREN expression_statement expression_statement RPAREN statement
                           | FOR LPAREN expression_statement expression_statement expression RPAREN statement
                           | FOR LPAREN declaration expression_statement RPAREN statement

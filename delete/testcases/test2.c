@@ -5,4 +5,8 @@ int main(){
     int ** const a,b;
     int z = sizeof(int);
     int a = (int)(a,b);
+    do{
+        chm();
+    }
+    until(1==2);
 }
