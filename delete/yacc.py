@@ -7,12 +7,19 @@ from tokens import tokens  # Assuming you have a matching lexer
 from graphviz import Digraph
 # AST
 lines = []
+symbol_table = []
 class Node:
     def __init__(self, type, children = None):
         self.type = type
         self.children = []
+        self.vars = []
+        self.dtypes = []
         if children:
             self.children = children
+        for c in self.children:
+            if isinstance(c,Node):
+                self.vars += c.vars
+                self.dtypes += c.dtypes
     def __repr__(self):
         return f"Node({self.type})"
 
@@ -60,7 +67,19 @@ def level_order(node):
             else:
                 print(f"Value: {v}",end = " ")
         print("\n \n")
-    
+
+
+def table_entry(node):
+    compound_dtype = ""
+    for t in node.dtypes:
+        compound_dtype += t
+        compound_dtype += " "
+    compound_dtype = compound_dtype.strip()
+    for var in node.vars:
+        symbol_table.append((var,compound_dtype))
+    node.vars = []
+    node.dtypes = []
+
 # Translation Unit
 def p_translation_unit(p):
     '''translation_unit : external_declaration
@@ -363,8 +382,12 @@ def p_declaration(p):
     # p[0] = Node("declaration", [p[1], p[2]])
     if len(p) == 4:
         p[0] = Node("declaration",[p[1],p[2]])
+        
     else :
         p[0] = Node("declaration",[p[1]]) #fixed
+    # print(p[0].vars)
+    # print(p[0].dtypes)
+    table_entry(p[0])
 
 def p_declaration_error(p):
     '''declaration : declaration_specifiers error
@@ -433,6 +456,8 @@ def p_type_specifier(p):
                      | struct_or_union_specifier
                      | enum_specifier'''
     p[0] = Node("type_specifier", [p[1]])
+    if not isinstance(p[1],Node):
+        p[0].dtypes.append(p[1])
     pass
 
 # Structures and Unions
@@ -444,9 +469,13 @@ def p_struct_or_union_specifier(p):
         p[0] = Node("struct_or_union_specifier", [p[1], p[3]])
     elif len(p) == 6:
         p[0] = Node("struct_or_union_specifier", [p[1], p[2], p[4]])
+        # p[0].dtypes.append(str(p[1].children[0])+" "+p[2])
+        symbol_table.append((str(p[1].children[0]),p[2]))
     else:
         p[0] = Node("struct_or_union_specifier", [p[1], p[2]])
-    pass
+        p[0].dtypes.append(str(p[1].children[0])+ " " +p[2])
+
+    
 
 def p_struct_or_union_specifier_error(p):
     '''struct_or_union_specifier : struct_or_union LBRACE struct_declaration_list error
@@ -478,7 +507,7 @@ def p_struct_declaration(p):
         p[0] = Node("struct_declaration", [p[1], p[2]])
     else:
         p[0] = Node("struct_declaration", [p[1]])
-    pass
+    table_entry(p[0])
 
 def p_struct_declaration_error(p):
     '''struct_declaration : specifier_qualifier_list error
@@ -629,6 +658,8 @@ def p_direct_declarator(p):
     # IDENTIFIER case
     if len(p) == 2:
         p[0] = Node("direct_declarator", [p[1]])
+        print(p[1])
+        p[0].vars.append(p[1])
     
     # LPAREN declarator RPAREN case
     elif len(p) == 4 and p[1] == '(':
@@ -734,7 +765,9 @@ def p_parameter_declaration(p):
         p[0] = Node("parameter_declaration", [p[1]])
     elif len(p) == 3:
         p[0] = Node("parameter_declaration", [p[1], p[2]])
-    pass
+    
+    table_entry(p[0])
+
 
 def p_identifier_list(p):
     '''identifier_list : IDENTIFIER
@@ -1025,6 +1058,12 @@ def p_function_definition(p):
     '''function_definition : declaration_specifiers declarator declaration_list compound_statement
                            | declaration_specifiers declarator compound_statement'''
     p[0] = Node("function_definition", [p[1], p[2], p[3]])
+    compound_dtype = ""
+    for t in p[0].dtypes:
+        compound_dtype += t
+        compound_dtype += " "
+    compound_dtype.strip()
+    symbol_table.append((p[0].vars[0] , "PROCEDURE_"+compound_dtype))
 
 
 def p_declaration_list(p):
@@ -1085,6 +1124,7 @@ for filename in os.listdir(testcases_dir):
         lines = data.split('\n')
 
         root = parser.parse(data)
+        print(symbol_table)
         graph = root.to_graph()
         graph.render(f'renderedTrees/parseTree{i}', format='png')
         i += 1
