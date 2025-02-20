@@ -87,6 +87,12 @@ def p_primary_expression(p):
     elif len(p) == 4:
         p[0] = Node("primary_expression", [p[2]])
 
+def p_primary_expression_error(p):
+    '''primary_expression : LPAREN expression error'''
+
+    print("Error: Missing ')' Paranthesis")
+    return
+
 def p_constant(p):
     '''constant : CONSTANT
                 | CHAR_CONSTANT
@@ -104,6 +110,11 @@ def p_string(p):
 def p_generic_selection(p):
     '''generic_selection : GENERIC LPAREN assignment_expression COMMA generic_assoc_list RPAREN '''
     p[0] = Node("generic_selection", [p[3], p[5]])
+
+def p_generic_selection_error(p):
+    '''generic_selection : GENERIC LPAREN assignment_expression COMMA generic_assoc_list error '''
+    
+    print("Error: Missing ')' Paranthesis")
 
 def p_generic_assoc_list(p):
     '''generic_assoc_list : generic_association
@@ -145,6 +156,14 @@ def p_postfix_expression(p):
     elif len(p) == 8:
         p[0] = Node("postfix_expression", [p[2], p[5]])
 
+def p_postfix_expression_error(p):
+    '''postfix_expression : postfix_expression LPAREN argument_expression_list error
+                         | postfix_expression LPAREN error
+                         | LPAREN type_name error LBRACE initializer_list RBRACE
+                         | LPAREN type_name error LBRACE initializer_list COMMA RBRACE '''
+    
+    print("Error: Missing ')' Paranthesis")
+
 def p_argument_expression_list(p):
     '''argument_expression_list : assignment_expression
                                | argument_expression_list COMMA assignment_expression'''
@@ -169,6 +188,12 @@ def p_unary_expression(p):
     elif len(p) == 4:
         p[0] = Node("unary_expression", [p[1], p[3]])
 
+def p_unary_expression_error(p):
+    '''unary_expression : SIZEOF LPAREN type_name error
+                       | ALIGNOF LPAREN type_name error '''
+
+    print("Error: Missing ')' Paranthesis")
+
 def p_unary_operator(p):
     '''unary_operator : AND
                      | TIMES
@@ -186,6 +211,11 @@ def p_cast_expression(p):
         p[0] = Node("cast_expression", [p[1]])
     else:
         p[0] = Node("cast_expression", [p[2], p[3]])
+
+def p_cast_expression_error(p):
+    '''cast_expression : LPAREN type_name error cast_expression'''
+
+    print("Error: Missing ')' Paranthesis")
 
 # Binary operations
 def p_multiplicative_expression(p):
@@ -506,6 +536,11 @@ def p_atomic_type_specifier(p):
     p[0] = Node("atomic_type_specifier", [p[2]])
     pass
 
+def p_atomic_type_specifier_error(p):
+    '''atomic_type_specifier : ATOMIC LPAREN type_name error '''
+
+    print("Error: Missing ')' Paranthesis")
+
 # Type qualifiers
 def p_type_qualifier(p):
     '''type_qualifier : CONST
@@ -531,6 +566,12 @@ def p_alignment_specifier(p):
     else:
         p[0] = Node("alignment_specifier", [p[2]])
     pass
+
+def p_alignment_specifier_error(p):
+    '''alignment_specifier : ALIGNAS LPAREN type_name error
+                          | ALIGNAS LPAREN constant_expression error '''
+    
+    print("Error: Missing ')' Paranthesis")
 
 # Declarators
 def p_declarator(p):
@@ -609,6 +650,14 @@ def p_direct_declarator(p):
     # direct_declarator LBRACKET type_qualifier_list STATIC assignment_expression RBRACKET case
     elif len(p) == 7 and p[4] == 'static':
         p[0] = Node("qualified_static_array_declarator", [p[1], p[3], p[5]])
+
+def p_direct_declarator_error(p):
+    '''direct_declarator : LPAREN declarator error
+                        | direct_declarator LPAREN parameter_type_list error
+                        | direct_declarator LPAREN error
+                        | direct_declarator LPAREN identifier_list error '''
+
+    print("Error: Missing ')' Paranthesis")
 
 # Pointers
 def p_pointer(p):
@@ -721,6 +770,14 @@ def p_direct_abstract_declarator(p):
     else:
         p[0] = Node("direct_abstract_declarator", [p[1], p[2]])
 
+def p_direct_abstract_declarator_error(p):
+    '''direct_abstract_declarator : LPAREN abstract_declarator error
+                                 | LPAREN error
+                                 | LPAREN parameter_type_list error
+                                 | direct_abstract_declarator LPAREN error
+                                 | direct_abstract_declarator LPAREN parameter_type_list error'''
+    
+    print("Error: Missing ')' Paranthesis")
 
 # Initialization
 def p_initializer(p):
@@ -775,9 +832,12 @@ def p_static_assert_declaration(p):
     p[0] = Node("static_assert_declaration", [p[3], p[5]])
 
 def p_static_assert_declaration_error(p):
-    '''static_assert_declaration : STATIC_ASSERT LPAREN constant_expression COMMA STRING_LITERAL RPAREN error'''
-
-    print("Error: Missing Semicolon")
+    '''static_assert_declaration : STATIC_ASSERT LPAREN constant_expression COMMA STRING_LITERAL RPAREN error
+                                | STATIC_ASSERT LPAREN constant_expression COMMA STRING_LITERAL error SEMICOLON'''
+    if p[6] == ')':
+        print("Error: Missing Semicolon")
+    elif p[7] == ';':
+        print("Error: Missing ')' Paranthesis")
 
 
 # Statements
@@ -851,6 +911,13 @@ def p_selection_statement(p):
     elif len(p) == 6:
         p[0] = Node("selection_statement", [p[1], p[3], p[5]])
 
+def p_selection_statement_error(p):
+    '''selection_statement : IF LPAREN expression error statement ELSE statement
+                          | IF LPAREN expression error statement
+                          | SWITCH LPAREN expression error statement'''
+    
+    print("Error: Missing ')' Paranthesis")
+
 
 def p_iteration_statement(p):
     '''iteration_statement : WHILE LPAREN expression RPAREN statement
@@ -874,9 +941,22 @@ def p_iteration_statement(p):
             p[0] = Node("iteration_statement", [p[1], p[3], p[4],p[5],p[7]])
 
 def p_iteration_statement_error(p):
-    '''iteration_statement : DO statement WHILE LPAREN expression RPAREN error'''
+    '''iteration_statement : WHILE LPAREN expression error statement
+                          | DO statement WHILE LPAREN expression error SEMICOLON
+                          | DO statement WHILE LPAREN expression RPAREN error
+                          | FOR LPAREN expression_statement expression_statement error statement
+                          | FOR LPAREN expression_statement expression_statement expression error statement
+                          | FOR LPAREN declaration expression_statement error statement
+                          | FOR LPAREN declaration expression_statement expression error statement'''
+    
+    if p[1] == 'do':
+        if p[6] == ')':
+            print("Error: Missing Semicolon")
+        else:
+            print("Error: Missing ')' Paranthesis")
+    else:
+        print("Error: Missing ')' Paranthesis")
 
-    print("Error: Missing Semicolon")
 
 def p_jump_statement(p):
     '''jump_statement : GOTO IDENTIFIER SEMICOLON
