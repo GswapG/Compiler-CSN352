@@ -406,9 +406,14 @@ def p_init_declarator(p):
     '''init_declarator : declarator ASSIGN initializer
                        | declarator'''
     if len(p) == 4: 
-        p[0] = Node("init_declarator", [p[1], p[3]])  
+        p[0] = Node("init_declarator", [p[1], p[2], p[3]])  
     else:  # Case: declarator
         p[0] = Node("init_declarator", [p[1]])
+
+def p_init_declarator_error(p):
+    '''init_declarator : declarator error initializer'''
+
+    print("Error: Expected '=' in Declaration Statement")
 
 # Type specifiers
 def p_type_specifier(p):
@@ -783,6 +788,7 @@ def p_direct_abstract_declarator(p):
                                  | LPAREN parameter_type_list RPAREN
                                  | direct_abstract_declarator LPAREN RPAREN
                                  | direct_abstract_declarator LPAREN parameter_type_list RPAREN'''
+    
     if len(p) == 4 and p[1] == '(' and p[3] == ')':
         p[0] = Node("direct_abstract_declarator", [p[2]])
     elif len(p) == 2 and p[0] == '[' and p[1] == ']':
