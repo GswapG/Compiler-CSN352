@@ -248,7 +248,7 @@ def p_cast_expression(p):
     if len(p) == 2:
         p[0] = Node("cast_expression", [p[1]])
     else:
-        p[0] = Node("cast_expression", [p[2], p[3]])
+        p[0] = Node("cast_expression", [p[2], p[4]])
 
 def p_cast_expression_error(p):
     '''cast_expression : LPAREN type_name error cast_expression'''
@@ -808,6 +808,7 @@ def p_type_name(p):
                 | specifier_qualifier_list'''
     if len(p) == 2:
         p[0] = Node("type_name", [p[1]])
+        p[0].dtypes = []
     else:
         p[0] = Node("type_name", [p[1], p[2]])
     pass
