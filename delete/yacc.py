@@ -14,12 +14,14 @@ class Node:
         self.children = []
         self.vars = []
         self.dtypes = []
+        self.pointer_count = 0
         if children:
             self.children = children
         for c in self.children:
             if isinstance(c,Node):
                 self.vars += c.vars
                 self.dtypes += c.dtypes
+                self.pointer_count += c.pointer_count
     def __repr__(self):
         return f"Node({self.type})"
 
@@ -639,6 +641,9 @@ def p_declarator(p):
                  | direct_declarator'''
     if len(p) == 3:
         p[0] = Node("declarator", [p[1], p[2]])
+        # Pointer ka fix
+        p[0].vars[0] = p[0].vars[0] + '$'*p[0].pointer_count
+        p[0].pointer_count = 0
     else:
         p[0] = Node("declarator", [p[1]])
     
@@ -733,7 +738,7 @@ def p_pointer(p):
         p[0] = Node("pointer", [p[1]])
     else:
         p[0] = Node("pointer", [p[1], p[2]])
-    pass
+    p[0].pointer_count += 1
 
 def p_type_qualifier_list(p):
     '''type_qualifier_list : type_qualifier

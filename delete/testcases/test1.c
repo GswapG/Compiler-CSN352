@@ -19,7 +19,7 @@ int main(){
     char c = ' ';
     double d;
 
-    char ** p;
+    char **p, c;
     char hey [10][10];
     char arr[40] , brr[30] = {1};
 
