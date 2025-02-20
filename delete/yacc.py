@@ -76,7 +76,11 @@ def table_entry(node):
         compound_dtype += " "
     compound_dtype = compound_dtype.strip()
     for var in node.vars:
-        symbol_table.append((var,compound_dtype))
+        stars = ""
+        while(var[-1]=='$'):
+            stars += "*"
+            var = var[:-1]
+        symbol_table.append((var,compound_dtype+stars))
     node.vars = []
     node.dtypes = []
 
@@ -668,6 +672,7 @@ def p_direct_declarator(p):
     # direct_declarator LBRACKET RBRACKET case
     elif len(p) == 4 and p[2] == '[':
         p[0] = Node("array_declarator", [p[1]])
+        p[0].vars[0] += "$"
     
     # direct_declarator LBRACKET TIMES RBRACKET case
     elif len(p) == 5 and p[2] == '[' and p[3] == '*':
@@ -676,6 +681,7 @@ def p_direct_declarator(p):
     # direct_declarator LBRACKET assignment_expression RBRACKET case
     elif len(p) == 5 and p[2] == '[' and p[3] != '*':
         p[0] = Node("array_declarator", [p[1], p[3]])
+        p[0].vars[0] += "$"
     
     # direct_declarator LPAREN RPAREN case
     elif len(p) == 4 and p[2] == '(' and p[3] == ')':
