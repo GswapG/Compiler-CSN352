@@ -24,7 +24,12 @@
 //     }
 // }
 
-
+int main(){
+    const int a;
+    const int ** p1;
+    int const ** p2;
+    int ** const p3;
+}
 
 // VARIABLES
 // declaration .

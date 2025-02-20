@@ -15,6 +15,7 @@ class Node:
         self.vars = []
         self.dtypes = []
         self.pointer_count = 0
+        self.is_const = 0
         if children:
             self.children = children
         for c in self.children:
@@ -22,6 +23,7 @@ class Node:
                 self.vars += c.vars
                 self.dtypes += c.dtypes
                 self.pointer_count += c.pointer_count
+                self.is_const |= c.is_const
     def __repr__(self):
         return f"Node({self.type})"
 
@@ -79,10 +81,14 @@ def table_entry(node):
     compound_dtype = compound_dtype.strip()
     for var in node.vars:
         stars = ""
+        consts = ""
         while(var[-1]=='$'):
             stars += "*"
             var = var[:-1]
-        symbol_table.append((var,compound_dtype+stars))
+        while(var[0]=='#'):
+            consts += " const"
+            var = var[1:]
+        symbol_table.append((var,compound_dtype+stars+consts))
     node.vars = []
     node.dtypes = []
 
@@ -217,7 +223,7 @@ def p_unary_expression(p):
         p[0] = Node("unary_expression", [p[1]])
     elif len(p) == 3:
         p[0] = Node("unary_expression", [p[1], p[2]])
-    elif len(p) == 4:
+    elif len(p) == 5:
         p[0] = Node("unary_expression", [p[1], p[3]])
 
 def p_unary_expression_error(p):
@@ -610,6 +616,8 @@ def p_type_qualifier(p):
                      | VOLATILE
                      | ATOMIC'''
     p[0] = Node("type_qualifier", [p[1]])
+    p[0].dtypes.append("const")
+    p[0].is_const = 1
     pass
 
 # Function specifiers
@@ -642,8 +650,9 @@ def p_declarator(p):
     if len(p) == 3:
         p[0] = Node("declarator", [p[1], p[2]])
         # Pointer ka fix
-        p[0].vars[0] = p[0].vars[0] + '$'*p[0].pointer_count
+        p[0].vars[0] = '#'*p[0].is_const + p[0].vars[0] + '$'*p[0].pointer_count
         p[0].pointer_count = 0
+        p[0].is_const = 0
     else:
         p[0] = Node("declarator", [p[1]])
     
@@ -733,10 +742,15 @@ def p_pointer(p):
               | TIMES type_qualifier_list
               | TIMES pointer
               | TIMES '''
-    if len(p) == 2:
+    if len(p) == 4:
+        p[0] = Node("pointer", [p[1],p[2],p[3]])
+    elif len(p) == 2:
         p[0] = Node("pointer", [p[1]])
     else:
         p[0] = Node("pointer", [p[1], p[2]])
+        if "const" in p[0].dtypes:
+            p[0].dtypes.remove("const")
+
     p[0].pointer_count += 1
 
 def p_type_qualifier_list(p):
@@ -1144,9 +1158,9 @@ def print_symbol_table(symtab):
     print(border)
 
 # Iterate over all files in the directory
-for filename in os.listdir(testcases_dir): 
+i = 1
+for filename in sorted(os.listdir(testcases_dir)): 
     filepath = os.path.join(testcases_dir, filename)
-    i = 1
     if os.path.isfile(filepath):
         with open(filepath, 'r') as file:
             data = file.read()
@@ -1160,3 +1174,4 @@ for filename in os.listdir(testcases_dir):
         graph = root.to_graph()
         graph.render(f'renderedTrees/parseTree{i}', format='png')
         i += 1
+    symbol_table = []
