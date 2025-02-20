@@ -1022,15 +1022,7 @@ def p_error(p):
 
     pointer = " " * (col - 1) + "^"
     print(pointer)
-
-    # panic mode recovery 
-    # while True:
-    #     tok = parser.token()
-    #     if not tok or tok.type == 'RBRACE' or tok.type == 'SEMICOLON':
-    #         break 
     
-    # parser.restart()
-
 # Build parser
 parser = yacc.yacc()
 testcases_dir = './testcases'
