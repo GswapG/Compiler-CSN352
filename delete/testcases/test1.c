@@ -19,9 +19,9 @@ int main(){
     char c = ' ';
     double d;
 
-    char* p;
+    char *p, *j, *l;
 
-    char arr[40] = {1};
+    char arr[40][6] = {1};
 
     for (int k = 100, j = 10000; k <= 200; k++) {
 
