@@ -1,21 +1,12 @@
-//hello
-    123  12 3 123 12 
-    123123
-    int 
-    char '2'
-    auto 
-    "Hello\n"
-    1.2
-    1.
-    /*hello
-    hahah
-    multiline commment*/
-    + - * / % +-
-    ++ -- + - * / %
-    == != > < >= <= 
-    & | ^ ~ << >>
-    && || !
-    = += -= *= /= %= &= |= ^= <<= >>=
-    '\n'
-    123lmao
-    int *ptr;
+int main(){
+    int hello = -3;
+    const long long h;
+    int const * c,d;
+    int ** const a,b;
+    int z = sizeof(int);
+    int a = (int)(a,b);
+    do{
+        chm();
+    }
+    until(1==2);
+}

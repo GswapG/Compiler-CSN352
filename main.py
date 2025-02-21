@@ -1,4 +1,4 @@
-from src.lexer_class import *
+from src.parser import *
 
 if __name__ == '__main__':
     lexer = Lexer()
