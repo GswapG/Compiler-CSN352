@@ -51,16 +51,22 @@ def t_STRING(t):
 
 # Float matching
 def t_FLOAT(t):
-    r'\d+\.\d*'
+    r'\d+\.\d*[f]'
     t.type = 'CONSTANT'
-    t.value = float(t.value)
+    fl = t.value
+    if(fl[-1] == 'f'):
+        fl = fl[:-1]
+    t.value = float(fl)
     return t
 
 # Integer matching
 def t_INTEGER(t):
-    r'\d+'
+    r'\d+[LU]?'
     t.type = 'CONSTANT'
-    t.value = int(t.value)
+    integer = t.value
+    if(integer[-1] == 'L'):
+        integer = integer[:-1]
+    t.value = int(integer)
     return t
 
 # Bitwise Assignment Operator matching

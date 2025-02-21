@@ -4,5 +4,6 @@ struct abc
 };
 int main()
 {
-    int b;
+    int a = 1L;
+    float b = 1.0f;
 }
