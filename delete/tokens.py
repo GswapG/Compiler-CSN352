@@ -29,6 +29,7 @@ reserved_keywords = {
     'struct': 'STRUCT',
     'switch': 'SWITCH',
     'typedef': 'TYPEDEF',
+    'typedef_name' : 'TYPEDEF_NAME',
     'union': 'UNION',
     'unsigned': 'UNSIGNED',
     'void': 'VOID',

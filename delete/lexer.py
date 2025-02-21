@@ -1,6 +1,6 @@
 import ply.lex as lex 
 from tokens import *
-
+typedef_names = set()
 line_start_positions = [0]
 
 # Lexer states
@@ -37,7 +37,10 @@ def t_COMMENT(t):
 # Keyword matching
 def t_KEYWORD(t):
     r'[a-zA-Z_][a-zA-Z_0-9]*'
-    t.type = reserved_keywords.get(t.value,'IDENTIFIER')    # Check for reserved words
+    if t.value in typedef_names:
+        t.type = 'TYPEDEF_NAME'
+    else:
+        t.type = reserved_keywords.get(t.value,'IDENTIFIER')    # Check for reserved words
     return t
 
 # String literal matching
@@ -185,4 +188,4 @@ def t_mcomment_error(t):
 
     t.lexer.skip(1)
 
-lexer = lex.lex() 
+lexer = lex.lex()

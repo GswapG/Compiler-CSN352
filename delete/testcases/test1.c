@@ -1,9 +1,5 @@
-struct abc;
-enum Color{
-    RED, GREEN, BLUE
-};
+typedef int f;
 int main()
 {
-    enum Color col;
-    enum Color color = 0;
+    f a = 1;
 }

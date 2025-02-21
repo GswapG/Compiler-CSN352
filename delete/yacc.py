@@ -89,6 +89,10 @@ def table_entry(node):
             consts += " const"
             var = var[1:]
         symbol_table.append((var,compound_dtype+stars+consts))
+    if compound_dtype.split(" ")[0] == "typedef":
+        for var in node.vars:
+            typedef_names.add(str(var))
+            
     node.vars = []
     node.dtypes = []
 
@@ -468,7 +472,8 @@ def p_type_specifier(p):
                      | IMAGINARY
                      | atomic_type_specifier
                      | struct_or_union_specifier
-                     | enum_specifier'''
+                     | enum_specifier
+                     | TYPEDEF_NAME'''
     p[0] = Node("type_specifier", [p[1]])
     if not isinstance(p[1],Node):
         p[0].dtypes.append(p[1])
@@ -1181,3 +1186,4 @@ for filename in sorted(os.listdir(testcases_dir)):
         graph.render(f'renderedTrees/parseTree{i}', format='png')
         i += 1
     symbol_table = []
+    typedef_names.clear()
