@@ -69,6 +69,22 @@ def t_BITWISE_ASSIGNMENT(t):
     t.type = assignment_operators.get(t.value)
     return t
 
+# Relational Operator matching
+
+def t_PTR_OP(t):
+    r'\->'
+    return t
+
+def t_BITWISE_SHIFT(t):
+    r'<<|>>'
+    t.type = bitwise_operators.get(t.value)
+    return t
+
+def t_RELATIONAL(t):
+    r'==|!=|>=|<=|>|<'
+    t.type = relational_operators.get(t.value)
+    return t
+
 # Logical Operator matching
 def t_LOGICAL(t):
     r'&&|\|\||!'
@@ -77,14 +93,8 @@ def t_LOGICAL(t):
 
     # Bitwise Operator matching
 def t_BITWISE(t):
-    r'&|\||\^|~|<<|>>'
+    r'&|\||\^|~'
     t.type = bitwise_operators.get(t.value)
-    return t
-
-# Relational Operator matching
-def t_RELATIONAL(t):
-    r'==|!=|>=|<=|>|<'
-    t.type = relational_operators.get(t.value)
     return t
 
 # Assignment Operator matching
@@ -141,6 +151,9 @@ def t_COMMA(t):
     r','
     return t
 
+def t_ELLIPSIS(t):
+    r'\.\.\.'
+    return t
 # Period
 def t_DOT(t):
     r'\.'

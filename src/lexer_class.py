@@ -82,6 +82,12 @@ class Lexer(object):
         t.type = assignment_operators.get(t.value)
         return t
     
+    # Relational Operator matching
+    def t_RELATIONAL(self, t):
+        r'==|!=|>=|<=|>|<'
+        t.type = relational_operators.get(t.value)
+        return t
+    
     # Logical Operator matching
     def t_LOGICAL(self, t):
         r'&&|\|\||!'
@@ -92,12 +98,6 @@ class Lexer(object):
     def t_BITWISE(self, t):
         r'&|\||\^|~|<<|>>'
         t.type = bitwise_operators.get(t.value)
-        return t
-    
-    # Relational Operator matching
-    def t_RELATIONAL(self, t):
-        r'==|!=|>=|<=|>|<'
-        t.type = relational_operators.get(t.value)
         return t
 
     # Assignment Operator matching
