@@ -3,7 +3,7 @@ setlocal
 
 set VERSION=1.2.65
 
-:: Function to install Graphviz using Winget
+:: Function to install Graphviz using Winget and update PATH
 :install_graphviz
 echo Graphviz is not installed. Installing now...
 
@@ -17,6 +17,26 @@ if %ERRORLEVEL% neq 0 (
 
 echo Installing Graphviz using Winget...
 winget install --id Graphviz.Graphviz -e --silent
+
+:: Wait for installation to complete
+timeout /t 5 >nul
+
+:: Check the default installation path
+set GRAPHVIZ_PATH=C:\Program Files\Graphviz\bin
+if exist "%GRAPHVIZ_PATH%\dot.exe" (
+    echo Graphviz installed successfully.
+    
+    :: Check if Graphviz is already in PATH
+    echo %PATH% | findstr /I /C:"%GRAPHVIZ_PATH%" >nul
+    if %ERRORLEVEL% neq 0 (
+        echo Adding Graphviz to system PATH...
+        setx PATH "%PATH%;%GRAPHVIZ_PATH%" /M
+        echo You may need to restart your terminal or system for changes to take effect.
+    )
+) else (
+    echo Failed to detect Graphviz installation. Please add it to PATH manually.
+)
+
 exit /b 0
 
 :: Show help message
