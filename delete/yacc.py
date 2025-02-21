@@ -125,7 +125,8 @@ def p_primary_expression_error(p):
 
 
 def p_constant(p):
-    '''constant : CONSTANT
+    '''constant : I_CONSTANT
+                | F_CONSTANT
                 | CHAR_CONSTANT
                 | enumeration_constant'''
     p[0] = Node("constant", [p[1]])  # Include the constant value
@@ -1173,7 +1174,7 @@ for filename in sorted(os.listdir(testcases_dir)):
 
         root = parser.parse(data)
         print_symbol_table(symbol_table)
-        graph = root.to_graph()
-        graph.render(f'renderedTrees/parseTree{i}', format='png')
+        # graph = root.to_graph()
+        # graph.render(f'renderedTrees/parseTree{i}', format='png')
         i += 1
     symbol_table = []

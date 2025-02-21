@@ -51,8 +51,8 @@ def t_STRING(t):
 
 # Float matching
 def t_FLOAT(t):
-    r'\d+\.\d*[f]'
-    t.type = 'CONSTANT'
+    r'\d+\.\d*[f]?'
+    t.type = 'F_CONSTANT'
     fl = t.value
     if(fl[-1] == 'f'):
         fl = fl[:-1]
@@ -62,7 +62,7 @@ def t_FLOAT(t):
 # Integer matching
 def t_INTEGER(t):
     r'\d+[LU]?'
-    t.type = 'CONSTANT'
+    t.type = 'I_CONSTANT'
     integer = t.value
     if(integer[-1] == 'L'):
         integer = integer[:-1]
