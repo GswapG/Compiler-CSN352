@@ -24,6 +24,8 @@ class Node:
                 self.dtypes += c.dtypes
                 self.pointer_count += c.pointer_count
                 self.is_const |= c.is_const
+                c.dtypes.clear()
+                c.vars.clear()
     def __repr__(self):
         return f"Node({self.type})"
 
