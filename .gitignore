@@ -177,3 +177,7 @@ bin
 #dev files
 # features.txt
 tempCodeRunnerFile*
+**/parser.out
+**/ast
+**/ast.png
+**/renderedTrees
