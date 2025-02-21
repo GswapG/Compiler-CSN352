@@ -432,6 +432,7 @@ def p_storage_class_specifier(p):
 	                            | AUTO
 	                            | REGISTER'''
     p[0] = Node("storage_class_specifier", [p[1]])
+    p[0].dtypes.append(str(p[1]))
 
 def p_init_declarator_list(p):
     '''init_declarator_list : init_declarator
@@ -567,10 +568,12 @@ def p_enum_specifier(p):
                      | ENUM IDENTIFIER'''
     if len(p) == 3:
         p[0] = Node("enum_specifier", [p[1], p[2]])
+        p[0].dtypes.append(p[1]+" "+p[2])
     elif len(p) == 6 and p[1] == '{':
         p[0] = Node("enum_specifier", [p[1], p[3]])
     else:
         p[0] = Node("enum_specifier", [p[1], p[2], p[4]])
+        symbol_table.append((p[2],p[1]))
     pass
 
 def p_enum_specifier_error(p):
@@ -1174,7 +1177,7 @@ for filename in sorted(os.listdir(testcases_dir)):
 
         root = parser.parse(data)
         print_symbol_table(symbol_table)
-        # graph = root.to_graph()
-        # graph.render(f'renderedTrees/parseTree{i}', format='png')
+        graph = root.to_graph()
+        graph.render(f'renderedTrees/parseTree{i}', format='png')
         i += 1
     symbol_table = []

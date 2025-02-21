@@ -1,10 +1,9 @@
-struct abc
-{
-    int a;
+struct abc;
+enum Color{
+    RED, GREEN, BLUE
 };
 int main()
 {
-    int a = 1L;
-    float b = 1.0f;
-    int cc=0;
+    enum Color col;
+    enum Color color = 0;
 }
