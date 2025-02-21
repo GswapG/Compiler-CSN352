@@ -169,5 +169,5 @@ int main(void) {
 
     return 0;
 error:
-    return 1;
+    return 1
 }

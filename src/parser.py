@@ -5,8 +5,9 @@ from lexer import *
 from collections import deque
 from tokens import tokens  # Assuming you have a matching lexer
 from graphviz import Digraph
+from sys import argv
+
 # AST
-lines = []
 symbol_table = []
 class Node:
     def __init__(self, type, children = None):
@@ -1143,6 +1144,7 @@ def p_error(p):
 
     pointer = " " * (col - 1) + "^"
     print(pointer)
+    
 # Build parser
 parser = yacc.yacc()
 testcases_dir = './testcases'
@@ -1184,8 +1186,14 @@ for filename in sorted(os.listdir(testcases_dir)):
 
         root = parser.parse(data)
         print_symbol_table(symbol_table)
-        graph = root.to_graph()
-        graph.render(f'renderedTrees/parseTree{i}', format='png')
+
+        if len(argv) > 1 and (str(argv[1]) == "-g" or str(argv[1]) == "--graph"):
+            graph = root.to_graph()
+            graph.render(f'renderedTrees/parseTree{i}', format='png')
+        
         i += 1
-    symbol_table = []
+
+    symbol_table.clear()
     typedef_names.clear()
+    lines = ""  
+    lexer.lineno = 0
