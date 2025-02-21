@@ -141,6 +141,7 @@ def p_constant(p):
 def p_enumeration_constant(p):
     '''enumeration_constant : IDENTIFIER'''
     p[0] = Node("enumeration_constant", [p[1]])
+    symbol_table.append((p[1] , "int"))
 
 def p_string(p):
     '''string : STRING_LITERAL'''
