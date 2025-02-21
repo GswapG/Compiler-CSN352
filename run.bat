@@ -1,5 +1,5 @@
 @echo off
-set VERSION=1.2.80
+set VERSION=1.2.82
 
 :: Check if -h or --help is passed
 if "%1" == "-h" goto help
