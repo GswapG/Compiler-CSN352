@@ -1148,7 +1148,7 @@ def p_error(p):
     
 # Build parser
 parser = yacc.yacc()
-testcases_dir = './testcases'
+testcases_dir = './tests/small'
 
 def print_symbol_table(symtab):
     if not symtab:
