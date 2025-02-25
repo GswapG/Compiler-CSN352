@@ -52,13 +52,23 @@ class Node:
             #     graph.edge(str(id(self)), child_id)
         
         return graph
+
+    def dfs2(self):
+        """if one parent and one child then both get linked and i disappear"""
+        for i in range(len(self.children)):
+            while len(self.children[i].children) == 1:
+                self.children[i] = self.children[i].children[0]
+        for child in self.children:
+            child.dfs2()
+
+
     
 def dfs(node, indent=0):
     """Recursively prints the AST."""
     # Check if the node is a string or a Node object
     if isinstance(node, Node):
         # Print the current node's type
-        # print(" " * indent + f"Node: {node.type}")
+        print(" " * indent + f"Node: {node.type}")
         
         # Recursively print each child
         for child in node.children:
@@ -1192,13 +1202,16 @@ for filename in sorted(os.listdir(testcases_dir)):
         lines = data.split('\n')
 
         root = parser.parse(data)
+        root.dfs2()
         print_symbol_table(symbol_table)
 
         if len(argv) > 1 and (str(argv[1]) == "-g" or str(argv[1]) == "--graph"):
             graph = root.to_graph()
-            graph.render(f'renderedTrees/parseTree{i}', format='png')
+            graph.render(f'renderedTrees/{filename+""}', format='png')
+            print(f"Parse tree saved as renderedTrees/{filename}.png")
         i += 1
 
+        # if i>=2 : break
     symbol_table.clear()
     typedef_names.clear()
     lines = ""  
