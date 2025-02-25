@@ -18,7 +18,13 @@ class Node:
         self.pointer_count = 0
         self.is_const = 0
         if children:
-            self.children = children
+            children_conv = []
+            for c in children:
+                if not isinstance(c,Node):
+                    children_conv.append(Node(str(c)))
+                else:
+                    children_conv.append(c)        
+            self.children = children_conv
         for c in self.children:
             if isinstance(c,Node):
                 self.vars += c.vars
@@ -40,10 +46,10 @@ class Node:
                 graph.node(str(id(child)), label=child.type)
                 graph.edge(str(id(self)), str(id(child)))
                 child.to_graph(graph)
-            else:
-                child_id = f"{id(self)}_{id(child)}"
-                graph.node(child_id, label=str(child))
-                graph.edge(str(id(self)), child_id)
+            # else:
+            #     child_id = f"{id(self)}_{id(child)}"
+            #     graph.node(child_id, label=str(child))
+            #     graph.edge(str(id(self)), child_id)
         
         return graph
     
@@ -52,13 +58,13 @@ def dfs(node, indent=0):
     # Check if the node is a string or a Node object
     if isinstance(node, Node):
         # Print the current node's type
-        print(" " * indent + f"Node: {node.type}")
+        # print(" " * indent + f"Node: {node.type}")
         
         # Recursively print each child
         for child in node.children:
             dfs(child, indent + 4)
     else:
-        print(" " * indent + f"Value: {node}")
+        print(node)
       
 def level_order(node):
     queue = deque()
@@ -1191,7 +1197,6 @@ for filename in sorted(os.listdir(testcases_dir)):
         if len(argv) > 1 and (str(argv[1]) == "-g" or str(argv[1]) == "--graph"):
             graph = root.to_graph()
             graph.render(f'renderedTrees/parseTree{i}', format='png')
-        
         i += 1
 
     symbol_table.clear()
