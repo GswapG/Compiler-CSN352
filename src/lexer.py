@@ -31,7 +31,7 @@ def t_mcomment_body(t):
 
 # Single-line comment
 def t_COMMENT(t):
-    r'((//)|\#).*'
+    r'//.*'
     pass
 
 # Keyword matching
