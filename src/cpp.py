@@ -35,6 +35,9 @@ class Preprocessor:
                                 self._handle_define(parts)
                             elif directive == '#undef':
                                 self._handle_undef(parts)
+                            else:
+                                raise Exception(f"Invalid preprocessor directive :\n{stripped}")
+    
                     else:
                         if self.current_inclusion:
                             output_file.write(self._apply_macros(line))
