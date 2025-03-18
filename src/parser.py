@@ -7,11 +7,119 @@ from tokens import tokens  # Assuming you have a matching lexer
 from graphviz import Digraph
 from sys import argv
 
+
+from ply import yacc
+from collections import deque
+
+class SymbolEntry:
+    def __init__(self, name, type, kind, scope_level, scope_name, size, offset, line):
+        self.name = name
+        self.type = type
+        self.kind = kind          # 'variable', 'function', 'parameter'
+        self.scope_level = scope_level
+        self.scope_name = scope_name
+        self.size = size           # Size in bytes
+        self.offset = offset       # Stack offset (for local variables)
+        self.line = line           # Source line number
+
+class SymbolTable:
+    def __init__(self):
+        self.scopes = deque()       # Stack of scopes (deque for efficient stacking)
+        self.current_scope_level = 0
+        self.current_scope_name = "global"
+        self.offset_counter = {}    # Track offsets per scope level
+        self.enter_scope()          # Initialize global scope
+    
+    def clear(self):
+        """Reset the symbol table to its initial state"""
+        self.scopes.clear()  # Remove all scopes
+        self.current_scope_level = 0
+        self.current_scope_name = "global"
+        self.offset_counter = {}
+        self.enter_scope()  # Recreate global scope
+    
+    def enter_scope(self, scope_name=None):
+        """Create a new scope"""
+        self.scopes.append({})
+        self.current_scope_level += 1
+        self.current_scope_name = scope_name or f"block@{self.current_scope_level}"
+        self.offset_counter[self.current_scope_level] = 0
+
+    def exit_scope(self):
+        """Leave current scope"""
+        if self.current_scope_level > 0:
+            self.scopes.pop()
+            self.current_scope_level -= 1
+            self.current_scope_name = "global" if self.current_scope_level == 0 else f"block@{self.current_scope_level}"
+
+    def add_symbol(self, symbol):
+        """Add symbol to current scope"""
+        current_scope = self.scopes[-1]
+        if symbol.name in current_scope:
+            raise ValueError(f"Duplicate symbol '{symbol.name}' in scope {self.current_scope_name}")
+        
+        # Calculate offset for variables/parameters
+        if symbol.kind in ['variable', 'parameter']:
+            symbol.offset = self.offset_counter[self.current_scope_level]
+            self.offset_counter[self.current_scope_level] += symbol.size
+        
+        current_scope[symbol.name] = symbol
+        print("added symbol",symbol.name)
+        print(symtab)
+
+    def lookup(self, name):
+        """Search for symbol in all enclosing scopes"""
+        for scope in reversed(self.scopes):
+            if name in scope:
+                return scope[name]
+        return None
+
+    def __str__(self):
+        """Pretty-print symbol table"""
+        headers = ["Name", "Type", "Kind", "Scope", "ScopeName", "Size", "Offset", "Line"]
+        rows = []
+        
+        for scope in self.scopes:
+            for sym in scope.values():
+                rows.append([
+                    sym.name, sym.type, sym.kind, sym.scope_level,
+                    sym.scope_name, sym.size, sym.offset, sym.line
+                ])
+        
+        return tabulate(rows, headers=headers, tablefmt="grid")
+
+# Type size mapping (simplified)
+TYPE_SIZES = {
+    'int': 4,
+    'float': 4,
+    'char': 1,
+    'void': 0
+}
+
+def get_type_size(type_specifiers):
+    """Calculate size based on type specifiers"""
+    # Simplified implementation
+    return TYPE_SIZES.get(type_specifiers[0], 0)
+
+# Install tabulate for pretty-printing
+try:
+    from tabulate import tabulate
+except ImportError:
+    print("Install tabulate for better output: pip install tabulate")
+    def tabulate(*args, **kwargs):
+        return str(args[0])
+    
 # AST
 symbol_table = []
+abcd=0
+
 class Node:
-    def __init__(self, type, children = None):
+    def __init__(self, type, children = None): 
+        global abcd
         self.type = type
+        self.name = str(abcd)
+        abcd+=1
+        print(abcd)
         self.children = []
         self.vars = []
         self.dtypes = []
@@ -31,8 +139,8 @@ class Node:
                 self.dtypes += c.dtypes
                 self.pointer_count += c.pointer_count
                 self.is_const |= c.is_const
-                c.dtypes.clear()
-                c.vars.clear()
+                # c.dtypes.clear()
+                # c.vars.clear()
     def __repr__(self):
         return f"Node({self.type})"
 
@@ -112,8 +220,8 @@ def table_entry(node):
         for var in node.vars:
             typedef_names.add(str(var))
             
-    node.vars = []
-    node.dtypes = []
+    # node.vars = []
+    # node.dtypes = []
 
 # Translation Unit
 def p_translation_unit(p):
@@ -416,15 +524,27 @@ def p_declaration(p):
     '''declaration : declaration_specifiers SEMICOLON
                   | declaration_specifiers init_declarator_list SEMICOLON
                   | static_assert_declaration'''
-    # p[0] = Node("declaration", [p[1], p[2]])
+    # AST node creation
     if len(p) == 4:
-        p[0] = Node("declaration",[p[1],p[2]])
-        
-    else :
-        p[0] = Node("declaration",[p[1]]) #fixed
-    # print(p[0].vars)
-    # print(p[0].dtypes)
-    table_entry(p[0])
+        p[0] = Node("declaration", [p[1], p[2]])
+    else:
+        p[0] = Node("declaration", [p[1]])
+
+    # -- Symbol Table Handling --
+    if len(p) >= 3:  # Has init_declarator_list
+        base_type = p[1]
+        for decl in p[0].vars:  # Assume init_declarator_list is parsed
+            var_sym = SymbolEntry(
+                name=decl,
+                type=base_type,
+                kind="variable",
+                scope_level=symtab.current_scope_level,
+                scope_name=symtab.current_scope_name,
+                size=4,  # Should calculate based on type
+                offset=0,
+                line=p.lineno(2)
+            )
+            symtab.add_symbol(var_sym)
 
 def p_declaration_error(p):
     '''declaration : declaration_specifiers error
@@ -470,6 +590,7 @@ def p_init_declarator(p):
         p[0] = Node("init_declarator", [p[1], p[2], p[3]])  
     else:  # Case: declarator
         p[0] = Node("init_declarator", [p[1]])
+    #p[0].name = p[1].name  # Propagate name for symbol table
 
 def p_init_declarator_error(p):
     '''init_declarator : declarator error initializer'''
@@ -814,12 +935,25 @@ def p_parameter_declaration(p):
     '''parameter_declaration : declaration_specifiers declarator
                             | declaration_specifiers abstract_declarator
                             | declaration_specifiers'''
+    # AST node creation
     if len(p) == 2:
         p[0] = Node("parameter_declaration", [p[1]])
     elif len(p) == 3:
         p[0] = Node("parameter_declaration", [p[1], p[2]])
-    
-    table_entry(p[0])
+
+    # -- Symbol Table Handling (only for concrete declarators) --
+    if len(p) >= 2 and hasattr(p[2], 'name'):
+        param_sym = SymbolEntry(
+            name=p[0].vars[0], #check gang
+            type=p[1],
+            kind="parameter",
+            scope_level=symtab.current_scope_level,
+            scope_name=symtab.current_scope_name,
+            size=4,  # Default size
+            offset=0,
+            line=p.lineno(2)
+        )
+        symtab.add_symbol(param_sym)
 
 
 def p_identifier_list(p):
@@ -992,15 +1126,41 @@ def p_labeled_statement(p):
 
 def p_compound_statement(p):
     '''compound_statement : LBRACE RBRACE
-                         | LBRACE block_item_list RBRACE '''
+                          | LBRACE enter_scope block_item_list exit_scope RBRACE'''
+    # Handle empty block
     if len(p) == 3:
+        symtab.enter_scope()    # Enter new scope
+        symtab.exit_scope()     # Exit immediately for empty block
         p[0] = Node("compound_statement", [])
+    # Handle block with content
     else:
-        p[0] = Node("compound_statement", [p[2]])
+        p[0] = Node("compound_statement", [p[3]])  # p[3] = block_item_list
+        # p[0].enter_scope = p[2]  # Store scope actions in AST node
+        # p[0].exit_scope = p[4]
+
+    # -- Scope Handling --
+    # if len(p) == 3:  # Empty block
+    #     symtab.enter_scope()
+    #     symtab.exit_scope()
+    # else:
+    #     # Mid-rule actions for scope management
+    #     def enter_scope(p):
+    #         symtab.enter_scope()
+    #     p[0].scope_enter = enter_scope
+    #     p[0].scope_exit = symtab.exit_scope
+
+# Mid-rule action helpers
+def p_enter_scope(p):
+    'enter_scope :'
+    symtab.enter_scope()
+
+def p_exit_scope(p):
+    'exit_scope :'
+    symtab.exit_scope()
 
 def p_compound_statement_error(p):
     '''compound_statement : LBRACE error
-                         | LBRACE block_item_list error '''
+                         | LBRACE enter_scope block_item_list exit_scope error '''
 
     print("Error: Missing '}' Brace")
 
@@ -1112,14 +1272,31 @@ def p_jump_statement_error(p):
 def p_function_definition(p):
     '''function_definition : declaration_specifiers declarator declaration_list compound_statement
                            | declaration_specifiers declarator compound_statement'''
-    p[0] = Node("function_definition", [p[1], p[2], p[3]])
-    compound_dtype = ""
-    for t in p[0].dtypes:
-        compound_dtype += t
-        compound_dtype += " "
-    compound_dtype.strip()
-    symbol_table.append((p[0].vars[0] , "PROCEDURE_"+compound_dtype))
+    # Create AST node
+    if len(p) == 5:
+        p[0] = Node("function_definition", [p[1], p[2], p[3], p[4]])
+    else:
+        p[0] = Node("function_definition", [p[1], p[2], p[3]])
 
+    # -- Symbol Table Handling --
+    # Get function name from declarator (assume p[2] has 'name' attribute)
+    func_name = p[2].vars[0] #check gang
+    
+    # Add function to GLOBAL scope
+    func_sym = SymbolEntry(
+        name=func_name,
+        type=p[1],  # Return type from declaration_specifiers
+        kind="function",
+        scope_level=0,
+        scope_name="global",
+        size=0,
+        offset=0,
+        line=p.lineno(2)
+    )
+    symtab.add_symbol(func_sym)
+    
+    # Enter FUNCTION SCOPE (for parameters/local vars)
+    symtab.enter_scope(func_name)
 
 def p_declaration_list(p):
     '''declaration_list : declaration
@@ -1164,7 +1341,8 @@ def p_error(p):
     
 # Build parser
 parser = yacc.yacc()
-testcases_dir = './tests/small'
+symtab = SymbolTable()
+testcases_dir = './tests/testing'
 
 def print_symbol_table(symtab):
     if not symtab:
@@ -1202,8 +1380,13 @@ for filename in sorted(os.listdir(testcases_dir)):
         lines = data.split('\n')
 
         root = parser.parse(data)
-        root.dfs2()
-        print_symbol_table(symbol_table)
+        #root.dfs2()
+        # print_symbol_table(symbol_table)
+        print("Final Symbol Table:\n")
+        print(symtab)
+        print("\n")
+
+        symtab.clear()
 
         if len(argv) > 1 and (str(argv[1]) == "-g" or str(argv[1]) == "--graph"):
             graph = root.to_graph()
