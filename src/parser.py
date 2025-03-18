@@ -25,7 +25,7 @@ class SymbolEntry:
 class SymbolTable:
     def __init__(self):
         self.scopes = deque()       # Stack of scopes (deque for efficient stacking)
-        self.current_scope_level = 0
+        self.current_scope_level = -1
         self.current_scope_name = "global"
         self.offset_counter = {}    # Track offsets per scope level
         self.enter_scope()          # Initialize global scope
@@ -33,7 +33,7 @@ class SymbolTable:
     def clear(self):
         """Reset the symbol table to its initial state"""
         self.scopes.clear()  # Remove all scopes
-        self.current_scope_level = 0
+        self.current_scope_level = -1
         self.current_scope_name = "global"
         self.offset_counter = {}
         self.enter_scope()  # Recreate global scope
@@ -42,7 +42,10 @@ class SymbolTable:
         """Create a new scope"""
         self.scopes.append({})
         self.current_scope_level += 1
+        print("plus")
         self.current_scope_name = scope_name or f"block@{self.current_scope_level}"
+        if self.current_scope_level==0:
+            self.current_scope_name = "global"
         self.offset_counter[self.current_scope_level] = 0
 
     def exit_scope(self):
@@ -532,7 +535,7 @@ def p_declaration(p):
 
     # -- Symbol Table Handling --
     if len(p) >= 3:  # Has init_declarator_list
-        base_type = p[1]
+        base_type = p[0].dtypes[0]
         for decl in p[0].vars:  # Assume init_declarator_list is parsed
             var_sym = SymbolEntry(
                 name=decl,
@@ -542,7 +545,7 @@ def p_declaration(p):
                 scope_name=symtab.current_scope_name,
                 size=4,  # Should calculate based on type
                 offset=0,
-                line=p.lineno(2)
+                line=p.lineno(0)
             )
             symtab.add_symbol(var_sym)
 
@@ -945,13 +948,13 @@ def p_parameter_declaration(p):
     if len(p) >= 2 and hasattr(p[2], 'name'):
         param_sym = SymbolEntry(
             name=p[0].vars[0], #check gang
-            type=p[1],
+            type=p[0].dtypes[0],
             kind="parameter",
             scope_level=symtab.current_scope_level,
             scope_name=symtab.current_scope_name,
             size=4,  # Default size
             offset=0,
-            line=p.lineno(2)
+            line=p.lineno(0)
         )
         symtab.add_symbol(param_sym)
 
@@ -1285,13 +1288,13 @@ def p_function_definition(p):
     # Add function to GLOBAL scope
     func_sym = SymbolEntry(
         name=func_name,
-        type=p[1],  # Return type from declaration_specifiers
+        type=p[0].dtypes[0],  # Return type from declaration_specifiers
         kind="function",
         scope_level=0,
         scope_name="global",
         size=0,
         offset=0,
-        line=p.lineno(2)
+        line=p.lineno(0)
     )
     symtab.add_symbol(func_sym)
     
@@ -1386,13 +1389,15 @@ for filename in sorted(os.listdir(testcases_dir)):
         print(symtab)
         print("\n")
 
-        symtab.clear()
+        
 
         if len(argv) > 1 and (str(argv[1]) == "-g" or str(argv[1]) == "--graph"):
             graph = root.to_graph()
             graph.render(f'renderedTrees/{filename+""}', format='png')
             print(f"Parse tree saved as renderedTrees/{filename}.png")
         i += 1
+
+        symtab.clear()
 
         # if i>=2 : break
     symbol_table.clear()
