@@ -2,15 +2,15 @@ from graphviz import Digraph
 from collections import deque
 # AST
 symbol_table = []
-abcd=0
+node_name = 0
 
 class Node:
     def __init__(self, type, children = None): 
-        global abcd
+        global node_name
         self.type = type
-        self.name = str(abcd)
-        abcd+=1
-        print(abcd)
+        self.name = str(node_name)
+        node_name += 1
+        # print(node_name)
         self.children = []
         self.vars = []
         self.dtypes = []

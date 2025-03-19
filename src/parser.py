@@ -46,8 +46,7 @@ def p_external_declaration(p):
 
 # Expressions
 def p_primary_expression(p):
-    '''primary_expression : IDENTIFIER
-                          | constant
+    '''primary_expression : constant
                           | string
                           | LPAREN expression RPAREN
                           | generic_selection'''
@@ -55,6 +54,12 @@ def p_primary_expression(p):
         p[0] = Node("primary_expression", [p[1]])
     elif len(p) == 4:
         p[0] = Node("primary_expression", [p[2]])
+
+def p_primary_expression_identifier(p):
+    '''primary_expression : IDENTIFIER'''
+
+    p[0] = Node("primary_expression", [p[1]])
+    p[0].vars.append(p[1])
 
 def p_primary_expression_error(p):
     '''primary_expression : LPAREN expression error'''
@@ -299,6 +304,14 @@ def p_assignment_expression(p):
         p[0] = Node("assignment_expression", [p[1]])
     else:  # Case: unary_expression assignment_operator assignment_expression
         p[0] = Node("assignment_expression", [p[1], p[2], p[3]])
+
+        # print(p[0].vars)
+        # if len(p[0].vars) != 1:
+        #     raise Exception("left this error comment for future debugging purpose. wrote this for checking for statements A = B; if A already exists in symbol table and for that when i look for A in the unary_expression i expect its length to be 1. if it's not 1 then this error is thrown and you are suppose to fix this goodluck")
+        
+        for var in p[0].vars:
+            if symtab.lookup(var) == None:
+                raise ValueError(f"No symbol '{var}' in the symbol table")
 
 def p_assignment_operator(p):
     '''assignment_operator : ASSIGN
