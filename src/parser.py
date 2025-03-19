@@ -446,25 +446,46 @@ def p_type_specifier(p):
 # Structures and Unions
 def p_struct_or_union_specifier(p):
     '''struct_or_union_specifier : struct_or_union LBRACE struct_declaration_list RBRACE
-                                | struct_or_union IDENTIFIER LBRACE struct_declaration_list RBRACE
+                                | struct_or_union IDENTIFIER LBRACE enter_scope struct_declaration_list RBRACE
                                 | struct_or_union IDENTIFIER'''
     if len(p) == 5:
         p[0] = Node("struct_or_union_specifier", [p[1], p[3]])
-    elif len(p) == 6:
-        p[0] = Node("struct_or_union_specifier", [p[1], p[2], p[4]])
+    elif len(p) == 7:
+        p[0] = Node("struct_or_union_specifier", [p[1], p[2], p[5]])
         # p[0].dtypes.append(str(p[1].children[0])+" "+p[2])
         symbol_table.append((p[2], str(p[1].children[0])))
+        
+        struct_name = p[2]
+        sym_scope_level = symtab.current_scope_level - 1
+        struct_sym = SymbolEntry(
+            name=struct_name,
+            type=f"{p[1].children[0]}",
+            kind=f"{p[1].children[0]}",
+            scope_level=sym_scope_level,
+            scope_name=("global" if sym_scope_level == 0 else f"block@{sym_scope_level}"),
+            size=0,
+            offset=0,
+            line=0
+        )
+
+        for entry in symtab.scopes[-1]:
+            if symtab.scopes[-1][entry].scope_name == f"block@{symtab.current_scope_level}":
+                symtab.scopes[-1][entry].scope_name = str(p[1].children[0]) + " " + struct_name
+        
+        symtab.add_symbol(struct_sym)
+        symtab.current_scope_level -= 1
+
     else:
         p[0] = Node("struct_or_union_specifier", [p[1], p[2]])
         p[0].dtypes.append(str(p[1].children[0])+ " " +p[2])
 
     
 
-def p_struct_or_union_specifier_error(p):
-    '''struct_or_union_specifier : struct_or_union LBRACE struct_declaration_list error
-                                | struct_or_union IDENTIFIER LBRACE struct_declaration_list error'''
+# def p_struct_or_union_specifier_error(p):
+#     '''struct_or_union_specifier : struct_or_union LBRACE struct_declaration_list error
+#                                 | struct_or_union IDENTIFIER LBRACE struct_declaration_list error'''
 
-    print("Error: Missing '}' Brace")
+#     print("Error: Missing '}' Brace")
 
 
 def p_struct_or_union(p):
@@ -491,6 +512,24 @@ def p_struct_declaration(p):
     else:
         p[0] = Node("struct_declaration", [p[1]])
     table_entry(p[0])
+
+    if len(p) == 4:  # Has init_declarator_list
+        base_type = ''
+        for dtype in p[0].dtypes:
+            base_type += dtype
+            base_type += " "
+        for decl in p[0].vars:  # Assume init_declarator_list is parsed
+            var_sym = SymbolEntry(
+                name=decl,
+                type=base_type,
+                kind="variable",
+                scope_level=symtab.current_scope_level,
+                scope_name=symtab.current_scope_name,
+                size=4,  # Should calculate based on type
+                offset=0,
+                line=p.lineno(0)
+            )
+            symtab.add_symbol(var_sym)
 
 def p_struct_declaration_error(p):
     '''struct_declaration : specifier_qualifier_list error

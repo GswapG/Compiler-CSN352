@@ -1,7 +1,13 @@
+struct hello {
+    int a;
+    float f;
+};
+
+
+
 
 int main() {
-    float b = 10;
-    int a = 15;
-    b = 10 + a;
+    struct hello h;
+
 }
 
