@@ -1,4 +1,4 @@
-
+#!/bin/bash
 VERSION="1.2.82"
 
 # Function to install Graphviz based on OS
