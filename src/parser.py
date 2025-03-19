@@ -351,7 +351,7 @@ def p_declaration(p):
         p[0] = Node("declaration", [p[1]])
 
     # -- Symbol Table Handling --
-    if len(p) >= 3:  # Has init_declarator_list
+    if len(p) == 4:  # Has init_declarator_list
         base_type = ''
         for dtype in p[0].dtypes:
             base_type += dtype
