@@ -2,7 +2,7 @@ from collections import defaultdict
 from collections import deque
 marker = defaultdict(list)
 class SymbolEntry:
-    def __init__(self, name, type, kind, scope_level, scope_name, size, offset, line):
+    def __init__(self, name, type, kind, scope_level, scope_name, size, offset, line , is_param = False):
         self.name = name
         self.type = type
         self.kind = kind          # 'variable', 'function', 'parameter'
@@ -11,6 +11,7 @@ class SymbolEntry:
         self.size = size           # Size in bytes
         self.offset = offset       # Stack offset (for local variables)
         self.line = line           # Source line number
+        self.is_param = is_param   
 
 class SymbolTable:
     def __init__(self):
@@ -41,9 +42,7 @@ class SymbolTable:
     def exit_scope(self):
         """Leave current scope"""
         for j in marker[self.current_scope_level]:
-            for i in list(self.scopes[j[1]]):
-                if i == j[0].name:
-                    self.scopes[j[1]].pop(i)
+            del self.scopes[j[1]][j[0].name]
         print("minus")
         marker[self.current_scope_level].clear()
         if self.current_scope_level > 0:

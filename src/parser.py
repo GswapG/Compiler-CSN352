@@ -765,7 +765,8 @@ def p_parameter_declaration(p):
             scope_name= f"block@{symtab.current_scope_level + 1}",
             size=4,  # Default size
             offset=0,
-            line=p.lineno(0)
+            line=p.lineno(0),
+            is_param = True
         )
         print("hello")
         marker[symtab.current_scope_level+1].append((param_sym, symtab.current_scope_level))
