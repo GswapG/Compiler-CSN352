@@ -1,213 +1,13 @@
-# -*- coding: utf-8 -*-
 import ply.yacc as yacc
 import os
-from lexer import *
-from collections import deque
 from tokens import tokens  # Assuming you have a matching lexer
-from graphviz import Digraph
-from collections import defaultdict
 from sys import argv
-
-
 from ply import yacc
-from collections import deque
-marker = defaultdict(list)
-class SymbolEntry:
-    def __init__(self, name, type, kind, scope_level, scope_name, size, offset, line):
-        self.name = name
-        self.type = type
-        self.kind = kind          # 'variable', 'function', 'parameter'
-        self.scope_level = scope_level
-        self.scope_name = scope_name
-        self.size = size           # Size in bytes
-        self.offset = offset       # Stack offset (for local variables)
-        self.line = line           # Source line number
 
-class SymbolTable:
-    def __init__(self):
-        self.scopes = deque()       # Stack of scopes (deque for efficient stacking)
-        self.current_scope_level = -1
-        self.current_scope_name = "global"
-        self.offset_counter = {}    # Track offsets per scope level
-        self.enter_scope()          # Initialize global scope
-    
-    def clear(self):
-        """Reset the symbol table to its initial state"""
-        self.scopes.clear()  # Remove all scopes
-        self.current_scope_level = -1
-        self.current_scope_name = "global"
-        self.offset_counter = {}
-        self.enter_scope()  # Recreate global scope
-    
-    def enter_scope(self, scope_name=None):
-        """Create a new scope"""
-        self.scopes.append({})
-        self.current_scope_level += 1
-        print("plus")
-        self.current_scope_name = scope_name or f"block@{self.current_scope_level}"
-        if self.current_scope_level==0:
-            self.current_scope_name = "global"
-        self.offset_counter[self.current_scope_level] = 0
+from lexer import *
+from tree import *
+from symtab import *
 
-    def exit_scope(self):
-        """Leave current scope"""
-        for j in marker[self.current_scope_level]:
-            for i in list(self.scopes[j[1]]):
-                if i == j[0].name:
-                    self.scopes[j[1]].pop(i)
-        print("minus")
-        marker[self.current_scope_level].clear()
-        if self.current_scope_level > 0:
-            self.scopes.pop()
-            self.current_scope_level -= 1
-            self.current_scope_name = "global" if self.current_scope_level == 0 else f"block@{self.current_scope_level}"
-
-    def add_symbol(self, symbol):
-        """Add symbol to current scope"""
-        current_scope = self.scopes[-1]
-        if symbol.name in current_scope:
-            raise ValueError(f"Duplicate symbol '{symbol.name}' in scope {self.current_scope_name}")
-        
-        # Calculate offset for variables/parameters
-        if symbol.kind in ['variable', 'parameter']:
-            symbol.offset = self.offset_counter[self.current_scope_level]
-            self.offset_counter[self.current_scope_level] += symbol.size
-        
-        current_scope[symbol.name] = symbol
-        print("added symbol",symbol.name)
-        print(symtab)
-
-    def lookup(self, name):
-        """Search for symbol in all enclosing scopes"""
-        for scope in reversed(self.scopes):
-            if name in scope:
-                return scope[name]
-        return None
-
-    def __str__(self):
-        """Pretty-print symbol table"""
-        headers = ["Name", "Type", "Kind", "Scope", "ScopeName", "Size", "Offset", "Line"]
-        rows = []
-        
-        for scope in self.scopes:
-            for sym in scope.values():
-                rows.append([
-                    sym.name, sym.type, sym.kind, sym.scope_level,
-                    sym.scope_name, sym.size, sym.offset, sym.line
-                ])
-        
-        return tabulate(rows, headers=headers, tablefmt="grid")
-
-# Type size mapping (simplified)
-TYPE_SIZES = {
-    'int': 4,
-    'float': 4,
-    'char': 1,
-    'void': 0
-}
-
-def get_type_size(type_specifiers):
-    """Calculate size based on type specifiers"""
-    # Simplified implementation
-    return TYPE_SIZES.get(type_specifiers[0], 0)
-
-# Install tabulate for pretty-printing
-try:
-    from tabulate import tabulate
-except ImportError:
-    print("Install tabulate for better output: pip install tabulate")
-    def tabulate(*args, **kwargs):
-        return str(args[0])
-    
-# AST
-symbol_table = []
-abcd=0
-
-class Node:
-    def __init__(self, type, children = None): 
-        global abcd
-        self.type = type
-        self.name = str(abcd)
-        abcd+=1
-        print(abcd)
-        self.children = []
-        self.vars = []
-        self.dtypes = []
-        self.pointer_count = 0
-        self.is_const = 0
-        if children:
-            children_conv = []
-            for c in children:
-                if not isinstance(c,Node):
-                    children_conv.append(Node(str(c)))
-                else:
-                    children_conv.append(c)        
-            self.children = children_conv
-        for c in self.children:
-            if isinstance(c,Node):
-                self.vars += c.vars
-                self.dtypes += c.dtypes
-                self.pointer_count += c.pointer_count
-                self.is_const |= c.is_const
-                # c.dtypes.clear()
-                # c.vars.clear()
-    def __repr__(self):
-        return f"Node({self.type})"
-
-    def to_graph(self, graph=None):
-        if graph is None:
-            graph = Digraph()
-            graph.node(str(id(self)), label=self.type)
-        
-        for child in self.children:
-            if isinstance(child, Node):
-                graph.node(str(id(child)), label=child.type)
-                graph.edge(str(id(self)), str(id(child)))
-                child.to_graph(graph)
-            # else:
-            #     child_id = f"{id(self)}_{id(child)}"
-            #     graph.node(child_id, label=str(child))
-            #     graph.edge(str(id(self)), child_id)
-        
-        return graph
-
-    def dfs2(self):
-        """if one parent and one child then both get linked and i disappear"""
-        for i in range(len(self.children)):
-            while len(self.children[i].children) == 1:
-                self.children[i] = self.children[i].children[0]
-        for child in self.children:
-            child.dfs2()
-
-
-    
-def dfs(node, indent=0):
-    """Recursively prints the AST."""
-    # Check if the node is a string or a Node object
-    if isinstance(node, Node):
-        # Print the current node's type
-        print(" " * indent + f"Node: {node.type}")
-        
-        # Recursively print each child
-        for child in node.children:
-            dfs(child, indent + 4)
-    else:
-        print(node)
-      
-def level_order(node):
-    queue = deque()
-    queue.append(node)
-    while(queue):
-        sz = len(queue)
-        for i in range(0,sz):
-            v = queue.popleft()
-            if isinstance(v,Node):
-                print(f"Node: {v.type}",end=" ")
-                for u in v.children:
-                    queue.append(u)
-            else:
-                print(f"Value: {v}",end = " ")
-        print("\n \n")
 
 
 def table_entry(node):
@@ -229,9 +29,6 @@ def table_entry(node):
     if compound_dtype.split(" ")[0] == "typedef":
         for var in node.vars:
             typedef_names.add(str(var))
-            
-    # node.vars = []
-    # node.dtypes = []
 
 # Translation Unit
 def p_translation_unit(p):
@@ -1305,7 +1102,7 @@ def p_function_definition(p):
     # Add function to GLOBAL scope
     func_sym = SymbolEntry(
         name=func_name,
-        type=p[0].dtypes[0],  # Return type from declaration_specifiers
+        type= p[0].dtypes[0],  # Return type from declaration_specifiers
         kind="function",
         scope_level=0,
         scope_name="global",
@@ -1362,7 +1159,6 @@ def p_error(p):
     
 # Build parser
 parser = yacc.yacc()
-symtab = SymbolTable()
 testcases_dir = './tests/testing'
 
 def print_symbol_table(symtab):
