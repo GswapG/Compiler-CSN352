@@ -78,6 +78,17 @@ def p_enumeration_constant(p):
     '''enumeration_constant : IDENTIFIER'''
     p[0] = Node("enumeration_constant", [p[1]])
     symbol_table.append((p[1] , "int"))
+    var_sym = SymbolEntry(
+                name=p[1],
+                type="int",
+                kind="enumerator",
+                scope_level=symtab.current_scope_level,
+                scope_name=symtab.current_scope_name,
+                size=4,  # Should calculate based on type
+                offset=0,
+                line=p.lineno(0)
+            )
+    symtab.add_symbol(var_sym)
 
 def p_string(p):
     '''string : STRING_LITERAL'''
@@ -312,6 +323,13 @@ def p_assignment_expression(p):
         for var in p[0].vars:
             if symtab.lookup(var) == None:
                 raise ValueError(f"No symbol '{var}' in the symbol table")
+    
+        lhs=symtab.lookup(p[0].vars[0])
+
+        for rhs2 in p[0].vars:
+            rhs=symtab.lookup(rhs2)
+            if rhs.type!=lhs.type:
+                print(f"Type mismatch in assignment of {lhs.name} and {rhs.name}")
 
 def p_assignment_operator(p):
     '''assignment_operator : ASSIGN
@@ -410,7 +428,7 @@ def p_init_declarator(p):
     '''init_declarator : declarator ASSIGN initializer
                        | declarator'''
     if len(p) == 4: 
-        p[0] = Node("init_declarator", [p[1], p[2], p[3]])  
+        p[0] = Node("init_declarator", [p[1], p[2], p[3]])
     else:  # Case: declarator
         p[0] = Node("init_declarator", [p[1]])
     #p[0].name = p[1].name  # Propagate name for symbol table
@@ -575,13 +593,33 @@ def p_enum_specifier(p):
                      | ENUM IDENTIFIER LBRACE enumerator_list COMMA RBRACE
                      | ENUM IDENTIFIER'''
     if len(p) == 3:
-        p[0] = Node("enum_specifier", [p[1], p[2]])
+        p[0] = Node("enum_specifier", [p[2]])
         p[0].dtypes.append(p[1]+" "+p[2])
-    elif len(p) == 6 and p[1] == '{':
-        p[0] = Node("enum_specifier", [p[1], p[3]])
+        if symtab.lookup(p[2])==None:
+            print(f"Error: Enum Identifier {p[2]} not found")
+    elif len(p) == 6 and p[3] == '{':
+        p[0] = Node("enum_specifier", [p[2], p[4]])
+    elif len(p) == 6:
+        p[0] = Node("enum_specifier", [p[3]])
+    elif len(p) == 7:
+        p[0] = Node("enum_specifier", [p[2], p[4]])
     else:
-        p[0] = Node("enum_specifier", [p[1], p[2], p[4]])
-        symbol_table.append((p[2],p[1]))
+        p[0] = Node("enum_specifier", [p[3]])
+
+    if p[2]!='{':
+        var_sym = SymbolEntry(
+                name=p[2],
+                type="enum decl",
+                kind="enum type",
+                scope_level=symtab.current_scope_level,
+                scope_name=symtab.current_scope_name,
+                size=0,  # Should calculate based on type
+                offset=0,
+                line=p.lineno(0)
+            )
+        symtab.add_symbol(var_sym)
+    
+    # symbol_table.append((p[2],p[1])) idk old intention toh hataaya
     pass
 
 def p_enum_specifier_error(p):
@@ -604,7 +642,7 @@ def p_enumerator_list(p):
 def p_enumerator(p):
     '''enumerator : enumeration_constant ASSIGN constant_expression
                  | enumeration_constant'''
-    if len(p) == 3:
+    if len(p) == 4:
         p[0] = Node("enumerator", [p[1], p[3]])
     else:
         p[0] = Node("enumerator", [p[1]])
