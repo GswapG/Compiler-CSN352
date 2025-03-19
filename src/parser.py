@@ -907,6 +907,13 @@ def p_initializer(p):
         p[0] = Node("initializer", [p[2]])  
     else:  
         p[0] = Node("initializer", [p[1]])  
+    
+    for c in p[0].vars:
+        if symtab.lookup(c) is None:
+            print(f"Error: variable {c} not declared")
+
+    p[0].vars = []
+
 
 def p_initializer_error(p):
     '''initializer : LBRACE initializer_list error
