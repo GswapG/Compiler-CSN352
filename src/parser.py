@@ -5,12 +5,13 @@ from lexer import *
 from collections import deque
 from tokens import tokens  # Assuming you have a matching lexer
 from graphviz import Digraph
+from collections import defaultdict
 from sys import argv
 
 
 from ply import yacc
 from collections import deque
-
+marker = defaultdict(list)
 class SymbolEntry:
     def __init__(self, name, type, kind, scope_level, scope_name, size, offset, line):
         self.name = name
@@ -50,6 +51,12 @@ class SymbolTable:
 
     def exit_scope(self):
         """Leave current scope"""
+        for j in marker[self.current_scope_level]:
+            for i in list(self.scopes[j[1]]):
+                if i == j[0].name:
+                    self.scopes[j[1]].pop(i)
+        print("minus")
+        marker[self.current_scope_level].clear()
         if self.current_scope_level > 0:
             self.scopes.pop()
             self.current_scope_level -= 1
@@ -535,7 +542,10 @@ def p_declaration(p):
 
     # -- Symbol Table Handling --
     if len(p) >= 3:  # Has init_declarator_list
-        base_type = p[0].dtypes[0]
+        base_type = ''
+        for dtype in p[0].dtypes:
+            base_type += dtype
+            base_type += " "
         for decl in p[0].vars:  # Assume init_declarator_list is parsed
             var_sym = SymbolEntry(
                 name=decl,
@@ -946,16 +956,23 @@ def p_parameter_declaration(p):
 
     # -- Symbol Table Handling (only for concrete declarators) --
     if len(p) >= 2 and hasattr(p[2], 'name'):
+        base_type = ''
+        for dtype in p[0].dtypes:
+            base_type += dtype
+            base_type += " "
         param_sym = SymbolEntry(
             name=p[0].vars[0], #check gang
-            type=p[0].dtypes[0],
+            type=base_type,
             kind="parameter",
-            scope_level=symtab.current_scope_level,
-            scope_name=symtab.current_scope_name,
+            scope_level=symtab.current_scope_level + 1,
+            scope_name= f"block@{symtab.current_scope_level + 1}",
             size=4,  # Default size
             offset=0,
             line=p.lineno(0)
         )
+        print("hello")
+        marker[symtab.current_scope_level+1].append((param_sym, symtab.current_scope_level))
+        # print(marker[1])
         symtab.add_symbol(param_sym)
 
 
@@ -1299,7 +1316,8 @@ def p_function_definition(p):
     symtab.add_symbol(func_sym)
     
     # Enter FUNCTION SCOPE (for parameters/local vars)
-    symtab.enter_scope(func_name)
+    # symtab.enter_scope(func_name)
+    # symtab.exit_scope()
 
 def p_declaration_list(p):
     '''declaration_list : declaration
