@@ -119,11 +119,9 @@ class SymbolTable:
         scope_pointer = self.current_scope
         while scope_pointer:
             for entry in scope_pointer.entries:
-                print(entry.name)
                 if entry.name == name:
                     return entry
             scope_pointer = scope_pointer.parent
-            print("hello")
         return None
     
     def __str__(self):

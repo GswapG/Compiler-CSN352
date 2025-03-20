@@ -320,7 +320,6 @@ def p_assignment_expression(p):
         for var in p[0].vars:
             if symtab.lookup(var) == None:
                 raise ValueError(f"No symbol '{var}' in the symbol table")
-        print(f"|{p[0].vars[0]}|")
         lhs=symtab.lookup(p[0].vars[0])
 
         for rhs2 in p[0].vars:
@@ -421,7 +420,7 @@ def p_init_declarator(p):
         p[0] = Node("init_declarator", [p[1]])
     #p[0].name = p[1].name  # Propagate name for symbol table
     global datatypeslhs
-    print(datatypeslhs)
+    # print(datatypeslhs)
 
     base_type = ''
     for dtype in datatypeslhs:
