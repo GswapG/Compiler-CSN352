@@ -6,7 +6,7 @@ from ply import yacc
 
 from lexer import *
 from tree import *
-from symtab import *
+from symtab_new import *
 
 
 
@@ -76,17 +76,14 @@ def p_constant(p):
 
 def p_enumeration_constant(p):
     '''enumeration_constant : IDENTIFIER'''
+
     p[0] = Node("enumeration_constant", [p[1]])
     symbol_table.append((p[1] , "int"))
+
     var_sym = SymbolEntry(
                 name=p[1],
                 type="int",
-                kind="enumerator",
-                scope_level=symtab.current_scope_level,
-                scope_name=symtab.current_scope_name,
-                size=4,  # Should calculate based on type
-                offset=0,
-                line=p.lineno(0)
+                kind="enumerator"
             )
     symtab.add_symbol(var_sym)
 
@@ -378,12 +375,7 @@ def p_declaration(p):
             var_sym = SymbolEntry(
                 name=decl,
                 type=base_type,
-                kind="variable",
-                scope_level=symtab.current_scope_level,
-                scope_name=symtab.current_scope_name,
-                size=4,  # Should calculate based on type
-                offset=0,
-                line=p.lineno(0)
+                kind="variable"
             )
             symtab.add_symbol(var_sym)
 
@@ -464,11 +456,11 @@ def p_type_specifier(p):
 # Structures and Unions
 def p_struct_or_union_specifier(p):
     '''struct_or_union_specifier : struct_or_union LBRACE struct_declaration_list RBRACE
-                                | struct_or_union IDENTIFIER LBRACE enter_scope struct_declaration_list RBRACE
+                                | struct_or_union IDENTIFIER LBRACE enter_scope struct_declaration_list exit_scope RBRACE
                                 | struct_or_union IDENTIFIER'''
     if len(p) == 5:
         p[0] = Node("struct_or_union_specifier", [p[1], p[3]])
-    elif len(p) == 7:
+    elif len(p) == 8:
         p[0] = Node("struct_or_union_specifier", [p[1], p[2], p[5]])
         # p[0].dtypes.append(str(p[1].children[0])+" "+p[2])
         symbol_table.append((p[2], str(p[1].children[0])))
@@ -478,20 +470,15 @@ def p_struct_or_union_specifier(p):
         struct_sym = SymbolEntry(
             name=struct_name,
             type=f"{p[1].children[0]}",
-            kind=f"{p[1].children[0]}",
-            scope_level=sym_scope_level,
-            scope_name=("global" if sym_scope_level == 0 else f"block@{sym_scope_level}"),
-            size=0,
-            offset=0,
-            line=0
+            kind=f"{p[1].children[0]}"
         )
 
-        for entry in symtab.scopes[-1]:
-            if symtab.scopes[-1][entry].scope_name == f"block@{symtab.current_scope_level}":
-                symtab.scopes[-1][entry].scope_name = str(p[1].children[0]) + " " + struct_name
+        # for entry in symtab.scopes[-1]:
+        #     if symtab.scopes[-1][entry].scope_name == f"block@{symtab.current_scope_level}":
+        #         symtab.scopes[-1][entry].scope_name = str(p[1].children[0]) + " " + struct_name
         
         symtab.add_symbol(struct_sym)
-        symtab.current_scope_level -= 1
+        # symtab.current_scope_level -= 1
 
     else:
         p[0] = Node("struct_or_union_specifier", [p[1], p[2]])
@@ -540,12 +527,7 @@ def p_struct_declaration(p):
             var_sym = SymbolEntry(
                 name=decl,
                 type=base_type,
-                kind="variable",
-                scope_level=symtab.current_scope_level,
-                scope_name=symtab.current_scope_name,
-                size=4,  # Should calculate based on type
-                offset=0,
-                line=p.lineno(0)
+                kind="variable"
             )
             symtab.add_symbol(var_sym)
 
@@ -610,12 +592,7 @@ def p_enum_specifier(p):
         var_sym = SymbolEntry(
                 name=p[2],
                 type="enum decl",
-                kind="enum type",
-                scope_level=symtab.current_scope_level,
-                scope_name=symtab.current_scope_name,
-                size=0,  # Should calculate based on type
-                offset=0,
-                line=p.lineno(0)
+                kind="enum type"
             )
         symtab.add_symbol(var_sym)
     
@@ -851,16 +828,9 @@ def p_parameter_declaration(p):
             name=p[0].vars[0], #check gang
             type=base_type,
             kind="parameter",
-            scope_level=symtab.current_scope_level + 1,
-            scope_name= f"block@{symtab.current_scope_level + 1}",
-            size=4,  # Default size
-            offset=0,
-            line=p.lineno(0),
-            is_param = True
+            isForwardable=True
         )
-        print("hello")
-        marker[symtab.current_scope_level+1].append((param_sym, symtab.current_scope_level))
-        # print(marker[1])
+
         symtab.add_symbol(param_sym)
 
 
@@ -1201,12 +1171,7 @@ def p_function_definition(p):
     func_sym = SymbolEntry(
         name=func_name,
         type= p[0].dtypes[0],  # Return type from declaration_specifiers
-        kind="function",
-        scope_level=0,
-        scope_name="global",
-        size=0,
-        offset=0,
-        line=p.lineno(0)
+        kind="function"
     )
     symtab.add_symbol(func_sym)
     
@@ -1301,15 +1266,13 @@ for filename in sorted(os.listdir(testcases_dir)):
         print(symtab)
         print("\n")
 
-        
-
         if len(argv) > 1 and (str(argv[1]) == "-g" or str(argv[1]) == "--graph"):
             graph = root.to_graph()
             graph.render(f'renderedTrees/{filename+""}', format='png')
             print(f"Parse tree saved as renderedTrees/{filename}.png")
         i += 1
 
-        symtab.clear()
+        # symtab.clear()
 
         # if i>=2 : break
     symbol_table.clear()
