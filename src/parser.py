@@ -320,7 +320,7 @@ def p_assignment_expression(p):
         for var in p[0].vars:
             if symtab.lookup(var) == None:
                 raise ValueError(f"No symbol '{var}' in the symbol table")
-    
+        print(f"|{p[0].vars[0]}|")
         lhs=symtab.lookup(p[0].vars[0])
 
         for rhs2 in p[0].vars:
@@ -435,7 +435,6 @@ def p_init_declarator(p):
             kind="variable"
         )
         symtab.add_symbol(var_sym)
-
     for var in p[0].rhs:
         if symtab.lookup(var) == None:
             print(f"Error : No symbol '{var}' in the symbol table")

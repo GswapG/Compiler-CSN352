@@ -61,31 +61,24 @@ class SymbolTable:
         self.table_entries = []
 
     def enter_scope(self):
-        """
-            create a new scope and add this as a children to the current_scope node
-            and shift the current_scope to this
-        """
-
         self.current_scope_level += 1
         self.current_scope_name = f"block@{self.current_scope_level}"
-
         scope_node = SymbolEntryNode(self.current_scope_level, self.current_scope_name, self.current_scope)
-        
+
         forward_entries = []
         for entry in scope_node.parent.entries:
             if entry.isForwardable:
                 forward_entries.append(entry)
+                entry.node = scope_node
+                entry.isForwardable = False
+                scope_node.entries.append(entry)
 
-                last_entry = forward_entries[-1]
-                last_entry.node = scope_node
-                last_entry.isForwadable = False
+                # Add to table_entries if not forwardable anymore
+                entry = SymbolTableEntry(entry.name, entry.type, entry.kind, entry.node.scope_level, entry.node.scope_name)
+                self.table_entries.append(entry)
 
-                scope_node.entries.append(last_entry)
-
-                table_entry = SymbolTableEntry(last_entry.name, last_entry.type, last_entry.kind, last_entry.node.scope_level, last_entry.node.scope_name)
-                self.table_entries.append(table_entry)
-
-        scope_node.parent.entries = [_ for _ in scope_node.entries if _ not in forward_entries]
+        # Correctly update parent's entries by filtering out forwarded entries
+        scope_node.parent.entries = [entry for entry in scope_node.parent.entries if entry not in forward_entries]
 
         self.current_scope.children.append(scope_node)
         self.current_scope = scope_node
@@ -123,23 +116,14 @@ class SymbolTable:
         print("added symbol",symbol.name)
         
     def lookup(self, name):
-        """
-            look if name exists in all the scopes (traverse all the way to the parent node)
-        """
-
         scope_pointer = self.current_scope
-
-        while scope_pointer.scope_name != "global":
+        while scope_pointer:
             for entry in scope_pointer.entries:
+                print(entry.name)
                 if entry.name == name:
                     return entry
-                
             scope_pointer = scope_pointer.parent
-                
-        for entry in scope_pointer.entries:
-            if entry.name == name:
-                return entry
-                
+            print("hello")
         return None
     
     def __str__(self):
