@@ -14,6 +14,7 @@ class Node:
         self.children = []
         self.vars = []
         self.dtypes = []
+        self.rhs = []
         self.pointer_count = 0
         self.is_const = 0
         if children:
@@ -28,6 +29,7 @@ class Node:
             if isinstance(c,Node):
                 self.vars += c.vars
                 self.dtypes += c.dtypes
+                self.rhs += c.rhs
                 self.pointer_count += c.pointer_count
                 self.is_const |= c.is_const
                 # c.dtypes.clear()

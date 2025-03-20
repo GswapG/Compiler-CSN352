@@ -8,7 +8,7 @@ from lexer import *
 from tree import *
 from symtab_new import *
 
-
+datatypeslhs=[]
 
 def table_entry(node):
     compound_dtype = ""
@@ -365,19 +365,7 @@ def p_declaration(p):
     else:
         p[0] = Node("declaration", [p[1]])
 
-    # -- Symbol Table Handling --
-    if len(p) == 4:  # Has init_declarator_list
-        base_type = ''
-        for dtype in p[0].dtypes:
-            base_type += dtype
-            base_type += " "
-        for decl in p[0].vars:  # Assume init_declarator_list is parsed
-            var_sym = SymbolEntry(
-                name=decl,
-                type=base_type,
-                kind="variable"
-            )
-            symtab.add_symbol(var_sym)
+    datatypeslhs=[]
 
 def p_declaration_error(p):
     '''declaration : declaration_specifiers error
@@ -401,6 +389,9 @@ def p_declaration_specifiers(p):
     else:
         p[0] = Node("declaration_specifiers", [p[1]])
 
+    global datatypeslhs
+    datatypeslhs=p[0].dtypes
+
 def p_storage_class_specifier(p):
     '''storage_class_specifier : TYPEDEF
 	                            | EXTERN
@@ -421,9 +412,41 @@ def p_init_declarator(p):
                        | declarator'''
     if len(p) == 4: 
         p[0] = Node("init_declarator", [p[1], p[2], p[3]])
+
+        for var in p[0].rhs:
+            if symtab.lookup(var) == None:
+                raise ValueError(f"No symbol '{var}' in the symbol table")
+
     else:  # Case: declarator
         p[0] = Node("init_declarator", [p[1]])
     #p[0].name = p[1].name  # Propagate name for symbol table
+    global datatypeslhs
+    print(datatypeslhs)
+
+    base_type = ''
+    for dtype in datatypeslhs:
+        base_type += dtype
+        base_type += " "
+    base_type=base_type[:-1]
+    for decl in p[0].vars:  # Assume init_declarator_list is parsed
+        var_sym = SymbolEntry(
+            name=decl,
+            type=base_type,
+            kind="variable"
+        )
+        symtab.add_symbol(var_sym)
+
+    for var in p[0].rhs:
+        if symtab.lookup(var) == None:
+            print(f"Error : No symbol '{var}' in the symbol table")
+
+    for rhs2 in p[0].rhs:
+        rhs=symtab.lookup(rhs2)
+        print(f"rhs: {rhs.name} {rhs.type}")
+        if base_type!=rhs.type:
+            print(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs.name}")
+            print(f"|{base_type}|{rhs.type}|")
+    # print("gang")
 
 def p_init_declarator_error(p):
     '''init_declarator : declarator error initializer'''
@@ -920,7 +943,8 @@ def p_initializer(p):
         if symtab.lookup(c) is None:
             print(f"Error: variable {c} not declared")
 
-    p[0].vars = []
+    p[0].rhs = p[0].vars
+    p[0].vars=[]
 
 
 def p_initializer_error(p):
