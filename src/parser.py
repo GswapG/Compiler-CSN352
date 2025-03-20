@@ -9,7 +9,7 @@ from tree import *
 from symtab_new import *
 
 datatypeslhs=[]
-
+constants = defaultdict(lambda: None)
 def table_entry(node):
     compound_dtype = ""
     for t in node.dtypes:
@@ -73,6 +73,30 @@ def p_constant(p):
                 | CHAR_CONSTANT
                 | enumeration_constant'''
     p[0] = Node("constant", [p[1]])  # Include the constant value
+    token_type = p.slice[1].type
+    if token_type == "I_CONSTANT":
+        var_sym = SymbolEntry(
+                name=p[1],
+                type="int",
+                kind="constant"
+            )
+        symtab.add_symbol(var_sym)
+    elif token_type == "F_CONSTANT":
+        var_sym = SymbolEntry(
+                name=p[1],
+                type="float",
+                kind="constant"
+            )
+        symtab.add_symbol(var_sym)
+    elif token_type == "CHAR_CONSTANT":
+        var_sym = SymbolEntry(
+                name=p[1],
+                type="char",
+                kind="constant"
+            )
+        symtab.add_symbol(var_sym)
+    p[0].vars.append(p[1])
+
 
 def p_enumeration_constant(p):
     '''enumeration_constant : IDENTIFIER'''
@@ -218,6 +242,19 @@ def p_multiplicative_expression(p):
         p[0] = Node("multiplicative_expression", [p[1]])
     else:
         p[0] = Node("multiplicative_expression", [p[1], p[2], p[3]])
+    
+    dtype1 = None
+    if(len(p[1].vars) > 0):
+        dtype1 = symtab.lookup(p[1].vars[0]).type
+    # if dtype1 != 'float' and dtype1 != 'int':
+    #     raise ValueError(f"Incompatible multiplication op'")
+    for var in p[1].vars:
+        if symtab.lookup(var).type != dtype1:
+            raise ValueError(f"Incompatible multiplication op with '{var}'")
+    if len(p) == 4:
+        for var in p[3].vars:
+            if symtab.lookup(var).type != dtype1:
+                raise ValueError(f"Incompatible multiplication op with '{var}'")
 
 def p_additive_expression(p):
     '''additive_expression : multiplicative_expression
@@ -227,6 +264,20 @@ def p_additive_expression(p):
         p[0] = Node("additive_expression", [p[1]])
     else:
         p[0] = Node("additive_expression", [p[1], p[2], p[3]])
+
+    # print(p[1].vars)
+    dtype1 = None
+    if(len(p[1].vars) > 0):
+        dtype1 = symtab.lookup(p[1].vars[0]).type
+    # if dtype1 != 'float' and dtype1 != 'int':
+    #     raise ValueError(f"Incompatible addition op ")
+    for var in p[1].vars:
+        if symtab.lookup(var).type != dtype1:
+            raise ValueError(f"Incompatible addition op with '{var}'")
+    if len(p) == 4:
+        for var in p[3].vars:
+            if symtab.lookup(var).type != dtype1:
+                raise ValueError(f"Incompatible addition op with '{var}'")
 
 def p_shift_expression(p):
     '''shift_expression : additive_expression
@@ -250,6 +301,10 @@ def p_relational_expression(p):
         for var in p[1].vars:
             if symtab.lookup(var) == None:
                 raise ValueError(f"No symbol '{var}' in the symbol table")
+        for var in p[1].vars:
+            for var2 in p[3].vars:
+                if symtab.lookup(var).type != symtab.lookup(var2).type:
+                    raise ValueError(f"Incompatible relational op with '{var}' and '{var2}'")
 
 def p_equality_expression(p):
     '''equality_expression : relational_expression
@@ -417,7 +472,6 @@ def p_init_declarator(p):
                        | declarator'''
     if len(p) == 4: 
         p[0] = Node("init_declarator", [p[1], p[2], p[3]])
-
         for var in p[0].rhs:
             if symtab.lookup(var) == None:
                 raise ValueError(f"No symbol '{var}' in the symbol table")
@@ -427,7 +481,7 @@ def p_init_declarator(p):
     #p[0].name = p[1].name  # Propagate name for symbol table
     global datatypeslhs
     # print(datatypeslhs)
-
+    
     base_type = ''
     for dtype in datatypeslhs:
         base_type += dtype

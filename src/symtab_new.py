@@ -104,7 +104,11 @@ class SymbolTable:
 
         for entry in self.current_scope.entries:
             if entry.name == symbol.name:
-                raise ValueError(f"Duplicate symbol '{symbol.name}' in scope {self.current_scope_name}")
+                # print(entry.type)
+                if entry.kind != "constant":
+                    raise ValueError(f"Duplicate symbol '{symbol.name}' in scope {self.current_scope_name}")
+                else:
+                    return
         
         symbol.node = self.current_scope
         self.current_scope.entries.append(symbol)
