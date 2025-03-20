@@ -247,6 +247,9 @@ def p_relational_expression(p):
         p[0] = Node("relational_expression", [p[1]])
     else:
         p[0] = Node("relational_expression", [p[1], p[2], p[3]])
+        for var in p[1].vars:
+            if symtab.lookup(var) == None:
+                raise ValueError(f"No symbol '{var}' in the symbol table")
 
 def p_equality_expression(p):
     '''equality_expression : relational_expression
@@ -256,6 +259,9 @@ def p_equality_expression(p):
         p[0] = Node("equality_expression", [p[1]])
     else:
         p[0] = Node("equality_expression", [p[1], p[2], p[3]])
+        for var in p[1].vars:
+            if symtab.lookup(var) == None:
+                raise ValueError(f"No symbol '{var}' in the symbol table")
 
 def p_and_expression(p):
     '''and_expression : equality_expression
@@ -1122,10 +1128,10 @@ def p_iteration_statement(p):
     '''iteration_statement : WHILE LPAREN expression RPAREN statement
                           | DO statement WHILE LPAREN expression RPAREN SEMICOLON
                           | DO statement UNTIL LPAREN expression RPAREN SEMICOLON
-                          | FOR LPAREN expression_statement expression_statement RPAREN statement
-                          | FOR LPAREN expression_statement expression_statement expression RPAREN statement
-                          | FOR LPAREN declaration expression_statement RPAREN statement
-                          | FOR LPAREN declaration expression_statement expression RPAREN statement'''
+                          | FOR LPAREN enter_scope expression_statement expression_statement RPAREN statement exit_scope
+                          | FOR LPAREN enter_scope expression_statement expression_statement expression RPAREN statement exit_scope
+                          | FOR LPAREN enter_scope declaration expression_statement RPAREN statement exit_scope
+                          | FOR LPAREN enter_scope declaration expression_statement expression RPAREN statement exit_scope'''
     # p[0] = Node("iteration_statement", [p[2], p[4]])
     # While loop vale
     if p[1] == "while":
@@ -1135,25 +1141,25 @@ def p_iteration_statement(p):
         p[0] = Node("iteration_statement", [p[1],p[2],p[3],p[5]])
     # For loop vale
     elif p[1] == 'for':
-        if len(p) == 7:
-            p[0] = Node("iteration_statement", [p[1], p[3], p[4],p[6]])
+        if len(p) == 9:
+            p[0] = Node("iteration_statement", [p[1], p[4], p[5],p[7]])
         else:
-            p[0] = Node("iteration_statement", [p[1], p[3], p[4],p[5],p[7]])
+            p[0] = Node("iteration_statement", [p[1], p[4], p[5],p[6],p[8]])
 
-def p_iteration_statement_error_1(p):
-    '''iteration_statement : WHILE LPAREN expression error statement
-                          | DO statement WHILE LPAREN expression error SEMICOLON
-                          | FOR LPAREN expression_statement expression_statement error statement
-                          | FOR LPAREN expression_statement expression_statement expression error statement
-                          | FOR LPAREN declaration expression_statement error statement
-                          | FOR LPAREN declaration expression_statement expression error statement'''
+# def p_iteration_statement_error_1(p):
+#     '''iteration_statement : WHILE LPAREN expression error statement
+#                           | DO statement WHILE LPAREN expression error SEMICOLON
+#                           | FOR LPAREN expression_statement expression_statement error statement
+#                           | FOR LPAREN expression_statement expression_statement expression error statement
+#                           | FOR LPAREN declaration expression_statement error statement
+#                           | FOR LPAREN declaration expression_statement expression error statement'''
     
-    print("Error: Missing ')' Paranthesis")
+#     print("Error: Missing ')' Paranthesis")
 
-def p_iteration_statement_error_2(p):
-    '''iteration_statement : DO statement WHILE LPAREN expression RPAREN error'''
+# def p_iteration_statement_error_2(p):
+#     '''iteration_statement : DO statement WHILE LPAREN expression RPAREN error'''
 
-    print("Error: Missing Semicolon")
+#     print("Error: Missing Semicolon")
 
 def p_jump_statement(p):
     '''jump_statement : GOTO IDENTIFIER SEMICOLON
