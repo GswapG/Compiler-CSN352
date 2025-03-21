@@ -394,6 +394,9 @@ def p_assignment_expression(p):
         if lhs.type.startswith("const "):
             raise TypeError(f"Cannot re-assign value to const variable '{lhs.name}' of type '{lhs.type}'")
 
+        if lhs.kind != 'variable':
+            raise TypeError(f"Value can only be assigned to variable types!")
+
         for rhs_var in p[0].vars:
             rhs_decl = symtab.lookup(rhs_var)
 

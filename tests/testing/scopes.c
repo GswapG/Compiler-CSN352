@@ -1,9 +1,17 @@
+struct test {
+    int a;
+};
+
+struct test2 {
+    char a;
+};
+
 int func(float a) {
 
 }
 
 int main() {
-    
-    int a = func(1.1);
+
+    func() = 7;
 }   
 
