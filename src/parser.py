@@ -164,6 +164,10 @@ def p_postfix_expression(p):
     elif len(p) == 8:
         p[0] = Node("postfix_expression", [p[2], p[5]])
 
+    if len(p) == 5 and p[2] == "(" and len(p[0].vars) > 0:
+        p[0].vars = [p[0].vars[0]]
+
+
 def p_postfix_expression_error_1(p):
     '''postfix_expression : LPAREN type_name error LBRACE initializer_list RBRACE
                          | LPAREN type_name error LBRACE initializer_list COMMA RBRACE '''
@@ -247,13 +251,13 @@ def p_multiplicative_expression(p):
     if(len(p[1].vars) > 0):
         dtype1 = symtab.lookup(p[1].vars[0]).type
     # if dtype1 != 'float' and dtype1 != 'int':
-    #     raise ValueError(f"Incompatible multiplication op'")
+    # #     raise ValueError(f"Incompatible multiplication op'")
     for var in p[1].vars:
-        if symtab.lookup(var).type != dtype1:
+        if symtab.lookup(var).type != dtype1 and symtab.lookup(p[1].vars[0]).kind != "function":
             raise ValueError(f"Incompatible multiplication op with '{var}'")
     if len(p) == 4:
         for var in p[3].vars:
-            if symtab.lookup(var).type != dtype1:
+            if symtab.lookup(var).type != dtype1 and symtab.lookup(p[1].vars[0]).kind != "function":
                 raise ValueError(f"Incompatible multiplication op with '{var}'")
 
 def p_additive_expression(p):
@@ -270,13 +274,14 @@ def p_additive_expression(p):
     if(len(p[1].vars) > 0):
         dtype1 = symtab.lookup(p[1].vars[0]).type
     # if dtype1 != 'float' and dtype1 != 'int':
-    #     raise ValueError(f"Incompatible addition op ")
+    # #     raise ValueError(f"Incompatible addition op ")
     for var in p[1].vars:
-        if symtab.lookup(var).type != dtype1:
+        if symtab.lookup(var).type != dtype1 and symtab.lookup(p[1].vars[0]).kind != "function":
+            print(p[1].vars)
             raise ValueError(f"Incompatible addition op with '{var}'")
     if len(p) == 4:
         for var in p[3].vars:
-            if symtab.lookup(var).type != dtype1:
+            if symtab.lookup(var).type != dtype1 and symtab.lookup(p[1].vars[0]).kind != "function":
                 raise ValueError(f"Incompatible addition op with '{var}'")
 
 def p_shift_expression(p):
@@ -381,13 +386,21 @@ def p_assignment_expression(p):
         for var in p[0].vars:
             if symtab.lookup(var) == None:
                 raise ValueError(f"No symbol '{var}' in the symbol table")
-        lhs=symtab.lookup(p[0].vars[0])
+        lhs = symtab.lookup(p[0].vars[0])
 
-        for rhs2 in p[0].vars:
-            rhs=symtab.lookup(rhs2)
-            if rhs.type!=lhs.type:
-                print(f"Type mismatch in assignment of {lhs.name} and {rhs.name}")
+        lhs_no_const = (lhs.type if "const " not in lhs.type else ''.join(_ for _ in lhs.type.split("const ")))
+        # print(lhs_no_const)
 
+        if lhs.type.startswith("const "):
+            raise TypeError(f"Cannot re-assign value to const variable '{lhs.name}' of type '{lhs.type}'")
+
+        for rhs_var in p[0].vars:
+            rhs_decl = symtab.lookup(rhs_var)
+
+            if rhs_decl.type != lhs_no_const:
+                print(f"Type mismatch in assignment of {lhs.name} and {rhs_decl.name}")
+
+        
 def p_assignment_operator(p):
     '''assignment_operator : ASSIGN
                           | MUL_ASSIGN
@@ -478,6 +491,7 @@ def p_init_declarator(p):
 
     else:  # Case: declarator
         p[0] = Node("init_declarator", [p[1]])
+
     #p[0].name = p[1].name  # Propagate name for symbol table
     global datatypeslhs
     # print(datatypeslhs)
@@ -494,17 +508,18 @@ def p_init_declarator(p):
             kind="variable"
         )
         symtab.add_symbol(var_sym)
+
     for var in p[0].rhs:
         if symtab.lookup(var) == None:
             print(f"Error : No symbol '{var}' in the symbol table")
 
+    base_no_const = (base_type if "const " not in base_type else ''.join(_ for _ in base_type.split("const ")))
+
     for rhs2 in p[0].rhs:
-        rhs=symtab.lookup(rhs2)
+        rhs = symtab.lookup(rhs2)
         print(f"rhs: {rhs.name} {rhs.type}")
-        if base_type!=rhs.type:
-            print(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs.name}")
-            print(f"|{base_type}|{rhs.type}|")
-    # print("gang")
+        if base_no_const != rhs.type:
+            raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs.name}\n| base_type = {base_no_const} |\n| rhs_type = {rhs.type} |")
 
 def p_init_declarator_error(p):
     '''init_declarator : declarator error initializer'''

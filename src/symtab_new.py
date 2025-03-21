@@ -1,5 +1,8 @@
 from collections import defaultdict, deque
 
+def strict_equal(a, b):
+    return type(a) is type(b) and a == b
+
 class SymbolEntry:
     def __init__(self, name, type, kind, node=None, isForwardable=False):
         """
@@ -103,7 +106,7 @@ class SymbolTable:
             raise ValueError("Incorrect type of object")
 
         for entry in self.current_scope.entries:
-            if entry.name == symbol.name:
+            if strict_equal(entry.name, symbol.name):
                 # print(entry.type)
                 if entry.kind != "constant":
                     raise ValueError(f"Duplicate symbol '{symbol.name}' in scope {self.current_scope_name}")
@@ -123,7 +126,7 @@ class SymbolTable:
         scope_pointer = self.current_scope
         while scope_pointer:
             for entry in scope_pointer.entries:
-                if entry.name == name:
+                if strict_equal(entry.name, name):
                     return entry
             scope_pointer = scope_pointer.parent
         return None

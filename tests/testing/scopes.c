@@ -1,9 +1,9 @@
-int main() {
-    int a;
-    int b;
-    int c;
+int func(float a) {
 
-    if(a + 1 + b < c + b ){
-
-    }
 }
+
+int main() {
+    
+    int a = func(1.1);
+}   
+
