@@ -25,6 +25,7 @@ class Node:
                 else:
                     children_conv.append(c)        
             self.children = children_conv
+
         for c in self.children:
             if isinstance(c,Node):
                 self.vars += c.vars

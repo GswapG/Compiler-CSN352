@@ -153,7 +153,9 @@ def p_postfix_expression(p):
         p[0] = Node("postfix_expression", [p[1]])
     if len(p) == 3:
         p[0] = Node("postfix_expression", [p[1],p[2]])
-    elif len(p) == 4 and p[3]!=")":
+    elif len(p) == 4 and p[2] == ".":
+        p[0] = Node("postfix_expression", [p[1], p[3]])
+    elif len(p) == 4 and p[3] != ")":
         p[0] = Node("postfix_expression", [p[1], p[2], p[3]])
     elif len(p) == 4:
         p[0] = Node("postfix_expression", [p[1]])
@@ -163,6 +165,26 @@ def p_postfix_expression(p):
         p[0] = Node("postfix_expression", [p[2], p[5]])
     elif len(p) == 8:
         p[0] = Node("postfix_expression", [p[2], p[5]])
+
+    if len(p) == 4 and p[2] == ".":
+        identifier = str(p[0].children[-1]).split("Node(")[1].split(")")[0]
+        variable = symtab.lookup(p[0].vars[0])
+
+        struct_name = str(variable.type).split(") ")[1]
+        struct_table = symtab.lookup(struct_name)
+        struct_scope = struct_table.child
+
+        # checking if the identifier exists in the struct 
+        exists = False
+        for entry in struct_scope.entries:
+            if entry.name == identifier:
+                exists = True
+
+        if not exists:
+            raise Exception(f"The identifier '{identifier}' does not exist in the struct {struct_name}")
+
+        p[0].vars = [f"{struct_name} {variable.name} {identifier}"]
+        print(p[0].vars)
 
     if len(p) == 5 and p[2] == "(" and len(p[0].vars) > 0:
         func_params = symtab.search_params(p[0].vars[0])
@@ -406,12 +428,32 @@ def p_assignment_expression(p):
         #     raise Exception("left this error comment for future debugging purpose. wrote this for checking for statements A = B; if A already exists in symbol table and for that when i look for A in the unary_expression i expect its length to be 1. if it's not 1 then this error is thrown and you are suppose to fix this goodluck")
         
         for var in p[0].vars:
-            if symtab.lookup(var) == None:
-                raise ValueError(f"No symbol '{var}' in the symbol table")
-        lhs = symtab.lookup(p[0].vars[0])
+            new_var = []
+            if isinstance(var, str) and ' ' in var:
+                new_var = var.split(' ')[1:-1]
+            else:
+                new_var.append(var)
+
+            for var_ in new_var:
+                if symtab.lookup(var_) == None:
+                    raise ValueError(f"No symbol '{var_}' in the symbol table")
+        
+        if isinstance(p[0].vars[0], str) and ' ' in p[0].vars[0]:
+            vars = p[0].vars[0].split(' ')
+            struct_name = vars[0]
+            struct_table = symtab.lookup(struct_name)
+            struct_scope = struct_table.child 
+
+            lhs = None
+            for entry in struct_scope.entries:
+                if entry.name == vars[-1]:
+                    lhs = entry 
+                    break
+
+        else:
+            lhs = symtab.lookup(p[0].vars[0])
 
         lhs_no_const = (lhs.type if "const " not in lhs.type else ''.join(_ for _ in lhs.type.split("const ")))
-        # print(lhs_no_const)
 
         if lhs.type.startswith("const "):
             raise TypeError(f"Cannot re-assign value to const variable '{lhs.name}' of type '{lhs.type}'")
@@ -420,10 +462,13 @@ def p_assignment_expression(p):
             raise TypeError(f"Value can only be assigned to variable types!")
 
         for rhs_var in p[0].vars:
+            if isinstance(rhs_var, str) and ' ' in rhs_var:
+                continue
+
             rhs_decl = symtab.lookup(rhs_var)
 
-            if rhs_decl.type != lhs_no_const:
-                print(f"Type mismatch in assignment of {lhs.name} and {rhs_decl.name}")
+            if rhs_decl.type.rstrip(' ') != lhs_no_const.rstrip(' '):
+                raise ValueError(f"Type mismatch in assignment of {lhs.name} and {rhs_decl.name}\n {lhs_no_const} {rhs_decl.type}")
 
         
 def p_assignment_operator(p):

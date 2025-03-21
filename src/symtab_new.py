@@ -5,7 +5,7 @@ def strict_equal(a, b):
     return type(a) is type(b) and a == b
 
 class SymbolEntry:
-    def __init__(self, name, type, kind, node=None, isForwardable=False):
+    def __init__(self, name, type, kind, child=None, node=None, isForwardable=False):
         """
             name        -> identifier
             type        -> data type
@@ -18,6 +18,7 @@ class SymbolEntry:
         self.type = type
         self.kind = kind
         self.node = node
+        self.child = child
         self.isForwardable = isForwardable
 
 class SymbolEntryNode:
@@ -71,10 +72,11 @@ class SymbolEntryNode:
         return graph
 
 class SymbolTableEntry:
-    def __init__(self, name, type, kind, node, scope, scope_name):
+    def __init__(self, name, type, kind, entry, node, scope, scope_name):
         self.name = name 
         self.type = type 
         self.kind = kind 
+        self.entry = entry
         self.node = node
         self.scope = scope
         self.scope_name = scope_name
@@ -86,6 +88,9 @@ class SymbolTable:
         self.current_scope_name = self.root.scope_name
         self.current_scope_level = self.root.scope_level
         self.table_entries = []
+
+        self.to_add_child = False
+        self.the_child = None
 
     def clear(self):
         self.root = SymbolEntryNode(0, "global")
@@ -108,7 +113,7 @@ class SymbolTable:
                 scope_node.entries.append(entry)
 
                 # Add to table_entries if not forwardable anymore
-                entry = SymbolTableEntry(entry.name, entry.type, entry.kind, entry.node, entry.node.scope_level, entry.node.scope_name)
+                entry = SymbolTableEntry(entry.name, entry.type, entry.kind, entry, entry.node, entry.node.scope_level, entry.node.scope_name)
                 self.table_entries.append(entry)
 
         # Correctly update parent's entries by filtering out forwarded entries
@@ -121,6 +126,9 @@ class SymbolTable:
         """
             to exit the scope, dont pop the mess just traverse to the parent back 
         """
+
+        self.to_add_child = True
+        self.the_child = self.current_scope
 
         parent = self.current_scope.parent 
 
@@ -144,11 +152,16 @@ class SymbolTable:
                 else:
                     return
         
+        if self.to_add_child:
+            self.to_add_child = False
+            symbol.child = self.the_child
+            self.the_child = None 
+
         symbol.node = self.current_scope
         self.current_scope.entries.append(symbol)
 
         if not symbol.isForwardable:
-            entry = SymbolTableEntry(symbol.name, symbol.type, symbol.kind, symbol.node, self.current_scope_level, self.current_scope_name)
+            entry = SymbolTableEntry(symbol.name, symbol.type, symbol.kind, symbol, symbol.node, self.current_scope_level, self.current_scope_name)
             self.table_entries.append(entry)
 
         print("added symbol",symbol.name)
@@ -163,18 +176,17 @@ class SymbolTable:
         return None
     
     def search_params(self, name):
-        func_node = None
+        func_entry = None
         for entry in self.table_entries:
             if entry.name == name:
-                func_node = entry.node
+                func_entry = entry.entry
                 break
         
-        children_scope = func_node.children
+        child_scope = func_entry.child
         params = []
-        for children in children_scope:
-            for entry in children.entries:
-                if entry.kind == "parameter":
-                    params.append(entry)
+        for entry in child_scope.entries:
+            if entry.kind == "parameter":
+                params.append(entry)
 
         return params
     
