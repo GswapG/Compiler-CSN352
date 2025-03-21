@@ -32,8 +32,7 @@ class Node:
                 self.rhs += c.rhs
                 self.pointer_count += c.pointer_count
                 self.is_const |= c.is_const
-                # c.dtypes.clear()
-                # c.vars.clear()
+
     def __repr__(self):
         return f"Node({self.type})"
 

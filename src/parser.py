@@ -165,7 +165,29 @@ def p_postfix_expression(p):
         p[0] = Node("postfix_expression", [p[2], p[5]])
 
     if len(p) == 5 and p[2] == "(" and len(p[0].vars) > 0:
+        func_params = symtab.search_params(p[0].vars[0])
+        argument_list = p[0].vars[1:]
+
+        if len(argument_list) != len(func_params):
+            raise Exception("incorrect function parameter length")
+
+        for argument, parameter in zip(argument_list, func_params):
+            if parameter.type.rstrip(" ") != symtab.lookup(argument).type.rstrip(" "):
+                raise TypeError(f"Error: function parameter mismatch for {parameter.type} & {argument}")
+
         p[0].vars = [p[0].vars[0]]
+
+    if len(p) == 4 and p[2] == "(":
+        func_params = symtab.search_params(p[0].vars[0])
+        argument_list = p[0].vars[1:]
+
+        if len(argument_list) != len(func_params):
+            raise Exception("incorrect function parameter length")
+
+        for argument, parameter in zip(argument_list, func_params):
+            if parameter.type.rstrip(" ") != symtab.lookup(argument).type.rstrip(" "):
+                raise TypeError(f"Error: function parameter mismatch for {parameter.type} & {argument}")
+
 
 
 def p_postfix_expression_error_1(p):

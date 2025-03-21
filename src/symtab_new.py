@@ -71,10 +71,11 @@ class SymbolEntryNode:
         return graph
 
 class SymbolTableEntry:
-    def __init__(self, name, type, kind, scope, scope_name):
+    def __init__(self, name, type, kind, node, scope, scope_name):
         self.name = name 
         self.type = type 
         self.kind = kind 
+        self.node = node
         self.scope = scope
         self.scope_name = scope_name
 
@@ -107,7 +108,7 @@ class SymbolTable:
                 scope_node.entries.append(entry)
 
                 # Add to table_entries if not forwardable anymore
-                entry = SymbolTableEntry(entry.name, entry.type, entry.kind, entry.node.scope_level, entry.node.scope_name)
+                entry = SymbolTableEntry(entry.name, entry.type, entry.kind, entry.node, entry.node.scope_level, entry.node.scope_name)
                 self.table_entries.append(entry)
 
         # Correctly update parent's entries by filtering out forwarded entries
@@ -147,7 +148,7 @@ class SymbolTable:
         self.current_scope.entries.append(symbol)
 
         if not symbol.isForwardable:
-            entry = SymbolTableEntry(symbol.name, symbol.type, symbol.kind, self.current_scope_level, self.current_scope_name)
+            entry = SymbolTableEntry(symbol.name, symbol.type, symbol.kind, symbol.node, self.current_scope_level, self.current_scope_name)
             self.table_entries.append(entry)
 
         print("added symbol",symbol.name)
@@ -160,6 +161,22 @@ class SymbolTable:
                     return entry
             scope_pointer = scope_pointer.parent
         return None
+    
+    def search_params(self, name):
+        func_node = None
+        for entry in self.table_entries:
+            if entry.name == name:
+                func_node = entry.node
+                break
+        
+        children_scope = func_node.children
+        params = []
+        for children in children_scope:
+            for entry in children.entries:
+                if entry.kind == "parameter":
+                    params.append(entry)
+
+        return params
     
     def __str__(self):
         """
