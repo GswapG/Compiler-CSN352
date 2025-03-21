@@ -1,4 +1,5 @@
 from collections import defaultdict, deque
+from graphviz import Digraph
 
 def strict_equal(a, b):
     return type(a) is type(b) and a == b
@@ -39,6 +40,35 @@ class SymbolEntryNode:
             raise ValueError("Incorrect Use of add_entry method")
         
         self.entries.append(entry)
+
+    def to_graph(self, graph=None):
+        """Recursively generate Graphviz representation of the symbol tree"""
+        if graph is None:
+            graph = Digraph()
+            graph.attr('node', shape='plaintext', margin='0')
+        
+        # Create HTML table label for this scope node
+        label = [
+            '<<table border="1" cellborder="0" cellspacing="0">',
+            f'<tr><td colspan="3"><b>{self.scope_name}</b><br/>(Level {self.scope_level})</td></tr>'
+        ]
+        
+        # Add symbol entries as table rows
+        for entry in self.entries:
+            label.append(
+                f'<tr><td>{entry.name}</td><td>{entry.type}</td><td>{entry.kind}</td></tr>'
+            )
+        label.append('</table>>')
+        
+        # Add node to graph
+        graph.node(str(id(self)), ''.join(label))
+        
+        # Recursively add child scopes
+        for child in self.children:
+            child.to_graph(graph)
+            graph.edge(str(id(self)), str(id(child)))
+        
+        return graph
 
 class SymbolTableEntry:
     def __init__(self, name, type, kind, scope, scope_name):
@@ -145,6 +175,10 @@ class SymbolTable:
             ])
 
         return tabulate(rows, headers=headers, tablefmt="grid")
+    
+    def to_graph(self):
+        """Entry point for generating the graph"""
+        return self.root.to_graph()
 
 try:
     from tabulate import tabulate

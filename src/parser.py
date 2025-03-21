@@ -1370,6 +1370,11 @@ for filename in sorted(os.listdir(testcases_dir)):
             graph = root.to_graph()
             graph.render(f'renderedTrees/{filename+""}', format='png')
             print(f"Parse tree saved as renderedTrees/{filename}.png")
+
+        if len(argv) > 1 and (str(argv[1]) == "-g2" or str(argv[1]) == "--graph2"):
+            graph = symtab.to_graph()
+            graph.render(f'renderedSymbolTables/{filename}', format='png', cleanup=True)
+            print(f"Symbol table tree saved as renderedSymbolTables/{filename}.png")
         i += 1
 
         # symtab.clear()
