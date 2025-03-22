@@ -426,11 +426,34 @@ def p_relational_expression(p):
     else:
         p[0] = Node("relational_expression", [p[1], p[2], p[3]])
         for var in p[1].vars:
+            while isinstance(var,str) and var[0] == '@':
+                var = var[1:]
             if symtab.lookup(var) == None:
                 raise ValueError(f"No symbol '{var}' in the symbol table")
         for var in p[1].vars:
+            c1 = 0
+            while isinstance(var,str) and var[0] == '@':
+                var = var[1:]
+                c1 +=1
+            type1 = symtab.lookup(var).type
+            for i in range(0,c1):
+                if type1[0]=='*':
+                    type1 = type1[1:]
+                else:
+                    raise TypeError("Invalid Deref in Conditional")
             for var2 in p[3].vars:
-                if symtab.lookup(var).type != symtab.lookup(var2).type:
+                c2 = 0
+                while isinstance(var2,str) and var2[0] == '@':
+                    var2 = var2[1:]
+                    c2+=1
+                
+                type2 = symtab.lookup(var2).type
+                for i in range(0,c2):
+                    if type2[0]=='*':
+                        type2 = type2[1:]
+                    else:
+                        raise TypeError("Invalid Deref in Conditional")
+                if type1 != type2:
                     raise ValueError(f"Incompatible relational op with '{var}' and '{var2}'")
 
 def p_equality_expression(p):

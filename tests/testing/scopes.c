@@ -17,6 +17,7 @@
 
 int main() {
     int * ptr;
-    2;
-    *ptr = 11;
+    if(*ptr + 1 < 11){
+
+    }
 }
