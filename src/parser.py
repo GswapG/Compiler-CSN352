@@ -19,10 +19,10 @@ def table_entry(node):
     for var in node.vars:
         stars = ""
         consts = ""
-        while(var[-1]=='$'):
+        while(isinstance(var,str) and var[-1]=='$'):
             stars += "*"
             var = var[:-1]
-        while(var[0]=='#'):
+        while(isinstance(var,str) and var[0]=='#'):
             consts += " const"
             var = var[1:]
         symbol_table.append((var,compound_dtype+stars+consts))
@@ -703,13 +703,13 @@ def p_init_declarator(p):
         )
         symtab.add_symbol(var_sym)
     for var in p[0].rhs:
-            while var[0] == '@':
+            while isinstance(var,str) and var[0] == '@':
                 var = var[1:]
             if symtab.lookup(var) == None:
                 raise ValueError(f"No symbol '{var}' in the symbol table")
     v = p[0].vars[0]
     c = 0
-    while v[-1] == '$':
+    while isinstance(v,str) and v[-1] == '$':
         c+=1
         v = v[:-1]
     
@@ -717,7 +717,7 @@ def p_init_declarator(p):
     base_no_const = (symtab.lookup(v).type if "const " not in symtab.lookup(v).type else ''.join(_ for _ in symtab.lookup(v).type.split("const ")))
     for rhs2 in p[0].rhs:
         c_add = 0
-        while rhs2[0] == '@':
+        while isinstance(rhs2,str) and rhs2[0] == '@':
             c_add+=1
             rhs2 = rhs2[1:]
         rhs = symtab.lookup(rhs2)
