@@ -114,6 +114,11 @@ def p_enumeration_constant(p):
 def p_string(p):
     '''string : STRING_LITERAL'''
     p[0] = Node("string", [p[1]])
+    symtab.add_symbol(SymbolEntry(
+        name=p[1],
+        type='*char',
+        kind='constant'
+    ))
 
 def p_generic_selection(p):
     '''generic_selection : GENERIC LPAREN assignment_expression COMMA generic_assoc_list RPAREN '''

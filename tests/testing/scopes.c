@@ -16,10 +16,6 @@
 // };
 
 int main() {
-    int a;
-    int *ptr = &a;
-    int **e = &ptr;
-    int d;
-    int c = a +  *ptr  - **e + d;   
-    // int a = p1.x - p2.x;
+    char a = 'a';
+    "huid";
 }
