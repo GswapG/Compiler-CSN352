@@ -16,3 +16,9 @@
 - [x] separate errors for each file 
 - [x] ternary operators ? and :
 - [ ] maximum length identifiers check and report them in errors
+
+
+DE-REF SOLUTION:
+similar to how i added a $ to end of pointer
+we now add a @ to begining of p.vars if a * unary operator is found
+then this is later removed and correct type is appropriately deduced.

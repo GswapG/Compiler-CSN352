@@ -252,9 +252,15 @@ def p_unary_expression(p):
         p[0] = Node("unary_expression", [p[1], p[2]])
         if p[1].children[0].type =='&':
             p[0].is_address = True
+        if p[1].children[0].type == '*':
+            for i in range(0,len(p[0].vars)):
+                p[0].vars[i] = '@' + p[0].vars[i]
+    
 
     elif len(p) == 5:
         p[0] = Node("unary_expression", [p[1], p[3]])
+    print("debug")
+    print(p[0].vars)
 
 def p_unary_expression_error(p):
     '''unary_expression : SIZEOF LPAREN type_name error
@@ -297,18 +303,48 @@ def p_multiplicative_expression(p):
         p[0] = Node("multiplicative_expression", [p[1], p[2], p[3]])
     
     dtype1 = None
+    c2 = 0
     if(len(p[1].vars) > 0):
-        print(f"idhar {p[1].vars[0]}")
-        dtype1 = symtab.lookup(p[1].vars[0]).type
+        copy = p[1].vars[0]
+        while copy[0] == '@':
+            c2 +=1
+            copy = copy[1:]
+        dtype1 = symtab.lookup(copy).type
+        for i in range(0,c2):
+            if dtype1[0] == '*':
+                dtype1 = dtype1[1:]
+            else:
+                raise TypeError("Invalid Deref Op")        
     # if dtype1 != 'float' and dtype1 != 'int':
-    # #     raise ValueError(f"Incompatible multiplication op'")
+    # #     raise ValueError(f"Incompatible addition op ")
     for var in p[1].vars:
-        if symtab.lookup(var).type != dtype1 and symtab.lookup(p[1].vars[0]).kind != "function":
-            raise ValueError(f"Incompatible multiplication op with '{var}'")
+        c1 = 0
+        while var[0] == '@':
+            c1 +=1
+            var = var[1:]
+        type_ = symtab.lookup(var).type
+        for i in range (0,c1):
+            if type_[0] == '*':
+                type_ = type_[1:]
+            else:
+                raise TypeError("Invalid Deref Op")
+        if type_ != dtype1 and symtab.lookup(var).kind != "function":
+            print(p[1].vars)
+            raise ValueError(f"Incompatible addition op with '{var}'")
     if len(p) == 4:
         for var in p[3].vars:
-            if symtab.lookup(var).type != dtype1 and symtab.lookup(p[1].vars[0]).kind != "function":
-                raise ValueError(f"Incompatible multiplication op with '{var}'")
+            c1 = 0
+            while var[0] == '@':
+                c1 +=1
+                var = var[1:]
+            type_ = symtab.lookup(var).type
+            for i in range (0,c1):
+                if type_[0] == '*':
+                    type_ = type_[1:]
+                else:
+                    raise TypeError("Invalid Deref Op")
+            if type_ != dtype1 and symtab.lookup(p[1].vars[0]).kind != "function":
+                raise ValueError(f"Incompatible addition op with '{var}'")
 
 def p_additive_expression(p):
     '''additive_expression : multiplicative_expression
@@ -318,22 +354,53 @@ def p_additive_expression(p):
         p[0] = Node("additive_expression", [p[1]])
     else:
         p[0] = Node("additive_expression", [p[1], p[2], p[3]])
-
-    # print(p[1].vars)
     dtype1 = None
+    c2 = 0
     if(len(p[1].vars) > 0):
-        dtype1 = symtab.lookup(p[1].vars[0]).type
+        copy = p[1].vars[0]
+        while copy[0] == '@':
+            c2 +=1
+            copy = copy[1:]
+        dtype1 = symtab.lookup(copy).type
+        print(copy)
+        for i in range(0,c2):
+            if dtype1[0] == '*':
+                dtype1 = dtype1[1:]
+            else:
+                raise TypeError("Invalid Deref Op")        
     # if dtype1 != 'float' and dtype1 != 'int':
     # #     raise ValueError(f"Incompatible addition op ")
     for var in p[1].vars:
-        if symtab.lookup(var).type != dtype1 and symtab.lookup(p[1].vars[0]).kind != "function":
+        c1 = 0
+        while var[0] == '@':
+            c1 +=1
+            var = var[1:]
+        type_ = symtab.lookup(var).type
+        for i in range (0,c1):
+            if type_[0] == '*':
+                type_ = type_[1:]
+            else:
+                raise TypeError("Invalid Deref Op")
+        if type_ != dtype1 and symtab.lookup(var).kind != "function":
             print(p[1].vars)
             raise ValueError(f"Incompatible addition op with '{var}'")
     if len(p) == 4:
         for var in p[3].vars:
-            if symtab.lookup(var).type != dtype1 and symtab.lookup(p[1].vars[0]).kind != "function":
+            c1 = 0
+            while var[0] == '@':
+                c1 +=1
+                var = var[1:]
+            type_ = symtab.lookup(var).type
+            for i in range (0,c1):
+                if type_[0] == '*':
+                    type_ = type_[1:]
+                else:
+                    raise TypeError("Invalid Deref Op")
+            if type_ != dtype1 and symtab.lookup(var).kind != "function":
+                print(dtype1)
+                print(type_)
                 raise ValueError(f"Incompatible addition op with '{var}'")
-
+    
 def p_shift_expression(p):
     '''shift_expression : additive_expression
                        | shift_expression LEFT_OP additive_expression
@@ -568,9 +635,7 @@ def p_init_declarator(p):
                        | declarator'''
     if len(p) == 4: 
         p[0] = Node("init_declarator", [p[1], p[2], p[3]])
-        for var in p[0].rhs:
-            if symtab.lookup(var) == None:
-                raise ValueError(f"No symbol '{var}' in the symbol table")
+        
 
     else:  # Case: declarator
         p[0] = Node("init_declarator", [p[1]])
@@ -578,7 +643,6 @@ def p_init_declarator(p):
     #p[0].name = p[1].name  # Propagate name for symbol table
     global datatypeslhs
     # print(datatypeslhs)
-    
     base_type = ''
     abcd=0
     for dtype in datatypeslhs:
@@ -586,6 +650,7 @@ def p_init_declarator(p):
         base_type += " "
         abcd+=1
     base_type=base_type[:-1]
+    print(base_type )
     for decl in p[0].vars:  # Assume init_declarator_list is parsed
         kind2="variable"
         print(f"find me here |{decl}|{base_type}|{kind2}|{abcd}")
@@ -598,21 +663,39 @@ def p_init_declarator(p):
         )
         symtab.add_symbol(var_sym)
     for var in p[0].rhs:
-        if symtab.lookup(var) == None:
-            print(f"Error : No symbol '{var}' in the symbol table")
+            while var[0] == '@':
+                var = var[1:]
+            if symtab.lookup(var) == None:
+                raise ValueError(f"No symbol '{var}' in the symbol table")
     v = p[0].vars[0]
     c = 0
     while v[-1] == '$':
         c+=1
         v = v[:-1]
+    
 
     base_no_const = (symtab.lookup(v).type if "const " not in symtab.lookup(v).type else ''.join(_ for _ in symtab.lookup(v).type.split("const ")))
     for rhs2 in p[0].rhs:
+        c_add = 0
+        while rhs2[0] == '@':
+            c_add+=1
+            rhs2 = rhs2[1:]
         rhs = symtab.lookup(rhs2)
+        print(rhs2)
+        original_type = rhs.type
+        print(original_type)
         if p[0].is_address:
             rhs.type = '*' + rhs.type
+        for i in range(0,c_add):
+            if rhs.type[0] == '*':
+                rhs.type = rhs.type[1:]
+            else:
+                raise TypeError("Invalid Deref")
         if base_no_const.rstrip(' ') != rhs.type.rstrip(' '):
             raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs.name}\n| base_type = {base_no_const} |\n| rhs_type = {rhs.type} |")
+            # print("ignored for now")
+        rhs.type = original_type
+        
     p[0].is_address = False
 
 def p_init_declarator_error(p):
