@@ -156,13 +156,28 @@ class SymbolTable:
             self.to_add_child = False
             symbol.child = self.the_child
             self.the_child = None 
-
-        symbol.node = self.current_scope
-        self.current_scope.entries.append(symbol)
+        sym2 = symbol
+        if isinstance(sym2.name,str) and sym2.name[-1] == '$':
+            c = 0
+            while sym2.name[-1] == '$':
+                c+=1
+                sym2.name = sym2.name[:-1]
+            sym2.type = c*'*' + sym2.type
+        sym2.node = self.current_scope
+        self.current_scope.entries.append(sym2)
 
         if not symbol.isForwardable:
-            entry = SymbolTableEntry(symbol.name, symbol.type, symbol.kind, symbol, symbol.node, self.current_scope_level, self.current_scope_name)
-            self.table_entries.append(entry)
+            c = 0
+            if not isinstance(symbol.name,str) or  symbol.name[-1] != '$':
+                entry = SymbolTableEntry(symbol.name, symbol.type, symbol.kind, symbol, symbol.node, self.current_scope_level, self.current_scope_name)
+                self.table_entries.append(entry)
+            else:
+                while symbol.name[-1] == '$':
+                    symbol.name = symbol.name[:-1]
+                    c+=1
+                # print(symbol.name)
+                entry = SymbolTableEntry(symbol.name, c* '*' + symbol.type, symbol.kind, symbol, symbol.node, self.current_scope_level, self.current_scope_name)
+                self.table_entries.append(entry)
 
         print("added symbol",symbol.name)
         

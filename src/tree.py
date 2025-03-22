@@ -17,6 +17,7 @@ class Node:
         self.rhs = []
         self.pointer_count = 0
         self.is_const = 0
+        self.is_address = False
         if children:
             children_conv = []
             for c in children:
@@ -27,6 +28,7 @@ class Node:
             self.children = children_conv
 
         for c in self.children:
+            self.is_address |= c.is_address
             if isinstance(c,Node):
                 self.vars += c.vars
                 self.dtypes += c.dtypes

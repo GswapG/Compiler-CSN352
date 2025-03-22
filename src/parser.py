@@ -248,6 +248,9 @@ def p_unary_expression(p):
         p[0] = Node("unary_expression", [p[1]])
     elif len(p) == 3:
         p[0] = Node("unary_expression", [p[1], p[2]])
+        if p[1].children[0].type =='&':
+            p[0].is_address = True
+
     elif len(p) == 5:
         p[0] = Node("unary_expression", [p[1], p[3]])
 
@@ -293,6 +296,7 @@ def p_multiplicative_expression(p):
     
     dtype1 = None
     if(len(p[1].vars) > 0):
+        print(p[1].vars[0])
         dtype1 = symtab.lookup(p[1].vars[0]).type
     # if dtype1 != 'float' and dtype1 != 'int':
     # #     raise ValueError(f"Incompatible multiplication op'")
@@ -426,7 +430,7 @@ def p_assignment_expression(p):
         # print(p[0].vars)
         # if len(p[0].vars) != 1:
         #     raise Exception("left this error comment for future debugging purpose. wrote this for checking for statements A = B; if A already exists in symbol table and for that when i look for A in the unary_expression i expect its length to be 1. if it's not 1 then this error is thrown and you are suppose to fix this goodluck")
-        
+
         for var in p[0].vars:
             new_var = []
             if isinstance(var, str) and ' ' in var:
@@ -452,23 +456,26 @@ def p_assignment_expression(p):
 
         else:
             lhs = symtab.lookup(p[0].vars[0])
-
         lhs_no_const = (lhs.type if "const " not in lhs.type else ''.join(_ for _ in lhs.type.split("const ")))
 
         if lhs.type.startswith("const "):
             raise TypeError(f"Cannot re-assign value to const variable '{lhs.name}' of type '{lhs.type}'")
 
-        if lhs.kind != 'variable':
-            raise TypeError(f"Value can only be assigned to variable types!")
+        if lhs.kind != 'variable' and lhs.kind != 'parameter':
+            raise TypeError(f"Value can only be assigned to variable/param types!")
+        
 
-        for rhs_var in p[0].vars:
+        for rhs_var in p[3].vars:
             if isinstance(rhs_var, str) and ' ' in rhs_var:
                 continue
 
             rhs_decl = symtab.lookup(rhs_var)
-
+            if p[0].is_address:
+                rhs_decl.type = '*' + rhs_decl.type
+            
             if rhs_decl.type.rstrip(' ') != lhs_no_const.rstrip(' '):
                 raise ValueError(f"Type mismatch in assignment of {lhs.name} and {rhs_decl.name}\n {lhs_no_const} {rhs_decl.type}")
+        p[0].is_address = False
 
         
 def p_assignment_operator(p):
@@ -572,24 +579,30 @@ def p_init_declarator(p):
         base_type += " "
     base_type=base_type[:-1]
     for decl in p[0].vars:  # Assume init_declarator_list is parsed
+        print(decl)
         var_sym = SymbolEntry(
             name=decl,
             type=base_type,
             kind="variable"
         )
         symtab.add_symbol(var_sym)
-
     for var in p[0].rhs:
         if symtab.lookup(var) == None:
             print(f"Error : No symbol '{var}' in the symbol table")
+    v = p[0].vars[0]
+    c = 0
+    while v[-1] == '$':
+        c+=1
+        v = v[:-1]
 
-    base_no_const = (base_type if "const " not in base_type else ''.join(_ for _ in base_type.split("const ")))
-
+    base_no_const = (symtab.lookup(v).type if "const " not in symtab.lookup(v).type else ''.join(_ for _ in symtab.lookup(v).type.split("const ")))
     for rhs2 in p[0].rhs:
         rhs = symtab.lookup(rhs2)
-        print(f"rhs: {rhs.name} {rhs.type}")
-        if base_no_const != rhs.type:
+        if p[0].is_address:
+            rhs.type = '*' + rhs.type
+        if base_no_const.rstrip(' ') != rhs.type.rstrip(' '):
             raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs.name}\n| base_type = {base_no_const} |\n| rhs_type = {rhs.type} |")
+    p[0].is_address = False
 
 def p_init_declarator_error(p):
     '''init_declarator : declarator error initializer'''
