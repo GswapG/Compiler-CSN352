@@ -1,20 +1,6 @@
-/* Define a simple struct with typedef */
-// struct Point{
-//     int x;
-//     int y;
-// };
-
-// struct {
-//     int x;
-//     int y;
-// }P2;
-
-// /* Define a struct that uses a nested struct */
-// struct Rectangle {
-//     Point topLeft;
-//     Point bottomRight;
-// };
-
-int main() {
-    int x = 10;
+int main()
+{
+    int x=5;
+    // int y = 6.0;
+    int arr[6]={1,2,3,4,x,7};
 }

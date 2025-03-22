@@ -60,6 +60,9 @@ def p_primary_expression_identifier(p):
 
     p[0] = Node("primary_expression", [p[1]])
     p[0].vars.append(p[1])
+    check = symtab.lookup(p[1])
+    if(check!=None):
+        p[0].dtypes = [check.type]
 
 def p_primary_expression_error(p):
     '''primary_expression : LPAREN expression error'''
@@ -81,6 +84,7 @@ def p_constant(p):
                 kind="constant"
             )
         symtab.add_symbol(var_sym)
+        p[0].dtypes.append("int")
     elif token_type == "F_CONSTANT":
         var_sym = SymbolEntry(
                 name=p[1],
@@ -88,6 +92,7 @@ def p_constant(p):
                 kind="constant"
             )
         symtab.add_symbol(var_sym)
+        p[0].dtypes.append("float")
     elif token_type == "CHAR_CONSTANT":
         var_sym = SymbolEntry(
                 name=p[1],
@@ -95,6 +100,7 @@ def p_constant(p):
                 kind="constant"
             )
         symtab.add_symbol(var_sym)
+        p[0].dtypes.append("char")
     p[0].vars.append(p[1])
 
 
@@ -180,7 +186,10 @@ def p_postfix_expression(p):
         struct_table = symtab.lookup(struct_name)
         struct_scope = struct_table.child
 
-        print(f"here |{struct_table.name}|{struct_table.type}|{struct_table.kind}|{struct_table.node}|{struct_table.child}|")
+        # print(f"here2 |{p[0].vars[0]}|{variable_identifier}|{variable.type}|{struct_name}")
+
+        # print(f"here |{struct_table.name}|{struct_table.type}|{struct_table.kind}|{struct_table.node}|{struct_table.child}|")
+        # print(f"here |{variable_identifier}|{struct_name}|")
 
         # checking if the identifier exists in the struct 
         exists = False
@@ -336,6 +345,7 @@ def p_multiplicative_expression(p):
         if type_ != dtype1 and symtab.lookup(var).kind != "function":
             print(p[1].vars)
             raise ValueError(f"Incompatible addition op with '{var}'")
+        
     if len(p) == 4:
         for var in p[3].vars:
             c1 = 0
@@ -735,8 +745,18 @@ def p_init_declarator(p):
             raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs.name}\n| base_type = {base_no_const} |\n| rhs_type = {rhs.type} |")
             # print("ignored for now")
         rhs.type = original_type
-        
-    p[0].is_address = False
+
+    # if len(p) == 4:
+    #     newcheck= base_no_const.rstrip(' ').lstrip('*')
+    #     for type1 in p[3].dtypes:
+    #         if newcheck != type1:
+    #             raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {type1}\n| base_type = {base_no_const} |\n| rhs_type = {type1} |")
+            
+    #     p[0].is_address = False
+
+    #     print(f"here gang |{p[3].dtypes}|")
+    if (len(p) == 4):
+        print(p[3].vars)
 
 def p_init_declarator_error(p):
     '''init_declarator : declarator error initializer'''
