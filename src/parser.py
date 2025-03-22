@@ -515,6 +515,10 @@ def p_declaration(p):
     else:
         p[0] = Node("declaration", [p[1]])
 
+    global datatypeslhs
+    if(datatypeslhs[0]=="typedef"):
+        for var in p[0].vars:
+            typedef_names.add(str(var))
     datatypeslhs=[]
 
 def p_declaration_error(p):
@@ -676,6 +680,7 @@ def p_struct_or_union(p):
     '''struct_or_union : STRUCT
                       | UNION'''
     p[0] = Node("struct_or_union", [p[1]])
+    p[0].dtypes.append(p[1])
     pass
 
 def p_struct_declaration_list(p):
@@ -685,6 +690,9 @@ def p_struct_declaration_list(p):
         p[0] = Node("struct_declaration_list", [p[1]])
     else:
         p[0] = Node("struct_declaration_list", [p[1], p[2]])
+
+    p[0].dtypes = []
+    p[0].vars = []
     pass
 
 def p_struct_declaration(p):
@@ -1450,11 +1458,10 @@ for filename in sorted(os.listdir(testcases_dir)):
             graph = root.to_graph()
             graph.render(f'renderedTrees/{filename+""}', format='png')
             print(f"Parse tree saved as renderedTrees/{filename}.png")
-
-        if len(argv) > 1 and (str(argv[1]) == "-g2" or str(argv[1]) == "--graph2"):
             graph = symtab.to_graph()
             graph.render(f'renderedSymbolTables/{filename}', format='png', cleanup=True)
             print(f"Symbol table tree saved as renderedSymbolTables/{filename}.png")
+
         i += 1
 
         # symtab.clear()
