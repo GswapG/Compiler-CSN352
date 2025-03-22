@@ -311,12 +311,12 @@ def p_multiplicative_expression(p):
     c2 = 0
     if(len(p[1].vars) > 0):
         copy = p[1].vars[0]
-        while copy[0] == '@':
+        while isinstance(copy,str) and copy[0] == '@':
             c2 +=1
             copy = copy[1:]
         dtype1 = symtab.lookup(copy).type
         for i in range(0,c2):
-            if dtype1[0] == '*':
+            if isinstance(dtype1,str) and dtype1[0] == '*':
                 dtype1 = dtype1[1:]
             else:
                 raise TypeError("Invalid Deref Op")        
@@ -324,12 +324,12 @@ def p_multiplicative_expression(p):
     # #     raise ValueError(f"Incompatible addition op ")
     for var in p[1].vars:
         c1 = 0
-        while var[0] == '@':
+        while isinstance(var,str) and var[0] == '@':
             c1 +=1
             var = var[1:]
         type_ = symtab.lookup(var).type
         for i in range (0,c1):
-            if type_[0] == '*':
+            if isinstance(type_,str) and type_[0] == '*':
                 type_ = type_[1:]
             else:
                 raise TypeError("Invalid Deref Op")
@@ -339,12 +339,12 @@ def p_multiplicative_expression(p):
     if len(p) == 4:
         for var in p[3].vars:
             c1 = 0
-            while var[0] == '@':
+            while isinstance(var,str) and var[0] == '@':
                 c1 +=1
                 var = var[1:]
             type_ = symtab.lookup(var).type
             for i in range (0,c1):
-                if type_[0] == '*':
+                if isinstance(type_,str) and type_[0] == '*':
                     type_ = type_[1:]
                 else:
                     raise TypeError("Invalid Deref Op")
@@ -363,7 +363,7 @@ def p_additive_expression(p):
     c2 = 0
     if(len(p[1].vars) > 0):
         copy = p[1].vars[0]
-        while copy[0] == '@':
+        while isinstance(copy,str) and copy[0] == '@':
             c2 +=1
             copy = copy[1:]
         dtype1 = symtab.lookup(copy).type
@@ -377,12 +377,12 @@ def p_additive_expression(p):
     # #     raise ValueError(f"Incompatible addition op ")
     for var in p[1].vars:
         c1 = 0
-        while var[0] == '@':
+        while isinstance(var,str) and var[0] == '@':
             c1 +=1
             var = var[1:]
         type_ = symtab.lookup(var).type
         for i in range (0,c1):
-            if type_[0] == '*':
+            if isinstance(type_,str) and type_[0] == '*':
                 type_ = type_[1:]
             else:
                 raise TypeError("Invalid Deref Op")
@@ -392,12 +392,12 @@ def p_additive_expression(p):
     if len(p) == 4:
         for var in p[3].vars:
             c1 = 0
-            while var[0] == '@':
+            while isinstance(var,str) and var[0] == '@':
                 c1 +=1
                 var = var[1:]
             type_ = symtab.lookup(var).type
             for i in range (0,c1):
-                if type_[0] == '*':
+                if isinstance(type_,str) and type_[0] == '*':
                     type_ = type_[1:]
                 else:
                     raise TypeError("Invalid Deref Op")
@@ -513,9 +513,11 @@ def p_assignment_expression(p):
                 new_var.append(var)
 
             for var_ in new_var:
+                while isinstance(var_,str) and var_[0]=='@':
+                    var_ = var_[1:]
                 if symtab.lookup(var_) == None:
                     raise ValueError(f"No symbol '{var_}' in the symbol table")
-        
+        c1 = 0
         if isinstance(p[0].vars[0], str) and ' ' in p[0].vars[0]:
             vars = p[0].vars[0].split(' ')
             struct_name = vars[0]
@@ -529,9 +531,19 @@ def p_assignment_expression(p):
                     break
 
         else:
-            lhs = symtab.lookup(p[0].vars[0])
+            v = p[0].vars[0]
+            while isinstance(v,str) and v[0] == '@':
+                v = v[1:]
+                c1+=1
+            lhs = symtab.lookup(v)
         lhs_no_const = (lhs.type if "const " not in lhs.type else ''.join(_ for _ in lhs.type.split("const ")))
-
+        print(lhs_no_const)
+        print(c1)
+        for i in range(0,c1):
+            if lhs_no_const[0] == '*':
+                lhs_no_const = lhs_no_const[1:]
+            else:
+                raise TypeError("invalid deref during assignment")
         if lhs.type.startswith("const "):
             raise TypeError(f"Cannot re-assign value to const variable '{lhs.name}' of type '{lhs.type}'")
 

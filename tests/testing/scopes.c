@@ -16,6 +16,7 @@
 // };
 
 int main() {
-    char a = 'a';
-    "huid";
+    int * ptr;
+    2;
+    *ptr = 11;
 }
