@@ -167,12 +167,15 @@ def p_postfix_expression(p):
         p[0] = Node("postfix_expression", [p[2], p[5]])
 
     if len(p) == 4 and p[2] == ".":
-        identifier = str(p[0].children[-1]).split("Node(")[1].split(")")[0]
-        variable = symtab.lookup(p[0].vars[0])
+        identifier = p[3]
+        variable_identifier = str(p[0].vars[0]).split(" ")[-1]
+        variable = symtab.lookup(variable_identifier)
 
-        struct_name = str(variable.type).split(") ")[1]
+        struct_name = str(variable.type).rstrip(" ").split(" ")[-1]
         struct_table = symtab.lookup(struct_name)
         struct_scope = struct_table.child
+
+        print(f"here |{struct_table.name}|{struct_table.type}|{struct_table.kind}|{struct_table.node}|{struct_table.child}|")
 
         # checking if the identifier exists in the struct 
         exists = False
@@ -181,21 +184,21 @@ def p_postfix_expression(p):
                 exists = True
 
         if not exists:
-            raise Exception(f"The identifier '{identifier}' does not exist in the struct {struct_name}")
+            print(f"The identifier '{identifier}' does not exist in the struct {struct_name}")
 
         p[0].vars = [f"{struct_name} {variable.name} {identifier}"]
-        print(p[0].vars)
+        print(f"control f karle {p[0].vars}")
 
     if len(p) == 5 and p[2] == "(" and len(p[0].vars) > 0:
         func_params = symtab.search_params(p[0].vars[0])
         argument_list = p[0].vars[1:]
 
         if len(argument_list) != len(func_params):
-            raise Exception("incorrect function parameter length")
+            print("incorrect function parameter length")
 
         for argument, parameter in zip(argument_list, func_params):
             if parameter.type.rstrip(" ") != symtab.lookup(argument).type.rstrip(" "):
-                raise TypeError(f"Error: function parameter mismatch for {parameter.type} & {argument}")
+                print(f"Error: function parameter mismatch for {parameter.type} & {argument}")
 
         p[0].vars = [p[0].vars[0]]
 
@@ -204,12 +207,11 @@ def p_postfix_expression(p):
         argument_list = p[0].vars[1:]
 
         if len(argument_list) != len(func_params):
-            raise Exception("incorrect function parameter length")
+            print("incorrect function parameter length")
 
         for argument, parameter in zip(argument_list, func_params):
             if parameter.type.rstrip(" ") != symtab.lookup(argument).type.rstrip(" "):
-                raise TypeError(f"Error: function parameter mismatch for {parameter.type} & {argument}")
-
+                print(f"Error: function parameter mismatch for {parameter.type} & {argument}")
 
 
 def p_postfix_expression_error_1(p):
@@ -296,7 +298,7 @@ def p_multiplicative_expression(p):
     
     dtype1 = None
     if(len(p[1].vars) > 0):
-        print(p[1].vars[0])
+        print(f"idhar {p[1].vars[0]}")
         dtype1 = symtab.lookup(p[1].vars[0]).type
     # if dtype1 != 'float' and dtype1 != 'int':
     # #     raise ValueError(f"Incompatible multiplication op'")
@@ -578,16 +580,21 @@ def p_init_declarator(p):
     # print(datatypeslhs)
     
     base_type = ''
+    abcd=0
     for dtype in datatypeslhs:
         base_type += dtype
         base_type += " "
+        abcd+=1
     base_type=base_type[:-1]
     for decl in p[0].vars:  # Assume init_declarator_list is parsed
-        print(decl)
+        kind2="variable"
+        print(f"find me here |{decl}|{base_type}|{kind2}|{abcd}")
+        if(base_type.split(" ")[0]=="struct" and len(base_type.split(" "))==1):
+            kind2="struct"
         var_sym = SymbolEntry(
             name=decl,
             type=base_type,
-            kind="variable"
+            kind=kind2
         )
         symtab.add_symbol(var_sym)
     for var in p[0].rhs:
@@ -638,10 +645,10 @@ def p_type_specifier(p):
 
 # Structures and Unions
 def p_struct_or_union_specifier(p):
-    '''struct_or_union_specifier : struct_or_union LBRACE struct_declaration_list RBRACE
+    '''struct_or_union_specifier : struct_or_union LBRACE enter_scope struct_declaration_list exit_scope RBRACE
                                 | struct_or_union IDENTIFIER LBRACE enter_scope struct_declaration_list exit_scope RBRACE
                                 | struct_or_union IDENTIFIER'''
-    if len(p) == 5:
+    if len(p) == 7:
         p[0] = Node("struct_or_union_specifier", [p[1], p[3]])
     elif len(p) == 8:
         p[0] = Node("struct_or_union_specifier", [p[1], p[2], p[5]])
@@ -652,8 +659,8 @@ def p_struct_or_union_specifier(p):
         sym_scope_level = symtab.current_scope_level - 1
         struct_sym = SymbolEntry(
             name=struct_name,
-            type=f"{p[1].children[0]}",
-            kind=f"{p[1].children[0]}"
+            type=f"struct",
+            kind=f"struct"
         )
 
         # for entry in symtab.scopes[-1]:
@@ -665,7 +672,7 @@ def p_struct_or_union_specifier(p):
 
     else:
         p[0] = Node("struct_or_union_specifier", [p[1], p[2]])
-        p[0].dtypes.append(str(p[1].children[0])+ " " +p[2])
+        p[0].dtypes.append(p[2])
 
     
 
