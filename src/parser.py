@@ -423,100 +423,101 @@ def p_multiplicative_expression(p):
 
 def p_additive_expression(p):
     '''additive_expression : multiplicative_expression
-                           | additive_expression PLUS multiplicative_expression
-                           | additive_expression MINUS multiplicative_expression'''
-    # Create AST node
+                          | additive_expression PLUS multiplicative_expression
+                          | additive_expression MINUS multiplicative_expression'''
     if len(p) == 2:
-        left_node = p[1]
-        p[0] = Node("additive_expression", [left_node])
-        operands = [left_node]
+        p[0] = Node("additive_expression", [p[1]])
     else:
-        left_node, operator, right_node = p[1], p[2], p[3]
-        p[0] = Node("additive_expression", [left_node, operator, right_node])
-        operands = [left_node, right_node]
-    
-    # Validate operand types with variable tracking
-    operand_info = []
-    for operand in operands:
-        vars_list = operand.vars
-        if not vars_list:
-            raise ValueError("Operand must contain variables")
-        
-        var_details = []
-        for var in vars_list:
-            try:
-                var_type, _ = _process_variable(var)
-                var_details.append((var, var_type))
-            except Exception as e:
-                raise ValueError(f"Error in variable '{var}': {str(e)}")
-        
-        # Check consistency within operand variables
-        first_var, first_type = var_details[0]
-        conflicting = []
-        for var, typ in var_details[1:]:
-            if typ != first_type:
-                conflicting.append(f"'{var}' ({typ})")
-        
-        if conflicting:
-            error_msg = (f"Operand contains conflicting types: '{first_var}' ({first_type}) "
-                        f"vs {', '.join(conflicting)}")
-            raise ValueError(error_msg)
-        
-        operand_info.append({
-            'type': first_type,
-            'vars': [var for var, _ in var_details],
-            'display_vars': list(set([var for var, _ in var_details]))  # Unique vars for display
-        })
-    
-    # Check compatibility between operands for binary operations
-    if len(operand_info) == 2:
-        left = operand_info[0]
-        right = operand_info[1]
-        if left['type'] != right['type']:
-            left_vars = ", ".join([f"'{v}'" for v in left['display_vars']])
-            right_vars = ", ".join([f"'{v}'" for v in right['display_vars']])
-            raise ValueError(
-                f"Incompatible types between variables: {left['type']} ({left_vars}) "
-                f"and {right['type']} ({right_vars})"
-            )
+        p[0] = Node("additive_expression", [p[1], p[2], p[3]])
+    dtype1 = None
+    c2 = 0
+    if(len(p[1].vars) > 0):
+        copy = p[1].vars[0]
+        while isinstance(copy,str) and copy[0] == '@':
+            c2 +=1
+            copy = copy[1:]
+        print(copy)
 
-def _process_variable(var):
-    """Process variable and return (type, is_struct_member) with original variable tracking."""
-    original_var = var
-    deref_count = 0
-    
-    # Handle dereferences
-    if isinstance(var, str):
-        while var.startswith('@'):
-            deref_count += 1
-            var = var[1:]
-    
-    # Handle struct members
-    is_struct_member = False
-    if isinstance(var, str) and ' ' in var:
-        parts = var.split(' ')
-        if len(parts) != 3 or parts[1] != '.':
-            raise SyntaxError(f"Invalid struct syntax: {original_var}")
-        struct_name, _, member_name = parts
-        entry = symtab.search_struct(struct_name, member_name)
-        if not entry:
-            raise ValueError(f"Struct '{struct_name}' has no member '{member_name}'")
-        var_type = entry.type
-        is_struct_member = True
-    else:
-        entry = symtab.lookup(var)
-        if not entry:
-            raise ValueError(f"Undefined variable: '{var}'")
-        var_type = entry.type
-    
-    # Apply dereferences to type
-    for _ in range(deref_count):
-        if var_type.startswith('*'):
-            var_type = var_type[1:]
+        if isinstance(copy, str) and ' ' in copy:
+            name, _, identifier = copy.split(' ')
+            print(name)
+            print(_)
+            print(identifier)
+
+            entry = symtab.search_struct(name, identifier)
+            print(entry.type)
+            dtype1 = entry.type
+
         else:
-            raise TypeError(f"Cannot dereference non-pointer type '{var_type}' for '{original_var}'")
-    
-    return var_type.strip(), is_struct_member
+            dtype1 = symtab.lookup(copy).type
+
+        for i in range(0,c2):
+            if isinstance(dtype1,str) and dtype1[0] == '*':
+                dtype1 = dtype1[1:]
+            else:
+                raise TypeError("Invalid Deref Op")    
+    # if dtype1 != 'float' and dtype1 != 'int':
+    # #     raise ValueError(f"Incompatible addition op ")
+    for var in p[1].vars:
+        c1 = 0
+        while isinstance(var,str) and var[0] == '@':
+            c1 +=1
+            var = var[1:]
+
+        if isinstance(var, str) and ' ' in var:
+            name, _, identifier = var.split(' ')
+            print(name)
+            print(_)
+            print(identifier)
+
+            entry = symtab.search_struct(name, identifier)
+            if entry is None:
+                raise Exception(f"identifier {identifier} does not exist in the struct {name}")
+
+            print(entry.type)
+            type_ = entry.type
+
+        else:
+            type_ = symtab.lookup(var).type
+
+        for i in range (0,c1):
+            if isinstance(type_,str) and type_[0] == '*':
+                type_ = type_[1:]
+            else:
+                raise TypeError("Invalid Deref Op")
+        if type_.rstrip(' ') != dtype1.rstrip(' ') and ((isinstance(var, str) and ' ' in var) or symtab.lookup(var).kind != "function"):
+            print(p[1].vars)
+            raise ValueError(f"Incompatible addition op with '{var}'")
+    if len(p) == 4:
+        for var in p[3].vars:
+            c1 = 0
+            while isinstance(var,str) and var[0] == '@':
+                c1 +=1
+                var = var[1:]
+            if isinstance(var, str) and ' ' in var:
+                name, _, identifier = var.split(' ')
+                print(name)
+                print(_)
+                print(identifier)
+
+                entry = symtab.search_struct(name, identifier)
+                if entry is None:
+                    raise Exception(f"identifier {identifier} does not exist in the struct {name}")
+
+                print(entry.type)
+                type_ = entry.type
+
+            else:
+                type_ = symtab.lookup(var).type
+            for i in range (0,c1):
+                if isinstance(type_,str) and type_[0] == '*':
+                    type_ = type_[1:]
+                else:
+                    raise TypeError("Invalid Deref Op")
+            if type_.rstrip(' ') != dtype1.rstrip(' ') and ((isinstance(var, str) and ' ' in var) or symtab.lookup(var).kind != "function"):
+                print(dtype1)
+                print("abc",type_)
+                raise ValueError(f"Incompatible addition op with '{var}'")
     
 def p_shift_expression(p):
     '''shift_expression : additive_expression

@@ -1,12 +1,21 @@
-// #include <stdio.h>
+// /* Define a simple struct with typedef */
+typedef struct {
+    int x;
+    int y;
+} Point;
 
-int add(int a, int b) {
-    float c = 5.0;
-    return a*5.0;
+struct P2{
+    int x;
+    int y;
+};
+
+int main() {
+    Point p1;
+    p1.x = 10;
+    struct P2 gang;
+    gang.x = 20;
+    int y = 10;
+    int abc2 = 10 + 20 + y;
+    int abc = p1.x - gang.x;
+    // p1.zz=10;
 }
-
-// int main() {
-//     int result = add(5, 7);
-//     // printf("5 + 7 = %d\n", result);
-//     return 0;
-// }
