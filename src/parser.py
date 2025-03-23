@@ -713,12 +713,16 @@ def p_assignment_expression(p):
 
             else:
                 rhs_decl = symtab.lookup(rhs_var)
+            print("NIGGGAAAAAA")
+            print(rhs_var)
+            print(rhs_decl.type)
+            og_type = rhs_decl.type
             if p[0].is_address:
                 rhs_decl.type = '*' + rhs_decl.type
-            
             if rhs_decl.type.lstrip("const ").rstrip(' ') != lhs_no_const.rstrip(' '):
+                rhs_decl.type = og_type
                 raise ValueError(f"Type mismatch in assignment of {lhs.name} and {rhs_decl.name}\n {lhs_no_const} {rhs_decl.type}")
-        
+        rhs_decl.type = og_type
         p[0].is_address = False
 
         
@@ -957,7 +961,7 @@ def p_init_declarator(p):
     #             else:
     #                 raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {type1}\n| base_type = {base_no_const} |\n| rhs_type = {type1} |")
             
-    #     p[0].is_address = False
+    p[0].is_address = False
     #     print(f"here gang |{p[3].dtypes}|")
 
     # if (len(p) == 4):
