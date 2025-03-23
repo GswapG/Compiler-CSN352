@@ -59,7 +59,7 @@ def p_primary_expression_identifier(p):
     '''primary_expression : IDENTIFIER'''
 
     p[0] = Node("primary_expression", [p[1]])
-    p[0].vars.append(p[1])
+    p[0].vars.append(str(p[1]))
 
     print(f"HELLO IM ADDING IDENTIFIER {p[1]} to the p[0].vars so {p[0].vars}")
     check = symtab.lookup(p[1])
@@ -81,29 +81,26 @@ def p_constant(p):
     token_type = p.slice[1].type
     if token_type == "I_CONSTANT":
         var_sym = SymbolEntry(
-                name=p[1],
+                name=str(p[1]),
                 type="int",
                 kind="constant"
             )
         symtab.add_symbol(var_sym)
-        p[0].dtypes.append("int")
     elif token_type == "F_CONSTANT":
         var_sym = SymbolEntry(
-                name=p[1],
+                name=str(p[1]),
                 type="float",
                 kind="constant"
             )
         symtab.add_symbol(var_sym)
-        p[0].dtypes.append("float")
     elif token_type == "CHAR_CONSTANT":
         var_sym = SymbolEntry(
-                name=p[1],
+                name=str(p[1]),
                 type="char",
                 kind="constant"
             )
         symtab.add_symbol(var_sym)
-        p[0].dtypes.append("char")
-    p[0].vars.append(p[1])
+    p[0].vars.append(str(p[1]))
 
 
 def p_enumeration_constant(p):
@@ -113,7 +110,7 @@ def p_enumeration_constant(p):
     symbol_table.append((p[1] , "int"))
 
     var_sym = SymbolEntry(
-                name=p[1],
+                name=str(p[1]),
                 type="int",
                 kind="enumerator"
             )
@@ -123,7 +120,7 @@ def p_string(p):
     '''string : STRING_LITERAL'''
     p[0] = Node("string", [p[1]])
     symtab.add_symbol(SymbolEntry(
-        name=p[1],
+        name=str(p[1]),
         type='*char',
         kind='constant'
     ))
@@ -281,8 +278,8 @@ def p_unary_expression(p):
 
     elif len(p) == 5:
         p[0] = Node("unary_expression", [p[1], p[3]])
-    print("debug")
-    print(p[0].vars)
+    # print("debug")
+    # print(p[0].vars)
 
 def p_unary_expression_error(p):
     '''unary_expression : SIZEOF LPAREN type_name error
@@ -817,15 +814,15 @@ def p_init_declarator(p):
     print(p[0].vars)
     for decl in p[0].vars:  # Assume init_declarator_list is parsed
         kind2="variable"
-        print(f"find me here |{decl}|{base_type}|{kind2}|{abcd}")
+        # print(f"find me here |{decl}|{base_type}|{kind2}|{abcd}")
         if(base_type.split(" ")[0]=="struct" and len(base_type.split(" "))==1):
             kind2="struct"
             ## why is this if statement here?
 
         var_sym = SymbolEntry(
-            name=decl,
-            type=base_type,
-            kind=kind2
+            name=str(decl),
+            type=str(base_type),
+            kind=str(kind2)
         )
         symtab.add_symbol(var_sym)
     
@@ -851,8 +848,8 @@ def p_init_declarator(p):
     base_no_const = (symtab.lookup(v).type if "const " not in symtab.lookup(v).type else ''.join(_ for _ in symtab.lookup(v).type.split("const ")))
     
     if 'struct' in base_no_const:
-        print("ahahahah")
-        print(p[0].rhs)
+        # print("ahahahah")
+        # print(p[0].rhs)
 
         struct_name = base_no_const.split(' ')[-1]
         struct_scope = symtab.lookup(struct_name).child
@@ -877,9 +874,9 @@ def p_init_declarator(p):
                 rhs = symtab.search_struct(name, identifier)
             else: 
                 rhs = symtab.lookup(rhs2)
-            print(rhs2)
+            # print(rhs2)
             original_type = rhs.type
-            print(original_type)
+            # print(original_type)
             if p[0].is_address:
                 rhs.type = '*' + rhs.type
             for i in range(0,c_add):
@@ -887,25 +884,48 @@ def p_init_declarator(p):
                     rhs.type = rhs.type[1:]
                 else:
                     raise TypeError("Invalid Deref")
+            
+            print(f"here123123 |{rhs2}|")
+            newcheck= base_no_const.rstrip(' ').lstrip('*')
+            # for type1 in p[0].rhs:
+            #     #print(f"here |{newcheck}|{(symtab.lookup(type1)).type}|")
             if base_no_const.rstrip(' ') != rhs.type.rstrip(' '):
-                raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs.name}\n| base_type = {base_no_const} |\n| rhs_type = {rhs.type} |")
+                #raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs.name}\n| base_type = {base_no_const} |\n| rhs_type = {rhs.type} |")
                 # print("ignored for now")
+                if newcheck != (symtab.lookup(rhs2)).type and base_no_const!=(symtab.lookup(rhs2)).type:
+                    if(newcheck!=base_no_const and (symtab.lookup(rhs2)).type[0]!='*'):
+                        raise TypeError(f"Type mismatch in declaration of array {p[0].vars[0].rstrip('$')} because of {rhs2}\n| base_type = {base_no_const} |\n| rhs_type = {(symtab.lookup(rhs2)).type} |")
+                    else:
+                        raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs2}\n| base_type = {base_no_const} |\n| rhs_type = {(symtab.lookup(rhs2)).type} |")
+            
             rhs.type = original_type
+
+
+                #         if base_no_const.rstrip(' ') != rhs.type.rstrip(' '):
+                # if(p[0].vars[0][-1]=='$'):
+                #     abc=p[0].vars[0].rstrip('$')
+                #     raise TypeError(f"Type mismatch in declaration of array {abc} because of {rhs.name}\n| base_type = {base_no_const} |\n| rhs_type = {rhs.type} |")
+                # else:
+                #     raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs.name}\n| base_type = {base_no_const} |\n| rhs_type = {rhs.type} |")
 
     # if len(p) == 4:
     #     newcheck= base_no_const.rstrip(' ').lstrip('*')
-    #     for type1 in p[3].dtypes:
-    #         if newcheck != type1:
-    #             raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {type1}\n| base_type = {base_no_const} |\n| rhs_type = {type1} |")
+    #     for type1 in p[3].vars:
+    #         if newcheck != (symtab.lookup(type1)).type:
+    #             print(f"here |{newcheck}|{(symtab.lookup(type1)).type}|")
+    #             if(newcheck!=base_no_const):
+    #                 raise TypeError(f"Type mismatch in declaration of array {p[0].vars[0].rstrip('$')} because of {type1}\n| base_type = {base_no_const} |\n| rhs_type = {type1} |")
+    #             else:
+    #                 raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {type1}\n| base_type = {base_no_const} |\n| rhs_type = {type1} |")
             
     #     p[0].is_address = False
-
     #     print(f"here gang |{p[3].dtypes}|")
-    if (len(p) == 4):
-        print(p[3].vars)
-        print(p[3].rhs)
-        print(p[3].children)
-        print("chomu")
+
+    # if (len(p) == 4):
+    #     print(p[3].vars)
+    #     print(p[3].rhs)
+    #     print(p[3].children)
+    #     print("chomu")
 
 def p_init_declarator_error(p):
     '''init_declarator : declarator error initializer'''
@@ -950,9 +970,9 @@ def p_struct_or_union_specifier(p):
         struct_name = p[2]
         sym_scope_level = symtab.current_scope_level - 1
         struct_sym = SymbolEntry(
-            name=struct_name,
-            type=f"struct",
-            kind=f"struct"
+            name=str(struct_name),
+            type="struct",
+            kind="struct"
         )
 
         # for entry in symtab.scopes[-1]:
@@ -1011,8 +1031,8 @@ def p_struct_declaration(p):
             base_type += " "
         for decl in p[0].vars:  # Assume init_declarator_list is parsed
             var_sym = SymbolEntry(
-                name=decl,
-                type=base_type,
+                name=str(decl),
+                type=str(base_type),
                 kind="variable"
             )
             symtab.add_symbol(var_sym)
@@ -1076,7 +1096,7 @@ def p_enum_specifier(p):
 
     if p[2]!='{':
         var_sym = SymbolEntry(
-                name=p[2],
+                name=str(p[2]),
                 type="enum decl",
                 kind="enum type"
             )
@@ -1311,8 +1331,8 @@ def p_parameter_declaration(p):
             base_type += dtype
             base_type += " "
         param_sym = SymbolEntry(
-            name=p[0].vars[0], #check gang
-            type=base_type,
+            name=str(p[0].vars[0]), #check gang
+            type=str(base_type),
             kind="parameter",
             isForwardable=True
         )
@@ -1657,11 +1677,15 @@ def p_function_definition(p):
     # -- Symbol Table Handling --
     # Get function name from declarator (assume p[2] has 'name' attribute)
     func_name = p[2].vars[0] #check gang
-    
+    base_type = ''
+    for dtype in p[1].dtypes:
+        base_type += dtype
+        base_type += " "
+    base_type=base_type[:-1]
     # Add function to GLOBAL scope
     func_sym = SymbolEntry(
-        name=func_name,
-        type= p[0].dtypes[0],  # Return type from declaration_specifiers
+        name=str(func_name),
+        type=str(base_type),  # Return type from declaration_specifiers
         kind="function"
     )
     symtab.add_symbol(func_sym)
