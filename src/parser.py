@@ -911,6 +911,7 @@ def p_init_declarator(p):
                     raise Exception("more than one variables in the rhs")
 
     else:   
+        print(f"wtf {p[0].rhs}")
         for rhs2 in p[0].rhs:
             c_add = 0
             while isinstance(rhs2,str) and rhs2[0] == '@':
@@ -935,20 +936,20 @@ def p_init_declarator(p):
 
             print(f"here123123 |{rhs2}|")
             newcheck = base_no_const.rstrip(' ').lstrip('*')
-            # for type1 in p[0].rhs:
-            #     #print(f"here |{newcheck}|{(symtab.lookup(type1)).type}|")
-            if base_no_const.rstrip(' ') != rhs.type.rstrip(' '):
-                if newcheck != (symtab.lookup(rhs2)).type or base_no_const != (symtab.lookup(rhs2)).type:
-                    if newcheck != base_no_const or (symtab.lookup(rhs2)).type[0] != '*':
-                        raise TypeError(f"Type mismatch in declaration of array {p[0].vars[0].rstrip('$')} because of {rhs2}\n| base_type = {base_no_const} |\n| rhs_type = {(symtab.lookup(rhs2)).type} |")
-                    elif (symtab.lookup(rhs2)).type != "int" and base_no_const.split(' ')[0] != "enum":
-                        raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs2}\n| base_type = {base_no_const} |\n| rhs_type = {(symtab.lookup(rhs2)).type} |")
+            if p[0].isbraces:
+                if symtab.lookup(rhs2) is not None and newcheck != (symtab.lookup(rhs2)).type.rstrip(' '):
+                    raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs2}\n| base_type = {base_no_const} |\n| rhs_type = {(symtab.lookup(rhs2)).type} |")
 
-            
+            else:
+                if base_no_const.rstrip(' ') != rhs.type.rstrip(' '):
+                    if newcheck != (symtab.lookup(rhs2)).type or base_no_const != (symtab.lookup(rhs2)).type:
+                        if newcheck != base_no_const or (symtab.lookup(rhs2)).type[0] != '*':
+                            raise TypeError(f"Type mismatch in declaration of array {p[0].vars[0].rstrip('$')} because of {rhs2}\n| base_type = {base_no_const} |\n| rhs_type = {(symtab.lookup(rhs2)).type} |")
+                        elif (symtab.lookup(rhs2)).type != "int" and base_no_const.split(' ')[0] != "enum":
+                            raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs2}\n| base_type = {base_no_const} |\n| rhs_type = {(symtab.lookup(rhs2)).type} |")
+
+                
             rhs.type = original_type
-
-
-
             
     p[0].is_address = False
     #     print(f"here gang |{p[3].dtypes}|")
