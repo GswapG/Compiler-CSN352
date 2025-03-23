@@ -1,5 +1,6 @@
 #!/bin/bash
 VERSION="1.2.82"
+INTERPRETER="python3"
 
 # Function to install Graphviz based on OS
 install_graphviz() {
@@ -44,25 +45,36 @@ install_graphviz() {
     esac
 }
 
+# Parse arguments and detect --fast flag
+ARGS=()
+for arg in "$@"; do
+    if [[ "$arg" == "--fast" ]]; then
+        INTERPRETER="pypy3"
+    else
+        ARGS+=("$arg")
+    fi
+done
+
 # Check if -h or --help is passed
-if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+if [[ " ${ARGS[*]} " =~ " -h " || " ${ARGS[*]} " =~ " --help " ]]; then
     echo "Usage: run.sh [OPTIONS]"
     echo ""
     echo "Options:"
     echo "  -h, --help      Show this help message and exit"
     echo "  -v, --version   Show version information and exit"
     echo "  -g, --graph     Render the graph for all testcases"
+    echo "  --fast          Use PyPy3 instead of Python3"
     exit 0
 fi
 
 # Check if -v or --version is passed
-if [[ "$1" == "-v" || "$1" == "--version" ]]; then
+if [[ " ${ARGS[*]} " =~ " -v " || " ${ARGS[*]} " =~ " --version " ]]; then
     echo "parser.py version $VERSION"
     exit 0
 fi
 
 # Check if -g or --graph is passed
-if [[ "$1" == "-g" || "$1" == "--graph" ]]; then
+if [[ " ${ARGS[*]} " =~ " -g " || " ${ARGS[*]} " =~ " --graph " ]]; then
     if ! command -v dot &> /dev/null; then
         echo "Graphviz is not installed."
         echo "To install Graphviz, run:"
@@ -76,5 +88,5 @@ if [[ "$1" == "-g" || "$1" == "--graph" ]]; then
     fi
 fi
 
-# Pass all arguments to the Python script
-python3 src/parser.py "$@"
+# Run the script with the selected interpreter
+$INTERPRETER src/parser.py "${ARGS[@]}"
