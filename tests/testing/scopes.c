@@ -1,13 +1,17 @@
-typedef struct {
-    int y;
-} Node2;
-
-struct Node {
+struct A { 
     int x;
+    float f;
+    char c;
 };
 
-Node2 func(struct Node p, Node2 q) {
-    return p;
-}
-int main(){}
+struct B {
+    int y;
+    float g;
+    char d;
+};
 
+int main() {
+    struct A a = {1, 4.4};
+    struct B b = {a.x, a.f};
+
+}

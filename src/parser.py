@@ -876,7 +876,12 @@ def p_init_declarator(p):
                 raise Exception("Number of identifiers in struct doesnt match with initialiser list length")
 
             for struct_entry, list_entry in zip(struct_entries, p[0].rhs):
-                if struct_entry.type.split("const ")[-1].rstrip(' ') != symtab.lookup(list_entry).type:
+                if isinstance(list_entry, str) and ' ' in list_entry:
+                    name, identifier, field = list_entry.split(" ")
+                    if struct_entry.type.split("const ")[-1].rstrip(' ') != symtab.search_struct(name, field).type.rstrip(' '):
+                        raise Exception(f"Type mismatch in {struct_entry.type} with provided {symtab.search_struct(name, field).type}")
+
+                elif struct_entry.type.split("const ")[-1].rstrip(' ') != symtab.lookup(list_entry).type.rstrip(' '):
                     raise Exception(f"Type mismatch in {struct_entry.type} with provided {symtab.lookup(list_entry).type}")
         else:
             if len(p) > 2:
