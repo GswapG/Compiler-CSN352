@@ -1,10 +1,12 @@
-struct Node {
-    int x;
-    int* p;
+#include <stdio.h>
+
+struct Data {
+    float a;
+    int b;
 };
 
 int main() {
-    int x = 2; 
-    int *p = &x;
-    struct Node n = {*p, p};
+    struct Data d = {3.14, 42};
+    d.a -= 5.5;
+    
 }
