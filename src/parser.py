@@ -831,8 +831,6 @@ def p_init_declarator(p):
         base_type += " "
         abcd+=1
     base_type=base_type[:-1]
-    print(base_type )
-    print("YAAR KAISA CODE LIKHA HAI YE")
     print(p[0].vars)
     for decl in p[0].vars:  # Assume init_declarator_list is parsed
         kind2="variable"
@@ -842,7 +840,7 @@ def p_init_declarator(p):
             kind2=f"{name}"
             base_type=f"{name}"
             ## why is this if statement here?
-
+        print(base_type)
         var_sym = SymbolEntry(
             name=str(decl),
             type=str(base_type),
@@ -871,7 +869,6 @@ def p_init_declarator(p):
 
     base_no_const = (symtab.lookup(v).type if "const " not in symtab.lookup(v).type else ''.join(_ for _ in symtab.lookup(v).type.split("const ")))
     print(f"ganggang {base_no_const}")
-
     if (symtab.lookup(base_no_const) is not None and (symtab.lookup(base_no_const).type == 'struct' or symtab.lookup(base_no_const).type == 'union')) or ('struct' in base_no_const or 'union' in base_no_const) and not base_no_const.startswith("*"):
         print("ahahahah")
         print(p[0].rhs)
@@ -927,39 +924,23 @@ def p_init_declarator(p):
                     rhs.type = rhs.type[1:]
                 else:
                     raise TypeError("Invalid Deref")
-            
+
             print(f"here123123 |{rhs2}|")
             newcheck = base_no_const.rstrip(' ').lstrip('*')
             # for type1 in p[0].rhs:
             #     #print(f"here |{newcheck}|{(symtab.lookup(type1)).type}|")
             if base_no_const.rstrip(' ') != rhs.type.rstrip(' '):
-                #raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs.name}\n| base_type = {base_no_const} |\n| rhs_type = {rhs.type} |")
-                # print("ignored for now")
-                if newcheck != (symtab.lookup(rhs2)).type and base_no_const!=(symtab.lookup(rhs2)).type:
-                    if(newcheck!=base_no_const and (symtab.lookup(rhs2)).type[0]!='*'):
+                if newcheck != (symtab.lookup(rhs2)).type or base_no_const != (symtab.lookup(rhs2)).type:
+                    if newcheck != base_no_const or (symtab.lookup(rhs2)).type[0] != '*':
                         raise TypeError(f"Type mismatch in declaration of array {p[0].vars[0].rstrip('$')} because of {rhs2}\n| base_type = {base_no_const} |\n| rhs_type = {(symtab.lookup(rhs2)).type} |")
-                    elif (symtab.lookup(rhs2)).type!=int and base_no_const.split(' ')[0]!="enum":
+                    elif (symtab.lookup(rhs2)).type != "int" and base_no_const.split(' ')[0] != "enum":
                         raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs2}\n| base_type = {base_no_const} |\n| rhs_type = {(symtab.lookup(rhs2)).type} |")
+
             
             rhs.type = original_type
 
 
-                #         if base_no_const.rstrip(' ') != rhs.type.rstrip(' '):
-                # if(p[0].vars[0][-1]=='$'):
-                #     abc=p[0].vars[0].rstrip('$')
-                #     raise TypeError(f"Type mismatch in declaration of array {abc} because of {rhs.name}\n| base_type = {base_no_const} |\n| rhs_type = {rhs.type} |")
-                # else:
-                #     raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs.name}\n| base_type = {base_no_const} |\n| rhs_type = {rhs.type} |")
 
-    # if len(p) == 4:
-    #     newcheck= base_no_const.rstrip(' ').lstrip('*')
-    #     for type1 in p[3].vars:
-    #         if newcheck != (symtab.lookup(type1)).type:
-    #             print(f"here |{newcheck}|{(symtab.lookup(type1)).type}|")
-    #             if(newcheck!=base_no_const):
-    #                 raise TypeError(f"Type mismatch in declaration of array {p[0].vars[0].rstrip('$')} because of {type1}\n| base_type = {base_no_const} |\n| rhs_type = {type1} |")
-    #             else:
-    #                 raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {type1}\n| base_type = {base_no_const} |\n| rhs_type = {type1} |")
             
     p[0].is_address = False
     #     print(f"here gang |{p[3].dtypes}|")

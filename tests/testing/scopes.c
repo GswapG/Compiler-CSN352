@@ -5,7 +5,7 @@ int main() {
     q = p;
     *q = a;
 
-    int **ptr;
+    int **ptr = &p;
     ptr = &q;
     *ptr = p;
     *ptr = q; //-> false negative
