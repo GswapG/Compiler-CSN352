@@ -1718,7 +1718,6 @@ def p_function_definition(p):
         base_type += " "
     
     base_type=base_type[:-1]
-
     print(f"base_type = {base_type}")
     # Add function to GLOBAL scope
     func_sym = SymbolEntry(
@@ -1729,13 +1728,15 @@ def p_function_definition(p):
     symtab.add_symbol(func_sym)
     # print(base_type)
     global returns
-    print(f"978 {returns}")
+    print(func_name)
+    while len(func_name) > 0 and func_name[-1] == '$':
+        func_name = func_name[:-1]
+    b_type = symtab.lookup(func_name).type
     if(len(returns)>1):
         raise Exception("Multiple Return Types")
     for type in returns:
-        print(f"98989 |{type}|")
-        print(f"1234534 |{base_type}|")
-        if base_type.rstrip(' ') != type.rstrip(' '):
+        if b_type.rstrip(' ') != type.rstrip(' '):
+            print(b_type)
             raise Exception("Invalid Type of Value returned")
     returns = set()
     # Enter FUNCTION SCOPE (for parameters/local vars)
