@@ -1,7 +1,3 @@
-int *f(){
-    int *p;
-    return p;
-}
 int main() {
-    f();
+    int arr[1] = {1};
 }

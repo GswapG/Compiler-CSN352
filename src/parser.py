@@ -178,7 +178,15 @@ def p_postfix_expression(p):
     elif len(p) == 4:
         p[0] = Node("postfix_expression", [p[1]])
     elif len(p) == 5:
+        print('NIGGERS')
+        print(p[2])
+        if p[2] == '[':
+            for i in range(0,len(p[1].vars)):
+                p[1].vars[i] = '@' + p[1].vars[i]
+            print('NIGGERS')
+            print(p[1].vars)
         p[0] = Node("postfix_expression", [p[1], p[3]])
+        
     elif len(p) == 7:
         p[0] = Node("postfix_expression", [p[2], p[5]])
     elif len(p) == 8:
@@ -1726,9 +1734,7 @@ def p_function_definition(p):
         kind="function"
     )
     symtab.add_symbol(func_sym)
-    # print(base_type)
     global returns
-    print(func_name)
     while len(func_name) > 0 and func_name[-1] == '$':
         func_name = func_name[:-1]
     b_type = symtab.lookup(func_name).type
