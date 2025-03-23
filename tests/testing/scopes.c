@@ -2,7 +2,7 @@
 
 int add(int a, int b) {
     float c = 5.0;
-    return b+3.0;
+    return a*5.0;
 }
 
 // int main() {
