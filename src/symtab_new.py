@@ -205,6 +205,31 @@ class SymbolTable:
 
         return params
     
+    def search_struct(self, name, identifier):
+        scope_pointer = self.current_scope
+
+        found_struct = None
+        found = False
+        while scope_pointer:
+            for entry in scope_pointer.entries:
+                if strict_equal(entry.name, name):
+                    found = True
+                    found_struct = entry
+                    break
+            if found:
+                break
+            scope_pointer = scope_pointer.parent
+
+        if not found:
+            return None
+        
+        struct_scope = entry.child
+        for entry in struct_scope.entries:
+            if strict_equal(entry.name, identifier):
+                return entry
+        
+        return None
+
     def __str__(self):
         """
             print the symbol table object
