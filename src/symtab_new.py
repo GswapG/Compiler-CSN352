@@ -196,6 +196,9 @@ class SymbolTable:
             if entry.name == name:
                 func_entry = entry.entry
                 break
+    
+        if func_entry is None:
+            raise Exception(f"identifier {name} doesnt exist.")
         
         child_scope = func_entry.child
         params = []

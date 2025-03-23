@@ -131,6 +131,7 @@ def p_string(p):
     ))
 
     p[0].vars.append(p[1])
+    p[0].return_type = '*char'
 
 def p_generic_selection(p):
     '''generic_selection : GENERIC LPAREN assignment_expression COMMA generic_assoc_list RPAREN '''
@@ -1721,7 +1722,10 @@ def p_function_definition(p):
     for dtype in p[1].dtypes:
         base_type += dtype
         base_type += " "
+    print(f"base_type = {base_type}")
     base_type=base_type[:-1]
+
+    print(f"base_type = {base_type}")
     # Add function to GLOBAL scope
     func_sym = SymbolEntry(
         name=str(func_name),
@@ -1731,6 +1735,7 @@ def p_function_definition(p):
     symtab.add_symbol(func_sym)
     # print(base_type)
     global returns
+    print(returns)
     for type in returns:
         print(type)
         print(base_type)

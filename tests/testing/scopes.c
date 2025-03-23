@@ -1,4 +1,8 @@
+int* func(int a, int b){
+    int *p = &a;
+    return p;
+}
+
 int main() {
-    int x = 2; 
-    int *p = x;
+    int* c = func(5, 6);
 }
