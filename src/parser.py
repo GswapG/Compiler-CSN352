@@ -848,11 +848,13 @@ def p_init_declarator(p):
         v = v[:-1]
 
     base_no_const = (symtab.lookup(v).type if "const " not in symtab.lookup(v).type else ''.join(_ for _ in symtab.lookup(v).type.split("const ")))
-    
-    if 'struct' in base_no_const:
+    print(base_no_const)
+
+    if ('struct' in base_no_const or 'union' in base_no_const) and not base_no_const.startswith("*"):
         print("ahahahah")
         print(p[0].rhs)
         print(p[0].isbraces)
+        print(p[0].is_address)
 
         if p[0].isbraces:
             struct_name = base_no_const.split(' ')[-1]
@@ -867,13 +869,14 @@ def p_init_declarator(p):
                     raise Exception(f"Type mismatch in {struct_entry.type} with provided {symtab.lookup(list_entry).type}")
         else:
             if len(p) > 2:
-                assert len(p[0].rhs) == 1, "rhs has more than one vars"
+                if len(p[0].rhs) == 1:
+                    rhs_var = symtab.lookup(p[0].rhs[0])
+                    rhs_var_type = rhs_var.type
 
-                rhs_var = symtab.lookup(p[0].rhs[0])
-                rhs_var_type = rhs_var.type
-
-                if base_no_const != rhs_var_type:
-                    raise Exception(f"Type mismatch in {base_no_const} with provided {rhs_var_type}")
+                    if base_no_const != rhs_var_type:
+                        raise Exception(f"Type mismatch in {base_no_const} with provided {rhs_var_type}")
+                elif len(p[0].rhs) > 1:
+                    raise Exception("more than one variables in the rhs")
 
     else:   
         for rhs2 in p[0].rhs:
@@ -899,7 +902,7 @@ def p_init_declarator(p):
                     raise TypeError("Invalid Deref")
             
             print(f"here123123 |{rhs2}|")
-            newcheck= base_no_const.rstrip(' ').lstrip('*')
+            newcheck = base_no_const.rstrip(' ').lstrip('*')
             # for type1 in p[0].rhs:
             #     #print(f"here |{newcheck}|{(symtab.lookup(type1)).type}|")
             if base_no_const.rstrip(' ') != rhs.type.rstrip(' '):
@@ -1429,6 +1432,7 @@ def p_direct_abstract_declarator_error(p):
 def p_initializer(p):
     '''initializer : LBRACE initializer_list RBRACE
                    | LBRACE initializer_list COMMA RBRACE
+                   | LBRACE RBRACE
                    | assignment_expression'''
     if len(p) == 4 or len(p) == 5:  
         p[0] = Node("initializer", [p[2]])  
