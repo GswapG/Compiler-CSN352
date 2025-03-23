@@ -9,6 +9,7 @@ from tree import *
 from symtab_new import *
 
 datatypeslhs=[]
+returns = set()
 constants = defaultdict(lambda: None)
 def table_entry(node):
     compound_dtype = ""
@@ -86,6 +87,7 @@ def p_constant(p):
                 kind="constant"
             )
         symtab.add_symbol(var_sym)
+        p[0].return_type = 'int'
     elif token_type == "F_CONSTANT":
         var_sym = SymbolEntry(
                 name=str(p[1]),
@@ -93,6 +95,7 @@ def p_constant(p):
                 kind="constant"
             )
         symtab.add_symbol(var_sym)
+        p[0].return_type = 'float'
     elif token_type == "CHAR_CONSTANT":
         var_sym = SymbolEntry(
                 name=str(p[1]),
@@ -100,6 +103,7 @@ def p_constant(p):
                 kind="constant"
             )
         symtab.add_symbol(var_sym)
+        p[0].return_type = 'char'
     p[0].vars.append(str(p[1]))
 
 
@@ -1670,10 +1674,16 @@ def p_jump_statement(p):
                      | BREAK SEMICOLON
                      | RETURN SEMICOLON
                      | RETURN expression SEMICOLON'''
+    global returns
     if len(p) == 3:
         p[0] = Node("jump_statement", [p[1]])
+        if p[1] =='return':
+            returns.add('void')
     elif len(p) == 4:
         p[0] = Node("jump_statement", [p[1], p[2]])
+        if p[1] == 'return':
+            returns.add(p[2].return_type)
+
 
 def p_jump_statement_error(p):
     '''jump_statement : GOTO IDENTIFIER error
@@ -1709,7 +1719,13 @@ def p_function_definition(p):
         kind="function"
     )
     symtab.add_symbol(func_sym)
-    
+    # print(base_type)
+    global returns
+    for type in returns:
+        print(type)
+        if base_type != type:
+            raise Exception("Invalid Type of Value returned")
+    returns = set()
     # Enter FUNCTION SCOPE (for parameters/local vars)
     # symtab.enter_scope(func_name)
     # symtab.exit_scope()

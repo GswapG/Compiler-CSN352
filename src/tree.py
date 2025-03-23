@@ -19,6 +19,7 @@ class Node:
         self.is_const = 0
         self.is_address = False
         self.isbraces = False
+        self.return_type = None
         if children:
             children_conv = []
             for c in children:
@@ -27,7 +28,8 @@ class Node:
                 else:
                     children_conv.append(c)        
             self.children = children_conv
-
+        if len(self.children) == 1 and isinstance(children[0],Node):
+            self.return_type = children[0].return_type
         for c in self.children:
             self.is_address |= c.is_address
             self.isbraces |= c.isbraces
