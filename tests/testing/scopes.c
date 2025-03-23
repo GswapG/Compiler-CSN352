@@ -7,8 +7,8 @@ struct Other {
 
 int main() {
     struct Node n = {10};
-    struct Other p = {5};
+    struct Other p;
     struct Node o = n;
-    n.x += p.x;
+    p.x -= p.x;
 
 }

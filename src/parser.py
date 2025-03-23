@@ -974,7 +974,7 @@ def p_struct_or_union_specifier(p):
                                 | struct_or_union IDENTIFIER LBRACE enter_scope struct_declaration_list exit_scope RBRACE
                                 | struct_or_union IDENTIFIER'''
     if len(p) == 7:
-        p[0] = Node("struct_or_union_specifier", [p[1], p[3]])
+        p[0] = Node("struct_or_union_specifier", [p[1], p[4]])
     elif len(p) == 8:
         p[0] = Node("struct_or_union_specifier", [p[1], p[2], p[5]])
         # p[0].dtypes.append(str(p[1].children[0])+" "+p[2])
