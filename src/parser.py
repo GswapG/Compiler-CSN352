@@ -420,6 +420,8 @@ def p_multiplicative_expression(p):
             if type_.rstrip(' ') != dtype1.rstrip(' ') and ((isinstance(var, str) and ' ' in var) or symtab.lookup(var).kind != "function"):
 
                 raise ValueError(f"Incompatible multiplicative op with '{var}'")
+    # if here then no exception thrown
+    p[0].return_type = p[1].return_type
 
 def p_additive_expression(p):
     '''additive_expression : multiplicative_expression
@@ -518,6 +520,8 @@ def p_additive_expression(p):
                 print(dtype1)
                 print("abc",type_)
                 raise ValueError(f"Incompatible addition op with '{var}'")
+    # if here then no exception thrown
+    p[0].return_type = p[1].return_type
     
 def p_shift_expression(p):
     '''shift_expression : additive_expression

@@ -1,4 +1,4 @@
-// /* Define a simple struct with typedef */
+/* Define a simple struct with typedef */
 typedef struct {
     int x;
     int y;
@@ -9,6 +9,10 @@ struct P2{
     int y;
 };
 
+int f(float a , int b){
+    float ALPHA = -1.0;
+    return b+1;
+}
 int main() {
     Point p1;
     p1.x = 10;
@@ -18,4 +22,5 @@ int main() {
     int abc2 = 10 + 20 + y;
     int abc = p1.x - gang.x;
     // p1.zz=10;
+    int c = f(1.1,1);
 }
