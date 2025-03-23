@@ -516,7 +516,7 @@ def p_additive_expression(p):
                     raise TypeError("Invalid Deref Op")
             if type_.rstrip(' ') != dtype1.rstrip(' ') and ((isinstance(var, str) and ' ' in var) or symtab.lookup(var).kind != "function"):
                 print(dtype1)
-                print(type_)
+                print("abc",type_)
                 raise ValueError(f"Incompatible addition op with '{var}'")
     
 def p_shift_expression(p):
@@ -739,6 +739,8 @@ def p_expression(p):
         p[0] = Node("expression", [p[1]])
     else:
         p[0] = Node("expression", [p[1], p[3]])
+    
+    # print(f"myboii {p[0].return_type}")
 
 def p_constant_expression(p):
     '''constant_expression : conditional_expression'''
@@ -928,7 +930,7 @@ def p_init_declarator(p):
                 if newcheck != (symtab.lookup(rhs2)).type and base_no_const!=(symtab.lookup(rhs2)).type:
                     if(newcheck!=base_no_const and (symtab.lookup(rhs2)).type[0]!='*'):
                         raise TypeError(f"Type mismatch in declaration of array {p[0].vars[0].rstrip('$')} because of {rhs2}\n| base_type = {base_no_const} |\n| rhs_type = {(symtab.lookup(rhs2)).type} |")
-                    else:
+                    elif (symtab.lookup(rhs2)).type!=int and base_no_const.split(' ')[0]!="enum":
                         raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs2}\n| base_type = {base_no_const} |\n| rhs_type = {(symtab.lookup(rhs2)).type} |")
             
             rhs.type = original_type
@@ -1062,6 +1064,7 @@ def p_struct_declaration(p):
         for dtype in p[0].dtypes:
             base_type += dtype
             base_type += " "
+        base_type = base_type[:-1]
         for decl in p[0].vars:  # Assume init_declarator_list is parsed
             var_sym = SymbolEntry(
                 name=str(decl),
@@ -1363,6 +1366,7 @@ def p_parameter_declaration(p):
         for dtype in p[0].dtypes:
             base_type += dtype
             base_type += " "
+        base_type = base_type[:-1]
         param_sym = SymbolEntry(
             name=str(p[0].vars[0]), #check gang
             type=str(base_type),
@@ -1693,6 +1697,7 @@ def p_jump_statement(p):
     elif len(p) == 4:
         p[0] = Node("jump_statement", [p[1], p[2]])
         if p[1] == 'return':
+            print(f"return type jump {p[2].return_type}")
             returns.add(p[2].return_type)
 
 
@@ -1722,7 +1727,7 @@ def p_function_definition(p):
     for dtype in p[1].dtypes:
         base_type += dtype
         base_type += " "
-    print(f"base_type = {base_type}")
+    
     base_type=base_type[:-1]
 
     print(f"base_type = {base_type}")
@@ -1735,10 +1740,12 @@ def p_function_definition(p):
     symtab.add_symbol(func_sym)
     # print(base_type)
     global returns
-    print(returns)
+    print(f"978 {returns}")
+    if(len(returns)>1):
+        raise Exception("Multiple Return Types")
     for type in returns:
-        print(type)
-        print(base_type)
+        print(f"98989 |{type}|")
+        print(f"1234534 |{base_type}|")
         if base_type.rstrip(' ') != type.rstrip(' '):
             raise Exception("Invalid Type of Value returned")
     returns = set()

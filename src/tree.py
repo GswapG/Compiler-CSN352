@@ -28,8 +28,12 @@ class Node:
                 else:
                     children_conv.append(c)        
             self.children = children_conv
-        if len(self.children) == 1 and isinstance(children[0],Node):
-            self.return_type = children[0].return_type
+        for var in self.children:
+            if(self.return_type == None):
+                self.return_type = var.return_type
+            # elif(self.return_type != var.return_type):
+            #     print(f"tree.py checker |{self.return_type}|{var.return_type}|")
+            #     raise Exception("mismatch in return expression")
         for c in self.children:
             self.is_address |= c.is_address
             self.isbraces |= c.isbraces
