@@ -7,5 +7,8 @@ struct Node2 {
 };
 
 int main() {
-    struct Node2 n = {1};
+    Node n = {};
+    Node p = {1};
+
+    Node a[2] = {n, p};
 }

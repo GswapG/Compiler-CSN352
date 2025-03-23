@@ -851,7 +851,7 @@ def p_init_declarator(p):
     base_no_const = (symtab.lookup(v).type if "const " not in symtab.lookup(v).type else ''.join(_ for _ in symtab.lookup(v).type.split("const ")))
     print(f"ganggang {base_no_const}")
 
-    if ('struct' in base_no_const or 'union' in base_no_const) and not base_no_const.startswith("*"):
+    if (symtab.lookup(base_no_const) is not None and symtab.lookup(base_no_const).type == 'struct') or ('struct' in base_no_const or 'union' in base_no_const) and not base_no_const.startswith("*"):
         print("ahahahah")
         print(p[0].rhs)
         print(p[0].isbraces)
