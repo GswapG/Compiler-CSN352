@@ -66,6 +66,7 @@ def p_primary_expression_identifier(p):
     check = symtab.lookup(p[1])
     if(check!=None):
         p[0].dtypes = [check.type]
+        p[0].return_type = check.type
 
 def p_primary_expression_error(p):
     '''primary_expression : LPAREN expression error'''
@@ -128,6 +129,8 @@ def p_string(p):
         type='*char',
         kind='constant'
     ))
+
+    p[0].vars.append(p[1])
 
 def p_generic_selection(p):
     '''generic_selection : GENERIC LPAREN assignment_expression COMMA generic_assoc_list RPAREN '''
@@ -208,7 +211,7 @@ def p_postfix_expression(p):
 
     if len(p) == 5 and p[2] == "(" and len(p[0].vars) > 0:
         print("BEHENCHOD AB ISME KYA CHUD RAHI")
-        
+        print(p[0].vars)
         func_params = symtab.search_params(p[0].vars[0])
         argument_list = p[0].vars[1:]
 
@@ -1723,7 +1726,8 @@ def p_function_definition(p):
     global returns
     for type in returns:
         print(type)
-        if base_type != type:
+        print(base_type)
+        if base_type.rstrip(' ') != type.rstrip(' '):
             raise Exception("Invalid Type of Value returned")
     returns = set()
     # Enter FUNCTION SCOPE (for parameters/local vars)
