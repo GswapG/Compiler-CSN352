@@ -817,9 +817,10 @@ def p_init_declarator(p):
     for decl in p[0].vars:  # Assume init_declarator_list is parsed
         kind2="variable"
         print(f"find me here |{decl}|{base_type}|{kind2}|{abcd}")
-        if(base_type.split(" ")[-1]=="struct" and len(base_type.split(" "))>=1):
-            kind2="struct"
-            base_type="struct"
+        if(base_type.split(" ")[0]=="typedef" and len(base_type.split(" "))>=1):
+            name = base_type.split(" ")[-1]
+            kind2=f"{name}"
+            base_type=f"{name}"
             ## why is this if statement here?
 
         var_sym = SymbolEntry(
@@ -851,7 +852,7 @@ def p_init_declarator(p):
     base_no_const = (symtab.lookup(v).type if "const " not in symtab.lookup(v).type else ''.join(_ for _ in symtab.lookup(v).type.split("const ")))
     print(f"ganggang {base_no_const}")
 
-    if (symtab.lookup(base_no_const) is not None and symtab.lookup(base_no_const).type == 'struct') or ('struct' in base_no_const or 'union' in base_no_const) and not base_no_const.startswith("*"):
+    if (symtab.lookup(base_no_const) is not None and (symtab.lookup(base_no_const).type == 'struct' or symtab.lookup(base_no_const).type == 'union')) or ('struct' in base_no_const or 'union' in base_no_const) and not base_no_const.startswith("*"):
         print("ahahahah")
         print(p[0].rhs)
         print(p[0].isbraces)
@@ -988,8 +989,8 @@ def p_struct_or_union_specifier(p):
         sym_scope_level = symtab.current_scope_level - 1
         struct_sym = SymbolEntry(
             name=str(struct_name),
-            type="struct",
-            kind="struct"
+            type=f"{p[0].dtypes[0]}",
+            kind=f"{p[0].dtypes[0]}"
         )
 
         # for entry in symtab.scopes[-1]:
