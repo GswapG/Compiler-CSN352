@@ -18,6 +18,7 @@ class Node:
         self.pointer_count = 0
         self.is_const = 0
         self.is_address = False
+        self.isbraces = False
         if children:
             children_conv = []
             for c in children:
@@ -29,6 +30,7 @@ class Node:
 
         for c in self.children:
             self.is_address |= c.is_address
+            self.isbraces |= c.isbraces
             if isinstance(c,Node):
                 self.vars += c.vars
                 self.dtypes += c.dtypes

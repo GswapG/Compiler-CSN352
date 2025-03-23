@@ -848,21 +848,32 @@ def p_init_declarator(p):
     base_no_const = (symtab.lookup(v).type if "const " not in symtab.lookup(v).type else ''.join(_ for _ in symtab.lookup(v).type.split("const ")))
     
     if 'struct' in base_no_const:
-        # print("ahahahah")
-        # print(p[0].rhs)
+        print("ahahahah")
+        print(p[0].rhs)
+        print(p[0].isbraces)
 
-        struct_name = base_no_const.split(' ')[-1]
-        struct_scope = symtab.lookup(struct_name).child
-        struct_entries = struct_scope.entries
+        if p[0].isbraces:
+            struct_name = base_no_const.split(' ')[-1]
+            struct_scope = symtab.lookup(struct_name).child
+            struct_entries = struct_scope.entries
 
-        if len(struct_entries) < len(p[0].rhs):
-            raise Exception("Number of identifiers in struct doesnt match with initialiser list length")
+            if len(struct_entries) < len(p[0].rhs):
+                raise Exception("Number of identifiers in struct doesnt match with initialiser list length")
 
-        for struct_entry, list_entry in zip(struct_entries, p[0].rhs):
-            if struct_entry.type.split("const ")[-1].rstrip(' ') != symtab.lookup(list_entry).type:
-                raise Exception(f"Type mismatch in {struct_entry.type} with provided {symtab.lookup(list_entry).type}")
+            for struct_entry, list_entry in zip(struct_entries, p[0].rhs):
+                if struct_entry.type.split("const ")[-1].rstrip(' ') != symtab.lookup(list_entry).type:
+                    raise Exception(f"Type mismatch in {struct_entry.type} with provided {symtab.lookup(list_entry).type}")
+        else:
+            if len(p) > 2:
+                assert len(p[0].rhs) == 1, "rhs has more than one vars"
 
-    else:
+                rhs_var = symtab.lookup(p[0].rhs[0])
+                rhs_var_type = rhs_var.type
+
+                if base_no_const != rhs_var_type:
+                    raise Exception(f"Type mismatch in {base_no_const} with provided {rhs_var_type}")
+
+    else:   
         for rhs2 in p[0].rhs:
             c_add = 0
             while isinstance(rhs2,str) and rhs2[0] == '@':
@@ -1419,6 +1430,7 @@ def p_initializer(p):
                    | assignment_expression'''
     if len(p) == 4 or len(p) == 5:  
         p[0] = Node("initializer", [p[2]])  
+        p[0].isbraces = True
     else:  
         p[0] = Node("initializer", [p[1]])  
     
