@@ -228,11 +228,11 @@ def p_postfix_expression(p):
         argument_list = p[0].vars[1:]
 
         if len(argument_list) != len(func_params):
-            print("incorrect function parameter length")
+            raise Exception("incorrect function parameter length")
 
         for argument, parameter in zip(argument_list, func_params):
             if parameter.type.rstrip(" ") != symtab.lookup(argument).type.rstrip(" "):
-                print(f"Error: function parameter mismatch for {parameter.type} & {argument}")
+                raise Exception(f"Error: function parameter mismatch for {parameter.type} & {argument}")
 
 
 def p_postfix_expression_error_1(p):
