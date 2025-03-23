@@ -335,7 +335,7 @@ def p_multiplicative_expression(p):
         while isinstance(copy,str) and copy[0] == '@':
             c2 +=1
             copy = copy[1:]
-        print(copy)
+        print(f"lol {copy}")
 
         if isinstance(copy, str) and ' ' in copy:
             name, _, identifier = copy.split(' ')
@@ -565,7 +565,8 @@ def p_relational_expression(p):
                         type2 = type2[1:]
                     else:
                         raise TypeError("Invalid Deref in Conditional")
-                if type1 != type2:
+                if type1.rstrip(' ') != type2.rstrip(' '):
+                    print(type1,type2)
                     raise ValueError(f"Incompatible relational op with '{var}' and '{var2}'")
 
 def p_equality_expression(p):
@@ -754,9 +755,10 @@ def p_declaration(p):
         p[0] = Node("declaration", [p[1]])
 
     global datatypeslhs
-    if(datatypeslhs[0]=="typedef"):
+    if(len(datatypeslhs)>0 and datatypeslhs[0]=="typedef"):
         for var in p[0].vars:
             typedef_names.add(str(var))
+            print(f"hereganggang |{var}|")
     datatypeslhs=[]
 
 def p_declaration_error(p):
