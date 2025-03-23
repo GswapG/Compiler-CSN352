@@ -1,13 +1,11 @@
-struct Node {
+typedef struct{
     const int x;
-};
-struct Other {
+} Node;
+
+struct Node2 {
     int x;
 };
 
 int main() {
-    struct Node n = {10};
-    struct Node o = n;
-    
-    struct Node a[2] = {o, n};
+    struct Node2 n = {1};
 }

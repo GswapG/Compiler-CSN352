@@ -816,9 +816,10 @@ def p_init_declarator(p):
     print(p[0].vars)
     for decl in p[0].vars:  # Assume init_declarator_list is parsed
         kind2="variable"
-        # print(f"find me here |{decl}|{base_type}|{kind2}|{abcd}")
-        if(base_type.split(" ")[0]=="struct" and len(base_type.split(" "))==1):
+        print(f"find me here |{decl}|{base_type}|{kind2}|{abcd}")
+        if(base_type.split(" ")[-1]=="struct" and len(base_type.split(" "))>=1):
             kind2="struct"
+            base_type="struct"
             ## why is this if statement here?
 
         var_sym = SymbolEntry(
@@ -848,7 +849,7 @@ def p_init_declarator(p):
         v = v[:-1]
 
     base_no_const = (symtab.lookup(v).type if "const " not in symtab.lookup(v).type else ''.join(_ for _ in symtab.lookup(v).type.split("const ")))
-    print(base_no_const)
+    print(f"ganggang {base_no_const}")
 
     if ('struct' in base_no_const or 'union' in base_no_const) and not base_no_const.startswith("*"):
         print("ahahahah")
