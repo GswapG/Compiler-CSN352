@@ -287,10 +287,11 @@ def p_unary_expression(p):
         p[0] = Node("unary_expression", [p[1], p[2]])
         if p[1].children[0].type =='&':
             p[0].is_address = True
+
+ 
         if p[1].children[0].type == '*':
             for i in range(0,len(p[0].vars)):
                 p[0].vars[i] = '@' + p[0].vars[i]
-    
 
     elif len(p) == 5:
         p[0] = Node("unary_expression", [p[1], p[3]])
@@ -892,13 +893,37 @@ def p_init_declarator(p):
                 raise Exception("Number of identifiers in struct doesnt match with initialiser list length")
 
             for struct_entry, list_entry in zip(struct_entries, p[0].rhs):
+                c_add = 0
+                while isinstance(list_entry, str) and list_entry[0] == '@':
+                    c_add += 1
+                    list_entry = list_entry[1:]
+
                 if isinstance(list_entry, str) and ' ' in list_entry:
                     name, identifier, field = list_entry.split(" ")
-                    if struct_entry.type.split("const ")[-1].rstrip(' ') != symtab.search_struct(name, field).type.rstrip(' '):
-                        raise Exception(f"Type mismatch in {struct_entry.type} with provided {symtab.search_struct(name, field).type}")
 
-                elif struct_entry.type.split("const ")[-1].rstrip(' ') != symtab.lookup(list_entry).type.rstrip(' '):
-                    raise Exception(f"Type mismatch in {struct_entry.type} with provided {symtab.lookup(list_entry).type}")
+                    struct_entry_type = struct_entry.type.split("const ")[-1].rstrip(' ')
+                    field_type = symtab.search_struct(name, field).type.rstrip(' ')
+
+                    for i in range(0,c_add):
+                        if field_type[0] == '*':
+                            field_type = field_type[1:]
+                        else:
+                            raise TypeError("Invalid Deref")
+                    if struct_entry_type != field_type:
+                        raise Exception(f"Type mismatch in {struct_entry_type} with provided {field_type}")
+                
+                else:
+                    struct_entry_type = struct_entry.type.split("const ")[-1].rstrip(' ')
+                    list_entry_type = symtab.lookup(list_entry).type.rstrip(' ')
+
+                    for i in range(0,c_add):
+                        if list_entry_type[0] == '*':
+                            list_entry_type = list_entry_type[1:]
+                        else:
+                            raise TypeError("Invalid Deref")
+
+                    if struct_entry_type != list_entry_type:
+                        raise Exception(f"Type mismatch in {struct_entry_type} with provided {list_entry_type}")
         else:
             if len(p) > 2:
                 if len(p[0].rhs) == 1:
