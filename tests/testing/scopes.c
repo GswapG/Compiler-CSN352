@@ -1,24 +1,23 @@
-// typedef struct{
-//     const int x;
-// } Node;
+// #include <stdio.h>
 
-// struct Node2 {
-//     int x;
-// };
+void test_pointer_dereference() {
+    int a = 10;           // Regular integer variable
+    int *ptr = &a;        // Pointer to 'a'
+    
+    // printf("Before dereferencing: a = %d\n", a);
 
-// struct Node2 fun(Node p, struct Node2 q) {
-//     struct Node2 u = {6};
-//     return q;
-// }
-int hi(char * c){
+    // Dereferencing pointer to change the value of 'a'
+    *ptr = 20;
 
+    // printf("After dereferencing and modifying through ptr: a = %d\n", a);
+
+    // Another dereferencing example: reading the value through the pointer
+    int b = *ptr;
+    int x = -1;
+    // printf("Value read from pointer (b): %d\n", b);
 }
-int main() {
-    // Node n = {};
-    // Node p = {1};
-    // Node a[2] = {n, p};
 
-    // struct Node2 q = {5};
-    // struct Node2 t = fun(n, q);
-    hi("hello");
+int main() {
+    test_pointer_dereference();
+    // return 0;
 }

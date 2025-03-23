@@ -710,7 +710,7 @@ def p_assignment_expression(p):
             if p[0].is_address:
                 rhs_decl.type = '*' + rhs_decl.type
             
-            if rhs_decl.rstrip(' ') != lhs_no_const.rstrip(' '):
+            if rhs_decl.type.rstrip(' ') != lhs_no_const.rstrip(' '):
                 raise ValueError(f"Type mismatch in assignment of {lhs.name} and {rhs_decl.name}\n {lhs_no_const} {rhs_decl.type}")
         
         p[0].is_address = False
