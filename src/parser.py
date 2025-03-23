@@ -696,14 +696,16 @@ def p_assignment_expression(p):
                     raise Exception(f"identifier {identifier} does not exist in the struct {name}")
 
                 print(entry.type)
-                rhs_decl = entry
+                rhs_decl = (entry.type if "const " not in entry.type else ''.join(_ for _ in entry.type.split("const ")))
+
             else:
                 rhs_decl = symtab.lookup(rhs_var)
             if p[0].is_address:
                 rhs_decl.type = '*' + rhs_decl.type
             
-            if rhs_decl.type.rstrip(' ') != lhs_no_const.rstrip(' '):
+            if rhs_decl.rstrip(' ') != lhs_no_const.rstrip(' '):
                 raise ValueError(f"Type mismatch in assignment of {lhs.name} and {rhs_decl.name}\n {lhs_no_const} {rhs_decl.type}")
+        
         p[0].is_address = False
 
         

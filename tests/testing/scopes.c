@@ -1,5 +1,5 @@
 struct Node {
-    int x;
+    const int x;
 };
 struct Other {
     int x;
@@ -7,8 +7,8 @@ struct Other {
 
 int main() {
     struct Node n = {10};
-    struct Other p;
-    // struct Node o = p;
-    p.x = n.x;
+    struct Other p = {5};
+    struct Node o = n;
+    n.x += p.x;
 
 }
