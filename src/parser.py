@@ -177,6 +177,7 @@ def p_postfix_expression(p):
         p[0] = Node("postfix_expression", [p[1], p[2], p[3]])
     elif len(p) == 4:
         p[0] = Node("postfix_expression", [p[1]])
+        p[0].iscall = True
     elif len(p) == 5:
         print('NIGGERS')
         print(p[2])
@@ -186,6 +187,8 @@ def p_postfix_expression(p):
             print('NIGGERS')
             print(p[1].vars)
         p[0] = Node("postfix_expression", [p[1], p[3]])
+        if p[2] == '(':
+            p[0].iscall = True
         
     elif len(p) == 7:
         p[0] = Node("postfix_expression", [p[2], p[5]])
@@ -1082,7 +1085,9 @@ def p_init_declarator(p):
         base_no_const = ' '.join(word for word in base_no_const.split() if word != "const")
     if "static " in base_no_const:
         base_no_const = ' '.join(word for word in base_no_const.split() if word != "static")
-
+    checkfunc = True
+    if len(p) == 4:
+        checkfunc = not p[3].iscall
     ## struct or union
     if (symtab.lookup(base_no_const) is not None and (symtab.lookup(base_no_const).type == 'struct' or symtab.lookup(base_no_const).type == 'union')) or ('struct' in base_no_const or 'union' in base_no_const) and not base_no_const.startswith("*"):
         print("ahahahah")
@@ -1206,17 +1211,14 @@ def p_init_declarator(p):
             if p[0].isbraces:
                 if symtab.lookup(rhs_var) is not None and array_check != (symtab.lookup(rhs_var)).type.rstrip(' '):
                     raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs_var}\n| base_type = {base_no_const} |\n| rhs_type = {(symtab.lookup(rhs_var)).type} |")
-
+                if checkfunc and symtab.lookup(rhs_var) is not None and symtab.lookup(rhs_var).kind == 'function':
+                    raise Exception("Can't assign value of function")
             else:
                 if base_no_const.rstrip(' ') != rhs.type.rstrip(' '):
                     raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs_var}\n| base_type = {base_no_const} |\n| rhs_type = {rhs.type} |")
 
-                # if base_no_const.rstrip(' ') != rhs.type.rstrip(' '):
-                #     if newcheck != (symtab.lookup(rhs2)).type or base_no_const != (symtab.lookup(rhs2)).type:
-                #         if newcheck != base_no_const or (symtab.lookup(rhs2)).type[0] != '*':
-                #             raise TypeError(f"Type mismatch in declaration of array {p[0].vars[0].rstrip('$')} because of {rhs2}\n| base_type = {base_no_const} |\n| rhs_type = {(symtab.lookup(rhs2)).type} |")
-                #         elif (symtab.lookup(rhs2)).type != "int" and base_no_const.split(' ')[0] != "enum":
-                #             raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs2}\n| base_type = {base_no_const} |\n| rhs_type = {(symtab.lookup(rhs2)).type} |")
+                if checkfunc and symtab.lookup(rhs_var) is not None and symtab.lookup(rhs_var).kind == 'function':
+                    raise Exception("Can't assign value of function")
 
                 
             rhs.type = original_type

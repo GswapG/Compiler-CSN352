@@ -3,11 +3,11 @@ struct P{
     const int y;
 };
 
-void fun(int i){
+int fun(int i){
     static int z;
 }
 
 int main() {
 
-    static float i = 1.1;
+    int x = fun;
 }

@@ -20,6 +20,7 @@ class Node:
         self.is_address = False
         self.isbraces = False
         self.return_type = None
+        self.iscall = False
         if children:
             children_conv = []
             for c in children:
@@ -36,6 +37,7 @@ class Node:
         #     #     raise Exception("mismatch in return expression")
         if len(self.children) ==1 and isinstance(self.children[0],Node):
             self.return_type = self.children[0].return_type
+            self.iscall = self.children[0].iscall
         for c in self.children:
             self.is_address |= c.is_address
             self.isbraces |= c.isbraces
