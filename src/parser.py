@@ -223,22 +223,41 @@ def p_postfix_expression(p):
         print(p[0].vars)
         func_params = symtab.search_params(p[0].vars[0])
         argument_list = p[3].param_list
-        print("HELLO GUYS!!!")
         print(f"argument_list => {argument_list}")
         print(f"func_params => {func_params}")
+        for z in func_params:
+            print(z.type)
+        # if len(argument_list) != len(func_params):
+        #     raise Exception("incorrect function parameter length")
         
-        if len(argument_list) != len(func_params):
-            raise Exception("incorrect function parameter length")
-        
-        for argument, parameter in zip(argument_list, func_params):
-            if parameter.type.rstrip(" ") != argument.rstrip(" "):
-                raise Exception(f"Error: function parameter mismatch for {parameter.type} & {argument}")
+        i = 0
+        j = 0
+        while i < len(argument_list) and j < len(func_params):
+            if func_params[j].type == '...':
+                i+=1
+                pass
+            else:
+                if func_params[j].type.rstrip(' ') != argument_list[i].rstrip(' '):
+                    raise Exception("Invalid Function Paramters")
+                else:
+                    i+=1
+                    j+=1
+        print(i)
+        print(j)
+        if i != len(argument_list):
+            raise Exception("Invalid Function Parameter Length")
+        if j != len(func_params):
+            if j==len(func_params) - 1 and func_params[j].type =='...':
+                pass
+            else:
+                raise Exception("Invalid Function Parameter Length") 
+            
 
         p[0].vars = [p[0].vars[0]]
 
     if len(p) == 4 and p[2] == "(":
         func_params = symtab.search_params(p[0].vars[0])
-        argument_list = p[0].vars[1:]
+        argument_list = []
 
         if len(argument_list) != len(func_params):
             raise Exception("incorrect function parameter length")
@@ -1214,7 +1233,7 @@ def p_init_declarator(p):
                 if checkfunc and symtab.lookup(rhs_var) is not None and symtab.lookup(rhs_var).kind == 'function':
                     raise Exception("Can't assign value of function")
             else:
-                if base_no_const.rstrip(' ') != rhs.type.rstrip(' '):
+                if (base_no_const.rstrip(' ') != rhs.type.rstrip(' ') and not (base_no_const.split(" ")[0]=="enum" and rhs.type=="int")):
                     raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs_var}\n| base_type = {base_no_const} |\n| rhs_type = {rhs.type} |")
 
                 if checkfunc and symtab.lookup(rhs_var) is not None and symtab.lookup(rhs_var).kind == 'function':
@@ -1614,6 +1633,13 @@ def p_parameter_type_list(p):
         p[0] = Node("parameter_type_list", [p[1]])
     else:
         p[0] = Node("parameter_type_list", [p[1], p[3]])
+        param_sym = SymbolEntry(
+            name='_VAR_ARGS_', #check gang
+            type=str('...'),
+            kind=str("parameter"),
+            isForwardable=True
+        )
+        symtab.add_symbol(param_sym)
     pass
 
 def p_parameter_list(p):
