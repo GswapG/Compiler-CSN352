@@ -993,6 +993,7 @@ def p_declaration_specifiers(p):
 
     global datatypeslhs
     datatypeslhs=p[0].dtypes
+    print(f"declaration_specifiers => {p[0].dtypes}")
 
 def p_storage_class_specifier(p):
     '''storage_class_specifier : TYPEDEF
@@ -1008,6 +1009,70 @@ def p_init_declarator_list(p):
     '''init_declarator_list : init_declarator
                            | init_declarator_list COMMA init_declarator'''
     p[0] = Node("init_declarator_list", [p[1], p[3]] if len(p) == 4 else [p[1]])
+
+def validate_c_datatype(data_type):
+    valid_type_patterns = [
+        ['char'],
+        ['short'],
+        ['short', 'int'],
+        ['int'],
+        ['long'],
+        ['long', 'int'],
+        ['long', 'long'],
+        ['long', 'long', 'int'],
+        ['long', 'double'],
+        ['float'],
+        ['double'],
+        ['void']
+    ]
+
+    allowed_with_sign = [
+        ['char'],
+        ['short'],
+        ['short', 'int'],
+        ['int'],
+        ['long'],
+        ['long', 'int'],
+        ['long', 'long'],
+        ['long', 'long', 'int']
+    ]
+
+    allowed_keywords = {'signed', 'unsigned', 'short', 'long', 'int', 'char', 'float', 'double', 'void'}
+
+    tokens = data_type.strip().split()
+    
+    # Check for invalid tokens
+    for token in tokens:
+        if token not in allowed_keywords:
+            raise ValueError(f"Invalid token '{token}' in data type '{data_type}'.")
+    
+    has_sign = False
+    sign = None
+    if tokens and tokens[0] in ('signed', 'unsigned'):
+        sign = tokens[0]
+        has_sign = True
+        type_tokens = tokens[1:]
+        # Handle case where sign is present but no other tokens (e.g., 'unsigned')
+        if not type_tokens:
+            type_tokens = ['int']
+    else:
+        type_tokens = tokens
+    
+    # Check if the type structure is valid
+    valid_type = False
+    for pattern in valid_type_patterns:
+        if type_tokens == pattern:
+            valid_type = True
+            break
+    if not valid_type:
+        raise ValueError(f"Invalid data type structure '{data_type}'.")
+    
+    # Check if sign is allowed for the given type
+    if has_sign:
+        if type_tokens not in allowed_with_sign:
+            raise ValueError(f"Sign specifier '{sign}' not allowed for data type '{data_type}'.")
+    
+    return True
 
 def p_init_declarator(p):
     '''init_declarator : declarator ASSIGN initializer
@@ -1027,6 +1092,9 @@ def p_init_declarator(p):
         base_type += " "
         abcd += 1
     base_type = base_type[:-1]
+
+    validate_c_datatype(base_type)
+
     print(f"ok here => {p[0].vars}")
     print(base_type)
     print(p[0].vars)
@@ -1507,6 +1575,8 @@ def p_declarator(p):
         p[0].is_const = 0
     else:
         p[0] = Node("declarator", [p[1]])
+
+    datatypeslhs = []
     
 
 def p_direct_declarator(p):
@@ -1590,6 +1660,15 @@ def p_direct_declarator(p):
     # direct_declarator LBRACKET type_qualifier_list STATIC assignment_expression RBRACKET case
     elif len(p) == 7 and p[4] == 'static':
         p[0] = Node("qualified_static_array_declarator", [p[1], p[3], p[5]])
+
+    if len(p) > 2 and p[2] == '(':
+        base_type = ''
+        for dtype in datatypeslhs:
+            base_type += dtype
+            base_type += " "
+        base_type = base_type[:-1]
+        print("burr",base_type)
+        validate_c_datatype(base_type)
 
 def p_direct_declarator_error(p):
     '''direct_declarator : LPAREN declarator error
@@ -2095,7 +2174,7 @@ def p_error(p):
     print(pointer)
     
 # Build parser
-parser = yacc.yacc()
+parser = yacc.yacc(debug=True)
 testcases_dir = './tests/testing'
 
 def print_symbol_table(symtab):
