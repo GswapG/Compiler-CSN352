@@ -179,12 +179,10 @@ def p_postfix_expression(p):
         p[0] = Node("postfix_expression", [p[1]])
         p[0].iscall = True
     elif len(p) == 5:
-        print('NIGGERS')
         print(p[2])
         if p[2] == '[':
             for i in range(0,len(p[1].vars)):
                 p[1].vars[i] = '@' + p[1].vars[i]
-            print('NIGGERS')
             print(p[1].vars)
         p[0] = Node("postfix_expression", [p[1], p[3]])
         if p[2] == '(':
@@ -222,19 +220,18 @@ def p_postfix_expression(p):
         print(f"control f karle {p[0].vars}")
 
     if len(p) == 5 and p[2] == "(" and len(p[0].vars) > 0:
-        print("BEHENCHOD AB ISME KYA CHUD RAHI")
         print(p[0].vars)
         func_params = symtab.search_params(p[0].vars[0])
-        argument_list = p[0].vars[1:]
-
+        argument_list = p[3].param_list
+        print("HELLO GUYS!!!")
         print(f"argument_list => {argument_list}")
         print(f"func_params => {func_params}")
-
+        
         if len(argument_list) != len(func_params):
             raise Exception("incorrect function parameter length")
-
+        
         for argument, parameter in zip(argument_list, func_params):
-            if parameter.type.rstrip(" ") != symtab.lookup(argument).type.rstrip(" "):
+            if parameter.type.rstrip(" ") != argument.rstrip(" "):
                 raise Exception(f"Error: function parameter mismatch for {parameter.type} & {argument}")
 
         p[0].vars = [p[0].vars[0]]
@@ -272,8 +269,11 @@ def p_argument_expression_list(p):
     if len(p) == 2:
         p[0] = Node("argument_expression_list", [p[1]])
         print(p[0].vars)
+        p[0].param_list = [p[1].return_type]
     else:
         p[0] = Node("argument_expression_list", [p[1], p[3]])
+        p[0].param_list = p[1].param_list
+        p[0].param_list.append(p[3].return_type)
 
 # Unary expressions
 def p_unary_expression(p):
@@ -1533,7 +1533,7 @@ def p_direct_declarator(p):
     # direct_declarator LBRACKET assignment_expression RBRACKET case
     elif len(p) == 5 and p[2] == '[' and p[3] != '*':
         for c in p[3].vars:
-            if symtab.lookup(c).type != "int" and symtab.lookup(c).type != "constant":
+            if symtab.lookup(c).type != "int" or symtab.lookup(c).kind != "constant":
                 raise TypeError("Array size must be an integer constant")
         p[3].vars = []
         

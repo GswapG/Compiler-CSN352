@@ -21,6 +21,7 @@ class Node:
         self.isbraces = False
         self.return_type = None
         self.iscall = False
+        self.param_list = []
         if children:
             children_conv = []
             for c in children:
