@@ -1,5 +1,13 @@
+struct P{
+    int x;
+    const int y;
+};
+
+void fun(int i){
+    static int z;
+}
+
 int main() {
 
-    int arr [5] = {1};
-    arr [0] = -1;
+    static float i = 1.1;
 }

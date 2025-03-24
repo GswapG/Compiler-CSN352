@@ -1016,7 +1016,6 @@ def p_init_declarator(p):
             name = base_type.split(" ")[-1]
             kind2=f"{name}"
             base_type=f"{name}"
-            ## why is this if statement here?
         print(base_type)
         if isinstance(decl,str) and decl[0] == '%' :
             if len(p[0].rhs) != 1:
@@ -1078,8 +1077,11 @@ def p_init_declarator(p):
 
     print(var)
 
-    base_no_const = (symtab.lookup(var).type if "const " not in symtab.lookup(var).type else ''.join(_ for _ in symtab.lookup(var).type.split("const ")))
-    print(f"ganggang {base_no_const}")
+    base_no_const = symtab.lookup(var).type
+    if "const " in base_no_const:
+        base_no_const = ' '.join(word for word in base_no_const.split() if word != "const")
+    if "static " in base_no_const:
+        base_no_const = ' '.join(word for word in base_no_const.split() if word != "static")
 
     ## struct or union
     if (symtab.lookup(base_no_const) is not None and (symtab.lookup(base_no_const).type == 'struct' or symtab.lookup(base_no_const).type == 'union')) or ('struct' in base_no_const or 'union' in base_no_const) and not base_no_const.startswith("*"):
@@ -1112,7 +1114,9 @@ def p_init_declarator(p):
                 if isinstance(list_entry, str) and ' ' in list_entry:
                     name, identifier, field = list_entry.split(" ")
 
-                    struct_entry_type = struct_entry.type.split("const ")[-1].rstrip(' ')
+                    struct_entry_type = struct_entry.type
+                    if "const " in struct_entry_type or "static " in struct_entry_type:
+                        struct_entry_type = ' '.join(word for word in struct_entry_type.split() if word not in ["const", "static"]).rstrip(' ')
                     field_type = symtab.search_struct(name, field).type.rstrip(' ')
 
                     for i in range(0, deref_count):
@@ -1218,13 +1222,7 @@ def p_init_declarator(p):
             rhs.type = original_type
             
     p[0].is_address = False
-    #     print(f"here gang |{p[3].dtypes}|")
 
-    # if (len(p) == 4):
-    #     print(p[3].vars)
-    #     print(p[3].rhs)
-    #     print(p[3].children)
-    #     print("chomu")
 
 def p_init_declarator_error(p):
     '''init_declarator : declarator error initializer'''
