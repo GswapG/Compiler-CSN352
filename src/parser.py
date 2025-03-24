@@ -932,7 +932,8 @@ def p_constant_expression(p):
 def p_declaration(p):
     '''declaration : declaration_specifiers SEMICOLON
                   | declaration_specifiers init_declarator_list SEMICOLON
-                  | static_assert_declaration'''
+                  | static_assert_declaration
+                  | declaration_specifiers AND IDENTIFIER SEMICOLON'''
     # AST node creation
     if len(p) == 4:
         p[0] = Node("declaration", [p[1], p[2]])
@@ -1017,12 +1018,25 @@ def p_init_declarator(p):
             base_type=f"{name}"
             ## why is this if statement here?
         print(base_type)
-        var_sym = SymbolEntry(
-            name=str(decl),
-            type=str(base_type),
-            kind=str(kind2)
-        )
-        symtab.add_symbol(var_sym)
+        if isinstance(decl,str) and decl[0] == '%' :
+            if len(p[0].rhs) != 1:
+                raise Exception("invalid reference created") 
+            if symtab.lookup(p[0].rhs[0]).kind == 'constant':
+                raise Exception("references can't be bound to constants")
+            var_sym = SymbolEntry(
+                name=str(decl[1:]),
+                type=str(base_type),
+                kind="reference",
+                refsto= p[0].rhs[0]
+            )
+            symtab.add_symbol(var_sym)
+        else:
+            var_sym = SymbolEntry(
+                name=str(decl),
+                type=str(base_type),
+                kind=str(kind2)
+            )
+            symtab.add_symbol(var_sym)
     
     print(p[0].rhs)
     for var in p[0].rhs:
@@ -1051,9 +1065,16 @@ def p_init_declarator(p):
         if var[-1] == '$':
             deref_count += 1
             var = var[:-1]
+            
         ## we can support references here
         else:
             break
+    while isinstance(var, str) and len(var) > 0:
+        if var[0] == '%':
+            var = var[1:]  # Remove '%'
+        else:
+            break 
+
 
     print(var)
 
@@ -1483,13 +1504,19 @@ def p_direct_declarator(p):
                         | direct_declarator LBRACKET assignment_expression RBRACKET
                         | direct_declarator LPAREN parameter_type_list RPAREN
                         | direct_declarator LPAREN RPAREN
-                        | direct_declarator LPAREN identifier_list RPAREN '''
+                        | direct_declarator LPAREN identifier_list RPAREN 
+                        | AND IDENTIFIER
+                        '''
     
     # IDENTIFIER case
     if len(p) == 2:
         p[0] = Node("direct_declarator", [p[1]])
         p[0].vars.append(p[1])
-    
+    elif len(p) == 3:
+        #REF
+        p[0] = Node("direct_declarator",[p[1],p[2]])
+        t = '%' + p[2]
+        p[0].vars.append(t)
     # LPAREN declarator RPAREN case
     elif len(p) == 4 and p[1] == '(':
         p[0] = Node("direct_declarator", [p[2]])

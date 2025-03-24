@@ -5,7 +5,7 @@ def strict_equal(a, b):
     return type(a) is type(b) and a == b
 
 class SymbolEntry:
-    def __init__(self, name, type, kind, child=None, node=None, isForwardable=False):
+    def __init__(self, name, type, kind, child=None, node=None, isForwardable=False,refsto = None):
         """
             name        -> identifier
             type        -> data type
@@ -20,6 +20,7 @@ class SymbolEntry:
         self.node = node
         self.child = child
         self.isForwardable = isForwardable
+        self.refsto = refsto
 
 class SymbolEntryNode:
     def __init__(self, scope_level, scope_name, parent=None):
@@ -72,7 +73,7 @@ class SymbolEntryNode:
         return graph
 
 class SymbolTableEntry:
-    def __init__(self, name, type, kind, entry, node, scope, scope_name):
+    def __init__(self, name, type, kind, entry, node, scope, scope_name,refers_to = None):
         self.name = name 
         self.type = type 
         self.kind = kind 
@@ -80,6 +81,7 @@ class SymbolTableEntry:
         self.node = node
         self.scope = scope
         self.scope_name = scope_name
+        self.refers_to = refers_to
 
 class SymbolTable:
     def __init__(self):
@@ -176,7 +178,7 @@ class SymbolTable:
                     symbol.name = symbol.name[:-1]
                     c+=1
                 # print(symbol.name)
-                entry = SymbolTableEntry(symbol.name, c* '*' + symbol.type, symbol.kind, symbol, symbol.node, self.current_scope_level, self.current_scope_name)
+                entry = SymbolTableEntry(symbol.name, c* '*' + symbol.type, symbol.kind, symbol, symbol.node, self.current_scope_level, self.current_scope_name,symbol.refsto)
                 self.table_entries.append(entry)
 
         print("added symbol",symbol.name)
