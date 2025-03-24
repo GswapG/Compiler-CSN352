@@ -1206,19 +1206,15 @@ def p_init_declarator(p):
             if p[0].isbraces:
                 if symtab.lookup(rhs_var) is not None and array_check != (symtab.lookup(rhs_var)).type.rstrip(' '):
                     raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs_var}\n| base_type = {base_no_const} |\n| rhs_type = {(symtab.lookup(rhs_var)).type} |")
-
+                if symtab.lookup(rhs_var) is not None and symtab.lookup(rhs_var).kind == 'function':
+                    raise Exception("Can't assign value of function")
             else:
                 if base_no_const.rstrip(' ') != rhs.type.rstrip(' '):
                     raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs_var}\n| base_type = {base_no_const} |\n| rhs_type = {rhs.type} |")
+                if symtab.lookup(rhs_var) is not None and symtab.lookup(rhs_var).kind == 'function':
+                    raise Exception("Can't assign value of function")
 
-                # if base_no_const.rstrip(' ') != rhs.type.rstrip(' '):
-                #     if newcheck != (symtab.lookup(rhs2)).type or base_no_const != (symtab.lookup(rhs2)).type:
-                #         if newcheck != base_no_const or (symtab.lookup(rhs2)).type[0] != '*':
-                #             raise TypeError(f"Type mismatch in declaration of array {p[0].vars[0].rstrip('$')} because of {rhs2}\n| base_type = {base_no_const} |\n| rhs_type = {(symtab.lookup(rhs2)).type} |")
-                #         elif (symtab.lookup(rhs2)).type != "int" and base_no_const.split(' ')[0] != "enum":
-                #             raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs2}\n| base_type = {base_no_const} |\n| rhs_type = {(symtab.lookup(rhs2)).type} |")
 
-                
             rhs.type = original_type
             
     p[0].is_address = False
