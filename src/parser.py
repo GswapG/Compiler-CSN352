@@ -1532,8 +1532,13 @@ def p_direct_declarator(p):
     
     # direct_declarator LBRACKET assignment_expression RBRACKET case
     elif len(p) == 5 and p[2] == '[' and p[3] != '*':
+        for c in p[3].vars:
+            if symtab.lookup(c).type != "int" and symtab.lookup(c).type != "constant":
+                raise TypeError("Array size must be an integer constant")
+        p[3].vars = []
+        
         p[0] = Node("array_declarator", [p[1], p[3]])
-        p[0].vars[0] += "$"
+        p[0].vars[0] += "$"        
     
     # direct_declarator LPAREN RPAREN case
     elif len(p) == 4 and p[2] == '(' and p[3] == ')':
