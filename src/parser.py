@@ -1647,8 +1647,16 @@ def p_declarator(p):
     if len(p) == 3:
         p[0] = Node("declarator", [p[1], p[2]])
         # Pointer ka fix
-        p[0].vars[0] = '#'*p[0].is_const + p[0].vars[0] + '$'*p[0].pointer_count
-        p[0].pointer_count = 0
+        c = 0
+        if symtab.lookup(p[0].vars[0]):
+            t = symtab.lookup(p[0].vars[0]).type
+            for z in t:
+                if z == '*':
+                    c+=1
+                else:
+                    break
+
+        p[0].vars[0] = '#'*p[0].is_const + p[0].vars[0] + '$'*c
         p[0].is_const = 0
     else:
         p[0] = Node("declarator", [p[1]])
@@ -1673,7 +1681,6 @@ def p_direct_declarator(p):
                         | direct_declarator LPAREN identifier_list RPAREN 
                         | AND IDENTIFIER
                         '''
-    
     # IDENTIFIER case
     if len(p) == 2:
         p[0] = Node("direct_declarator", [p[1]])
@@ -1759,11 +1766,14 @@ def p_direct_declarator(p):
         base_type=base_type[:-1]
         print(f"base_type123 = {base_type}")
         # Add function to GLOBAL scope
+        print(func_name)
         func_sym = SymbolEntry(
             name=str(func_name),
             type=str(base_type),  # Return type from declaration_specifiers
             kind="function"
         )
+        print("SDFJLSDF")
+        print(base_type,func_name)
         symtab.add_symbol(func_sym)
         symtab.to_add_parent = True
         symtab.the_parent = symtab.lookup(func_name) 
@@ -1790,8 +1800,7 @@ def p_pointer(p):
         p[0] = Node("pointer", [p[1], p[2]])
         if "const" in p[0].dtypes:
             p[0].dtypes.remove("const")
-
-    p[0].pointer_count += 1
+    datatypeslhs[0] = '*' + datatypeslhs[0]
 
 def p_type_qualifier_list(p):
     '''type_qualifier_list : type_qualifier
@@ -2224,6 +2233,7 @@ def p_function_definition(p):
 
     for type in returns:
         print(b_type)
+        print(type)
         if b_type.rstrip(' ') != type.rstrip(' '):
             print(b_type)
             raise Exception("Invalid Type of Value returned")

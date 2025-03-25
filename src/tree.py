@@ -16,7 +16,6 @@ class Node:
         self.dtypes = []
         self.fdtypes = []
         self.rhs = []
-        self.pointer_count = 0
         self.is_const = 0
         self.is_address = False
         self.isbraces = False
@@ -51,7 +50,6 @@ class Node:
                 self.vars += c.vars
                 self.dtypes += c.dtypes
                 self.rhs += c.rhs
-                self.pointer_count += c.pointer_count
                 self.is_const |= c.is_const
 
     def __repr__(self):
