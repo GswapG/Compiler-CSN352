@@ -6,7 +6,7 @@ int main(int argc , char* argv[]){
   int x = 4;
   int f = x;
   int *g ;
-  int &k = x;
+  int k = -1;
   int **ptr;
   *ptr = g;
   *ptr = fun((**ptr * (*g))*99 + 11);

@@ -7,6 +7,7 @@ from utils import *
 from lexer import *
 from tree import *
 from symtab_new import *
+from ir_codegen import parseTree_to_3AC
 
 datatypeslhs=[]
 returns = set()
@@ -1813,9 +1814,10 @@ for filename in sorted(os.listdir(testcases_dir)):
             graph.render(f'renderedSymbolTables/{filename}', format='png', cleanup=True)
             print(f"Symbol table tree saved as renderedSymbolTables/{filename}.png")
 
+        parseTree_to_3AC(root,symtab)
         i += 1
 
-        # symtab.clear()
+        symtab.clear()
 
         # if i>=2 : break
     symbol_table.clear()
