@@ -1,166 +1,161 @@
-# Compiler-CSN352
+# Compiler-CSN352: A Comprehensive C-like Language Compiler
 
-This is a compiler for a C-like language developed as a course project for CSN352: Compiler Design at IIT Roorkee.
+## Project Overview
 
-## Overview
+This compiler project implements a full-featured compiler for a C-like language, developed as a course project for CSN352: Compiler Design at IIT Roorkee. The compiler provides a comprehensive approach to source code processing through multiple compilation stages.
 
-This project implements both a **Lexer** and a **Parser** for a C-like language. The lexer is built using `ply.lex` to tokenize source code, while the parser analyzes the syntax structure and generates a Syntax Tree .
+## Compilation Stages
 
-## How to Run
+### 1. Preprocessor Stage (cpp.py)
+- Macro Preprocessing Support
+  - Object-like macros
+  - Function-like macros
+  - Macro expansion
+  - Conditional compilation directives (`#ifdef`, `#ifndef`, `#define`, `#undef`)
+- Standard library file reference validation
+- Directive parsing and preprocessing
+- Preliminary error detection
+- Note: No full linking implemented at this stage
 
-### Lexer and Parser
-1. Place your test cases in the 'testcases' folder as '.c' files
-2. Run the following scripts in the project root:
-     `run.sh` on Linux, `run.bat` on Windows
-3. Use `-h` option for help
-4. Use `-g` for Rendering the Parse Trees
-5. Incase `run.sh` doesn't work run the following command : `chamod +x run.sh`
+### 2. Lexical Analysis Stage
+**Output**: Token Stream
+- Tokenizes source code into meaningful components
+- Supports complex lexical features:
+  - Bitwise, Logical, Relational Operators
+  - Arithmetic and Assignment Operators
+  - Comment Handling (Multi-line and Single-line)
+  - Error Detection with Line and Position Reporting
 
-## Features
+### 3. Syntax Analysis Stage
+**Output**: Parse Tree
+- Generates a visual Syntax Tree
+- Validates program structure
+- Supports advanced C language constructs
 
-### Lexer Features
-- **Tokenization of C-like Syntax**:
-  - Identifies **keywords**, **identifiers**, **operators**, **literals**, and **punctuation**
-  - Supports:
-    - **Bitwise Operators**: `&`, `|`, `^`, `~`, `<<`, `>>`
-    - **Logical Operators**: `&&`, `||`, `!`
-    - **Relational Operators**: `==`, `!=`, `>=`, `<=`, `>`, `<`
-    - **Arithmetic Operators**: `+`, `-`, `*`, `/`, `%`, `++`, `--`
-    - **Assignment Operators**: `=`, `+=`, `-=`, `*=`, `/=`, `%=`
-    - **Ternary Operators**: `?`, `:`
-- **Comment Handling**:
-  - **Multi-line Comments**: `/* ... */`
-  - **Single-line Comments**: `// ...`
-- **Error Detection**:
-  - Identifies illegal characters
-  - Reports errors with line numbers and positions
-- **String Literal Support**:
-  - Handles Unicode-escaped strings and escape sequences
+**Parse Tree Example:**
+![Parse Tree](images/parseTree1.png)
 
-### Parser Features
-- **Advanced C Language Constructs**:
-  - **Control Structures**: if-else, for loop, while loop, do-while loop, switch cases
-  - **Custom Control Flow**: until loop
-  - **Jump Statements**: goto, break, continue
-  - **Data Types**:
-    - Basic types (int, float, double, char, _Bool, _Complex)
-    - Multi-level pointers
-    - Multi-dimensional arrays
-    - Function pointers
-  - **User-defined Types**:
-    - Structs
-    - Enums
-    - Unions
-  - **Storage Classes**:
-    - static
-    - extern
-    - auto
-    - register
-    - const
-    - volatile
-  - **Memory Management**: Dynamic memory allocation
-  - **I/O Operations**:
-    - Command line input
-    - File manipulation
-    - printf and scanf functions
-  - **Advanced Function Features**:
-    - Recursive function calls
-    - Function calls with arguments
-    - Reference parameters
-    - Typedef
+### 4. Semantic Analysis Stage
+**Output**: 
+- Scope Tree
+- Symbol Table with Detailed Information
 
-### Visualization
-- **Syntax Tree (Parse tree) Generation**:
-  - Creates a visual representation of the program structure
-  - Outputs an image file of the Parse tree in the `renderedTrees` directory
+**Advanced Semantic Analysis Features:**
+- Type Checking and Validation
+  - Strict type compatibility checks
+- Scope Management
+  - Nested scope handling
+  - Block-level scope tracking
+- Advanced Type Support
+  - Structs with nested fields
+  - Unions with type-punning support
+  - Enum type validation
+- Function Semantics
+  - Recursive function detection and validation
+  - Variable argument function support (ellipsis)
+  - Function pointer semantics
+- Memory and Pointer Semantics
+  - Pointer arithmetic validation
+  - Multi-level pointer type checking
+  - Dynamic memory allocation semantic checks
+- Advanced Language Constructs
+  - Static variable semantics
+  - Const qualifier handling
+  - Typedef semantic validation
+  - Command Line Input
 
-### Symbol Table Generation
-- Produces a detailed symbol table showing:
-  - Variable/function identifiers
-  - Their corresponding types
-  - Type information including qualifiers and storage classes
-
-## Example Output
-
-### Symbol Table Output
+**Symbol Table Example:**
 ```
-Parsing file: ./testcases\test4.c
-+-------+----------------+
-| Token | Type           |
-+-------+----------------+
-| f     | typedef int    |
-| a     | f              |
-| main  | PROCEDURE_int  |
-+-------+----------------+
++--------+--------+-----------+---------+-------------+
+| Name   | Type   | Kind      | Scope   | ScopeName   |
++========+========+===========+=========+=============+
+| main   | int    | function  |    0    | global      |
+| argc   | int    | parameter |    1    | block@1     |
+| argv   | **char | parameter |    1    | block@1     |
+...
 ```
-### Parse Tree Output
+**Scope Tree Example:**
 
-![Parse Tree Example](https://github.com/GswapG/Compiler-CSN352/blob/main/images/parseTree1.png)
+![Scope Tree](images/scopes.c.png)
 
+## Quick Start
 
-### Lexical Analysis Output
+### Prerequisites
+- Python 3.9+
+- Install dependencies: `pip install -r requirements.txt`
+- Optional: PyPy3 for JIT compilation
+
+### Running the Compiler
+
+#### Preparing Execution Scripts
+If `run.sh` doesn't have execute permissions:
+```bash
+# Make the script executable
+chmod +x run.sh
+
+# Alternative for specific file
+chmod u+x run.sh   # Give user execute permission
+chmod a+x run.sh   # Give all users execute permission
 ```
-=======================  Test Case 1  =======================
-Lexeme                        Token       Line No.   Line Pos.
---------------------------------------------------------------
-int                           KEYWORD     1          0
-main                          IDENTIFIER  1          4
-(                             LPAREN      1          8
-)                             RPAREN      1          9
-{                             LBRACE      1          11
-...                           ...         ...        ...
---------------------------------------------------------------
-Error: Illegal character '@' at line 3, position 14
+
+#### Standard Execution
+```bash
+# Linux
+./run.sh 
+
+# Windows
+run.bat
 ```
+
+#### Fast Compilation (JIT)
+```bash
+# Requires PyPy3 installed
+./run.sh --fast
+```
+
+### Command Line Options
+- `-h`: Help
+- `-g`: Render Parse Trees
+- `--fast`: Enable JIT Compilation
 
 ## Project Structure
 ```
 compiler-project/
-├── main.py                      # Entry point
-├── run.bat                      # Windows execution script
-├── run.sh                       # Linux execution script
-├── todo.md                      # Development tasks
-├── C_grammar.md                 # Grammar specifications
-├── README.md                    # This file
-│
-├── src/                         # Main source code
-│   ├── lexer.py                 # Current lexical analyzer
-│   ├── parser.py                # Syntax analyzer
-│   ├── tokens.py                # Token definitions
-│   ├── ply/                     # PLY library
-│   └── renderedTrees/           # Generated Tree visualizations
-│
-├── old_lexer/                   # Previous lexer implementation
-│   ├── lexer.py
-│   ├── lexer_class.py
-│   ├── defs/
-│   ├── ply/
-│   └── testcases/
-│
-├── renderedTrees/               # Generated parse tree outputs
-│   ├── parseTree1.png
-│   ├── parseTree2.png
+├── main.py                  # Entry point
+├── src/                     # Source code
+│   ├── cpp.py               # Preprocessor
+│   ├── lexer.py             # Lexical Analyzer
+│   ├── parser.py            # Syntax Analyzer
+│   ├── symtab.py            # Symbol Table Generator
 │   └── ...
-│
-└── testcases/                   # Test C files
-    ├── test1.c
-    ├── test2.c
-    └── ...
-    └── output/                  # Compiled test outputs
+├── testcases/               # Test C files
+├── tests/                   # Comprehensive Test Suites
+│   ├── small/               # Small test cases
+│   └── large/               # Large test cases
+└── renderedTrees/           # Generated parse trees
 ```
 
-## For Developers
-Check the [TODO](todo.md) file for planned improvements and ongoing tasks.
-
-## Technologies Used
+## Technologies
 - Python
 - PLY (Python Lex-Yacc)
-- Graphviz (for Tree visualization)
+- Graphviz
+- Optional: PyPy3 for JIT (Useful for large or many files)
+
+## Known Issues and Contributions
+
+### Semantic Bugs
+- Detailed semantic bugs are tracked in `todo.md`
+- Community contributions welcome!
+
+### How to Contribute
+1. Check `todo.md` for known issues
+2. Raise issues on the GitHub repository
+3. Submit pull requests with fixes or improvements
 
 ## Team Members
-| S.No. | Name             | Enrollment No. |
-| ----- | ---------------- | -------------- |
-| 1.    | Garv Sethi       | 22115057       |
-| 2.    | Granth Gaud      | 22114035       |
-| 3.    | Swapnil Garg     | 22115150       |
-| 4.    | Mmukul Khedekar  | 22114054       |
+| Name           | Enrollment No. |
+| -------------- | -------------- |
+| Garv Sethi     | 22115057       |
+| Granth Gaud    | 22114035       |
+| Swapnil Garg   | 22115150       |
+| Mmukul Khedekar| 22114054       |
