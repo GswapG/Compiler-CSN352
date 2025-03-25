@@ -1090,7 +1090,19 @@ def validate_c_datatype(data_type):
 
     allowed_keywords = {'signed', 'unsigned', 'short', 'long', 'int', 'char', 'float', 'double', 'void'}
 
+
+    data_type = data_type.lstrip('*')
     tokens = data_type.strip().split()
+
+    if(tokens[0]=="typedef"):
+        tokens = tokens[1:]
+
+    if tokens[0]=="struct":
+        return True
+
+    abcd = symtab.lookup(tokens[0])
+    if(abcd is not None and abcd.type == "struct"):
+        return True
     
     # Check for invalid tokens
     for token in tokens:
@@ -1144,7 +1156,7 @@ def p_init_declarator(p):
         abcd += 1
     base_type = base_type[:-1]
 
-    # validate_c_datatype(base_type)
+    validate_c_datatype(base_type)
 
     print(f"ok here => {p[0].vars}")
     print(base_type)
@@ -1517,6 +1529,9 @@ def p_specifier_qualifier_list(p):
         p[0] = Node("specifier_qualifier_list", [p[1]])
     else:
         p[0] = Node("specifier_qualifier_list", [p[1], p[2]])
+    #neelkumar
+    global datatypeslhs
+    datatypeslhs=p[0].dtypes
     pass
 
 def p_struct_declarator_list(p):
@@ -1753,7 +1768,7 @@ def p_direct_declarator(p):
         base_type = base_type[:-1]
         p[0].fdtypes=datatypeslhs
         print("burr",base_type)
-        # validate_c_datatype(base_type)
+        validate_c_datatype(base_type)
 
     if len(p) > 2 and p[2] == '(':
         print("lesgo",p[1].fdtypes)
