@@ -64,8 +64,10 @@ def p_primary_expression_identifier(p):
 
     print(f"HELLO IM ADDING IDENTIFIER {p[1]} to the p[0].vars so {p[0].vars}")
     check = symtab.lookup(p[1])
+    print(f"HELL NAHH DID I FIND {p[1]} IN SYMBOL TABLE? {check}")
     if(check!=None):
         p[0].dtypes = [check.type]
+        print(check.type)
         p[0].return_type = check.type
 
 def p_primary_expression_error(p):
@@ -188,6 +190,8 @@ def p_postfix_expression(p):
         if p[2] == '(':
             p[0].iscall = True
         
+        print(f"IN POSTFIX EXPRSSION IN HERE? => {p[0].return_type}")
+
     elif len(p) == 7:
         p[0] = Node("postfix_expression", [p[2], p[5]])
     elif len(p) == 8:
@@ -234,9 +238,13 @@ def p_postfix_expression(p):
         j = 0
         while i < len(argument_list) and j < len(func_params):
             if func_params[j].type == '...':
-                i+=1
+                i += 1
                 pass
             else:
+                print(func_params[j].type.rstrip(' '))
+                print(argument_list[i].rstrip(' '))
+
+
                 if func_params[j].type.rstrip(' ') != argument_list[i].rstrip(' '):
                     raise Exception("Invalid Function Paramters")
                 else:
@@ -254,6 +262,7 @@ def p_postfix_expression(p):
             
 
         p[0].vars = [p[0].vars[0]]
+        p[0].return_type = p[1].return_type
 
     if len(p) == 4 and p[2] == "(":
         func_params = symtab.search_params(p[0].vars[0])
@@ -265,7 +274,7 @@ def p_postfix_expression(p):
         for argument, parameter in zip(argument_list, func_params):
             if parameter.type.rstrip(" ") != symtab.lookup(argument).type.rstrip(" "):
                 raise Exception(f"Error: function parameter mismatch for {parameter.type} & {argument}")
-
+    print(f"IN POSTFIX EXPRSSION => {p[0].return_type}")
 
 def p_postfix_expression_error_1(p):
     '''postfix_expression : LPAREN type_name error LBRACE initializer_list RBRACE
@@ -288,6 +297,7 @@ def p_argument_expression_list(p):
     if len(p) == 2:
         p[0] = Node("argument_expression_list", [p[1]])
         print(p[0].vars)
+        print(f"ahaha {p[1].return_type}")
         p[0].param_list = [p[1].return_type]
     else:
         p[0] = Node("argument_expression_list", [p[1], p[3]])
@@ -321,6 +331,8 @@ def p_unary_expression(p):
     # print("debug")
     # print(p[0].vars)
 
+    print(f"UNARY EXPRESSION => {p[1].return_type}")
+
 def p_unary_expression_error(p):
     '''unary_expression : SIZEOF LPAREN type_name error
                        | ALIGNOF LPAREN type_name error '''
@@ -335,6 +347,7 @@ def p_unary_operator(p):
                      | TILDE
                      | NOT '''
     p[0] = Node("unary_operator", [p[1]])
+    # print(p[1].return_type)
 
 # Cast expressions
 def p_cast_expression(p):
@@ -342,6 +355,7 @@ def p_cast_expression(p):
                       | LPAREN type_name RPAREN cast_expression'''
     if len(p) == 2:
         p[0] = Node("cast_expression", [p[1]])
+        print(p[1].return_type)
     else:
         p[0] = Node("cast_expression", [p[2], p[4]])
 
@@ -358,6 +372,7 @@ def p_multiplicative_expression(p):
                                 | multiplicative_expression MOD cast_expression'''
     if len(p) == 2:
         p[0] = Node("multiplicative_expression", [p[1]])
+        print(f"maa chudaale {p[1].return_type}")
     else:
         p[0] = Node("multiplicative_expression", [p[1], p[2], p[3]])
     
@@ -506,6 +521,7 @@ def p_multiplicative_expression(p):
                 raise ValueError(f"Incompatible multiplicative op with '{var}'")
             
     # if here then no exception thrown
+    print(f"multiplicative_Expression => {p[1].return_type}")
     p[0].return_type = p[1].return_type
 
 def p_additive_expression(p):
@@ -659,6 +675,7 @@ def p_additive_expression(p):
                 raise ValueError(f"Incompatible addition op with '{var}'")
             
     # if here then no exception thrown
+
     p[0].return_type = p[1].return_type
     
 def p_shift_expression(p):
@@ -667,6 +684,7 @@ def p_shift_expression(p):
                        | shift_expression RIGHT_OP additive_expression'''
     if len(p) == 2:
         p[0] = Node("shift_expression", [p[1]])
+        print(p[1].return_type)
     else:
         p[0] = Node("shift_expression", [p[1], p[2], p[3]])
 
@@ -711,6 +729,8 @@ def p_relational_expression(p):
                 if type1.rstrip(' ') != type2.rstrip(' '):
                     print(type1,type2)
                     raise ValueError(f"Incompatible relational op with '{var}' and '{var2}'")
+                
+    print(p[1].return_type)
 
 def p_equality_expression(p):
     '''equality_expression : relational_expression
@@ -718,6 +738,7 @@ def p_equality_expression(p):
                           | equality_expression NE_OP relational_expression'''
     if len(p) == 2:
         p[0] = Node("equality_expression", [p[1]])
+        print(p[1].return_type)
     else:
         p[0] = Node("equality_expression", [p[1], p[2], p[3]])
         for var in p[1].vars:
@@ -729,6 +750,7 @@ def p_and_expression(p):
                      | and_expression AND equality_expression'''
     if len(p) == 2:
         p[0] = Node("and_expression", [p[1]])
+        print(p[1].return_type)
     else:
         p[0] = Node("and_expression", [p[1], p[2], p[3]])
 
@@ -737,6 +759,7 @@ def p_exclusive_or_expression(p):
                               | exclusive_or_expression XOR and_expression'''
     if len(p) == 2:
         p[0] = Node("exclusive_or_expression", [p[1]])
+        print(p[1].return_type)
     else:
         p[0] = Node("exclusive_or_expression", [p[1], p[2], p[3]])
 
@@ -745,6 +768,7 @@ def p_inclusive_or_expression(p):
                               | inclusive_or_expression OR exclusive_or_expression'''
     if len(p) == 2:
         p[0] = Node("inclusive_or_expression", [p[1]])
+        print(p[1].return_type)
     else:
         p[0] = Node("inclusive_or_expression", [p[1], p[2], p[3]])
 
@@ -753,6 +777,7 @@ def p_logical_and_expression(p):
                              | logical_and_expression AND_OP inclusive_or_expression'''
     if len(p) == 2:
         p[0] = Node("logical_and_expression", [p[1]])
+        print(p[1].return_type)
     else:
         p[0] = Node("logical_and_expression", [p[1], p[2], p[3]])
 
@@ -761,6 +786,7 @@ def p_logical_or_expression(p):
                             | logical_or_expression OR_OP logical_and_expression'''
     if len(p) == 2:
         p[0] = Node("logical_or_expression", [p[1]])
+        print(p[1].return_type)
     else:
         p[0] = Node("logical_or_expression", [p[1], p[2], p[3]])
 
@@ -769,6 +795,7 @@ def p_conditional_expression(p):
                              | logical_or_expression QUESTION expression COLON conditional_expression'''
     if len(p) == 2:
         p[0] = Node("conditional_expression", [p[1]])
+        print(p[1].return_type)
     else:
         p[0] = Node("conditional_expression", [p[1], p[3], p[5]])
 
@@ -778,6 +805,8 @@ def p_assignment_expression(p):
     if len(p) == 2:  # Case: conditional_expression
         p[0] = Node("assignment_expression", [p[1]])
         print(f"assignment expresion => {p[0].vars}")
+        print(p[1].return_type)
+        print(p[0].return_type)
     else:  # Case: unary_expression assignment_operator assignment_expression
         p[0] = Node("assignment_expression", [p[1], p[2], p[3]])
 
@@ -793,12 +822,6 @@ def p_assignment_expression(p):
                 new_var = var.split(' ')[1: -1]
             else:
                 new_var.append(var)
-
-            # for var_ in new_var:
-            #     while isinstance(var_,str) and var_[0]=='@':
-            #         var_ = var_[1:]
-            #     if symtab.lookup(var_) == None:
-            #         raise ValueError(f"No symbol '{var_}' in the symbol table")
 
             for var in new_var:    
                 while isinstance(var, str):
@@ -1093,7 +1116,7 @@ def p_init_declarator(p):
         abcd += 1
     base_type = base_type[:-1]
 
-    validate_c_datatype(base_type)
+    # validate_c_datatype(base_type)
 
     print(f"ok here => {p[0].vars}")
     print(base_type)
@@ -1164,7 +1187,6 @@ def p_init_declarator(p):
         else:
             break 
 
-
     print(var)
 
     base_no_const = symtab.lookup(var).type
@@ -1175,6 +1197,8 @@ def p_init_declarator(p):
     checkfunc = True
     if len(p) == 4:
         checkfunc = not p[3].iscall
+
+    
     ## struct or union
     if (symtab.lookup(base_no_const) is not None and (symtab.lookup(base_no_const).type == 'struct' or symtab.lookup(base_no_const).type == 'union')) or ('struct' in base_no_const or 'union' in base_no_const) and not base_no_const.startswith("*"):
         print("ahahahah")
@@ -1242,8 +1266,31 @@ def p_init_declarator(p):
         else:
             if len(p) > 2:
                 if len(p[0].rhs) == 1:
-                    rhs_var = symtab.lookup(p[0].rhs[0])
+                    deref_count = 0
+                    ref_count = 0
+
+                    rhs_var = p[0].rhs[0]
+                    while isinstance(rhs_var, str):
+                        if rhs_var[0] == '@':
+                            deref_count += 1
+                            rhs_var = rhs_var[1:]
+                        elif rhs_var[0] == '!':
+                            ref_count += 1
+                            rhs_var = rhs_var[1:]
+                        else:
+                            break
+
+                    rhs_var = symtab.lookup(rhs_var)
                     rhs_var_type = rhs_var.type
+
+                    for i in range(0, deref_count):
+                        if isinstance(rhs_var_type, str) and rhs_var_type[0] == '*':
+                            rhs_var_type = rhs_var_type[1:]
+                        else:
+                            raise TypeError("Invalid Deref")
+                    for j in range(0, ref_count):
+                        if isinstance(rhs_var_type, str):
+                            rhs_var_type = "*" + rhs_var_type 
 
                     if base_no_const != rhs_var_type:
                         raise Exception(f"Type mismatch in {base_no_const} with provided {rhs_var_type}")
@@ -1298,14 +1345,17 @@ def p_init_declarator(p):
             if p[0].isbraces:
                 if symtab.lookup(rhs_var) is not None and array_check != (symtab.lookup(rhs_var)).type.rstrip(' '):
                     raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs_var}\n| base_type = {base_no_const} |\n| rhs_type = {(symtab.lookup(rhs_var)).type} |")
-                if checkfunc and symtab.lookup(rhs_var) is not None and symtab.lookup(rhs_var).kind == 'function':
-                    raise Exception("Can't assign value of function")
+                # if checkfunc and symtab.lookup(rhs_var) is not None and symtab.lookup(rhs_var).kind == 'function':
+                #     raise Exception("Can't assign value of function")
             else:
+
                 if (base_no_const.rstrip(' ') != rhs.type.rstrip(' ') and not (base_no_const.split(" ")[0]=="enum" and rhs.type=="int")):
                     raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs_var}\n| base_type = {base_no_const} |\n| rhs_type = {rhs.type} |")
 
-                if checkfunc and symtab.lookup(rhs_var) is not None and symtab.lookup(rhs_var).kind == 'function':
-                    raise Exception("Can't assign value of function")
+                print("niche waali if statement kisne likhi hai ye bc")
+
+                # if checkfunc and symtab.lookup(rhs_var) is not None and symtab.lookup(rhs_var).kind == 'function':
+                #     raise Exception("Can't assign value of function")
 
                 
             rhs.type = original_type
@@ -1622,8 +1672,8 @@ def p_direct_declarator(p):
     # direct_declarator LBRACKET assignment_expression RBRACKET case
     elif len(p) == 5 and p[2] == '[' and p[3] != '*':
         for c in p[3].vars:
-            if symtab.lookup(c).type != "int" or symtab.lookup(c).kind != "constant":
-                raise TypeError("Array size must be an integer constant")
+            if not(symtab.lookup(c).type == "int" and symtab.lookup(c).kind == "constant")and not(symtab.lookup(c).type == "int" and symtab.lookup(c).kind == "variable"):
+                raise TypeError("Array size must be an integer constant or integer variable")
         p[3].vars = []
         
         p[0] = Node("array_declarator", [p[1], p[3]])
@@ -1661,14 +1711,35 @@ def p_direct_declarator(p):
     elif len(p) == 7 and p[4] == 'static':
         p[0] = Node("qualified_static_array_declarator", [p[1], p[3], p[5]])
 
-    if len(p) > 2 and p[2] == '(':
+    if len(p) == 2 or len(p) == 3:
         base_type = ''
         for dtype in datatypeslhs:
             base_type += dtype
             base_type += " "
         base_type = base_type[:-1]
+        p[0].fdtypes=datatypeslhs
         print("burr",base_type)
-        validate_c_datatype(base_type)
+        # validate_c_datatype(base_type)
+
+    if len(p) > 2 and p[2] == '(':
+        print("lesgo",p[1].fdtypes)
+        func_name = p[1].vars[0] #check gang
+        base_type = ''
+        for dtype in p[1].fdtypes:
+            base_type += dtype
+            base_type += " "
+        
+        base_type=base_type[:-1]
+        print(f"base_type123 = {base_type}")
+        # Add function to GLOBAL scope
+        func_sym = SymbolEntry(
+            name=str(func_name),
+            type=str(base_type),  # Return type from declaration_specifiers
+            kind="function"
+        )
+        symtab.add_symbol(func_sym)
+        symtab.to_add_parent = True
+        symtab.the_parent = symtab.lookup(func_name) 
 
 def p_direct_declarator_error(p):
     '''direct_declarator : LPAREN declarator error
@@ -2110,20 +2181,23 @@ def p_function_definition(p):
     
     base_type=base_type[:-1]
     print(f"base_type = {base_type}")
-    # Add function to GLOBAL scope
-    func_sym = SymbolEntry(
-        name=str(func_name),
-        type=str(base_type),  # Return type from declaration_specifiers
-        kind="function"
-    )
-    symtab.add_symbol(func_sym)
+    
+    # func_sym = SymbolEntry(
+    #     name=str(func_name),
+    #     type=str(base_type),  # Return type from declaration_specifiers
+    #     kind="function"
+    # )
+
     global returns
     while len(func_name) > 0 and func_name[-1] == '$':
         func_name = func_name[:-1]
     b_type = symtab.lookup(func_name).type
-    if(len(returns)>1):
+
+    if len(returns) > 1:
         raise Exception("Multiple Return Types")
+
     for type in returns:
+        print(b_type)
         if b_type.rstrip(' ') != type.rstrip(' '):
             print(b_type)
             raise Exception("Invalid Type of Value returned")

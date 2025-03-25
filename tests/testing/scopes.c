@@ -8,10 +8,10 @@
 // short short int s;
 
 // void int func(){}
-unsigned signed int func(int a){}
 
-// int main(){}
-
+int main(){
+   void v;
+}
 // int main(){
 //     int a=7;
 //     a=5;

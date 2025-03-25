@@ -94,6 +94,9 @@ class SymbolTable:
         self.to_add_child = False
         self.the_child = None
 
+        self.to_add_parent = False
+        self.the_parent = None
+
     def clear(self):
         self.root = SymbolEntryNode(0, "global")
         self.current_scope = self.root 
@@ -105,6 +108,11 @@ class SymbolTable:
         self.current_scope_level += 1
         self.current_scope_name = f"block@{self.current_scope_level}"
         scope_node = SymbolEntryNode(self.current_scope_level, self.current_scope_name, self.current_scope)
+
+        if self.to_add_parent:
+            self.to_add_parent = False
+            self.the_parent.child = scope_node
+            self.the_parent = None
 
         forward_entries = []
         for entry in scope_node.parent.entries:
@@ -138,6 +146,29 @@ class SymbolTable:
         self.current_scope_level = parent.scope_level 
         self.current_scope = parent 
 
+    def link_symbol(self, symbol):
+        if not isinstance(symbol, SymbolEntry):
+            raise ValueError("Incorrect type of object")
+        
+        found = False
+        present_symbol = None
+
+        for entry in self.current_scope.entries:
+            if strict_equal(entry.name, symbol.name):
+                if entry.kind != "constant":
+                    found = True
+
+                    if self.to_add_child:
+                        self.to_add_child = False
+                        entry.child = self.the_child
+                        self.the_child = None 
+
+                    break 
+        
+        if not found:
+            raise Exception("this symbol entry doesnt exist, cant link it up")
+
+
     def add_symbol(self, symbol):
         """
             add the symbol object to the current scope
@@ -158,6 +189,7 @@ class SymbolTable:
             self.to_add_child = False
             symbol.child = self.the_child
             self.the_child = None 
+
         sym2 = symbol
         if isinstance(sym2.name,str) and sym2.name[-1] == '$':
             c = 0
