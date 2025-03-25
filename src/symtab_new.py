@@ -213,7 +213,6 @@ class SymbolTable:
                 entry = SymbolTableEntry(symbol.name, c* '*' + symbol.type, symbol.kind, symbol, symbol.node, self.current_scope_level, self.current_scope_name,symbol.refsto)
                 self.table_entries.append(entry)
 
-        print("added symbol",symbol.name)
         
     def lookup(self, name):
         scope_pointer = self.current_scope

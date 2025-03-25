@@ -33,7 +33,6 @@ class SymbolTable:
         """Create a new scope"""
         self.scopes.append({})
         self.current_scope_level += 1
-        # print("plus")
         self.current_scope_name = scope_name or f"block@{self.current_scope_level}"
         if self.current_scope_level==0:
             self.current_scope_name = "global"
@@ -43,7 +42,6 @@ class SymbolTable:
         """Leave current scope"""
         for j in marker[self.current_scope_level]:
             del self.scopes[j[1]][j[0].name]
-        # print("minus")
         marker[self.current_scope_level].clear()
         if self.current_scope_level > 0:
             self.scopes.pop()
@@ -62,7 +60,6 @@ class SymbolTable:
             self.offset_counter[self.current_scope_level] += symbol.size
         
         current_scope[symbol.name] = symbol
-        print("added symbol",symbol.name)
         print(symtab)
 
     def lookup(self, name):

@@ -31,12 +31,6 @@ class Node:
                     children_conv.append(c)        
             self.children = children_conv
             
-        # for var in self.children:
-        #     if(self.return_type == None):
-        #         self.return_type = var.return_type
-        #     # elif(self.return_type != var.return_type):
-        #     #     print(f"tree.py checker |{self.return_type}|{var.return_type}|")
-        #     #     raise Exception("mismatch in return expression")
 
         if len(self.children) == 1 and isinstance(self.children[0], Node):
             self.return_type = self.children[0].return_type
