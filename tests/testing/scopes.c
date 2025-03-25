@@ -1,34 +1,19 @@
-// int int x;
-// int char y;
-// long long long z;
-// unsigned signed int a;
-// float int b;
-// long double int c;
+// // int int x;
+// // int char y;
+// // long long long z;
+// // unsigned signed int a;
+// // float int b;
+// // long double int c;
 // void v;
-// short short int s;
-int fun(int *ptr,int i , int **j,...){
+// // short short int s;
 
-}
-int fun2(int k){
-
-}
-int main(){
-//    int i = fun;
-    int ***j;
-    int hi;
-    fun(&hi,hi,*j,j);
-    int arr[10];
-    arr[1];
-    //arrays dont work inside funcs i'll see later
-   
-}
 // int main(){
 //     int a=7;
 //     a=5;
 // }
-// float double func();
-// void func(void x);
-// int func(long long long a);
+float func(int a);
+// // void func(void x);
+// // int func(long long long a);
 
 // struct A {
 //     int int x;

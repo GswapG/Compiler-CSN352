@@ -335,6 +335,9 @@ def p_unary_expression(p):
             for i in range(0,len(p[0].vars)):
                 p[0].vars[i] = '!' + p[0].vars[i]
             p[0].return_type = '*'+p[0].return_type
+            if symtab.lookup(p[2].vars[0]):
+                if symtab.lookup(p[2].vars[0]).kind in ('constant','enumerator') :
+                    raise Exception("Cant bind addr to constant/enum type")
  
         if p[1].children[0].type == '*':
             for i in range(0,len(p[0].vars)):
