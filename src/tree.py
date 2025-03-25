@@ -21,7 +21,7 @@ class Node:
         self.is_address = False
         self.isbraces = False
         self.return_type = None
-        self.iscall = False
+        self.iscall = 0
         self.param_list = []
         if children:
             children_conv = []

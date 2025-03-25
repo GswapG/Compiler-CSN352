@@ -6,10 +6,13 @@
 // long double int c;
 // void v;
 // short short int s;
+float fun(float i){
 
+}
 int main(){
 //    int i = fun;
-    
+    float f = fun(1.1)*11.1;
+    // fun();
     
    
 }

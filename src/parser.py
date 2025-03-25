@@ -179,7 +179,8 @@ def p_postfix_expression(p):
         p[0] = Node("postfix_expression", [p[1], p[2], p[3]])
     elif len(p) == 4:
         p[0] = Node("postfix_expression", [p[1]])
-        p[0].iscall = True
+        p[0].iscall = 1
+        #here
     elif len(p) == 5:
         print(p[2])
         if p[2] == '[':
@@ -188,7 +189,8 @@ def p_postfix_expression(p):
             print(p[1].vars)
         p[0] = Node("postfix_expression", [p[1], p[3]])
         if p[2] == '(':
-            p[0].iscall = True
+            p[0].iscall = 1
+            #and here
         
         print(f"IN POSTFIX EXPRSSION IN HERE? => {p[0].return_type}")
 
@@ -375,6 +377,7 @@ def p_multiplicative_expression(p):
         print(f"maa chudaale {p[1].return_type}")
     else:
         p[0] = Node("multiplicative_expression", [p[1], p[2], p[3]])
+        p[0].iscall = p[1].iscall + p[3].iscall
     
     dtype1 = None
     deref_count = 0
@@ -519,7 +522,13 @@ def p_multiplicative_expression(p):
 
             if type_.rstrip(' ') != dtype1.rstrip(' ') and ((isinstance(var, str) and ' ' in var) or symtab.lookup(var).kind != "function"):
                 raise ValueError(f"Incompatible multiplicative op with '{var}'")
-            
+    ccc =0
+    for v in p[0].vars:
+        if symtab.lookup(v) is not None and symtab.lookup(v).kind == 'function':
+            ccc+=1
+    if ccc != p[0].iscall:
+        raise Exception("Invalid Function Call")
+
     # if here then no exception thrown
     print(f"multiplicative_Expression => {p[1].return_type}")
     p[0].return_type = p[1].return_type
@@ -532,6 +541,7 @@ def p_additive_expression(p):
         p[0] = Node("additive_expression", [p[1]])
     else:
         p[0] = Node("additive_expression", [p[1], p[2], p[3]])
+        p[0].iscall = p[1].iscall + p[3].iscall
     
     dtype1 = None
     deref_count = 0
@@ -1298,8 +1308,10 @@ def p_init_declarator(p):
                     raise Exception("more than one variables in the rhs")
 
     ## other types
-    else:   
+    else: 
+        f_cnt = 0  
         print(f"wtf {p[0].rhs}")
+        print(p[0].vars)
         for rhs_var in p[0].rhs:
             deref_count = 0
             ref_count = 0
@@ -1341,7 +1353,6 @@ def p_init_declarator(p):
             print(original_type)
 
             array_check = base_no_const.rstrip(' ').lstrip('*')
-
             if p[0].isbraces:
                 if symtab.lookup(rhs_var) is not None and array_check != (symtab.lookup(rhs_var)).type.rstrip(' '):
                     raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs_var}\n| base_type = {base_no_const} |\n| rhs_type = {(symtab.lookup(rhs_var)).type} |")
@@ -1354,8 +1365,6 @@ def p_init_declarator(p):
 
                 # Prevents i = foo; type of assignments
 
-                if checkfunc and symtab.lookup(rhs_var) is not None and symtab.lookup(rhs_var).kind == 'function':
-                    raise Exception("Can't assign value of function")
 
                 
             rhs.type = original_type
@@ -1915,7 +1924,6 @@ def p_initializer(p):
     for c in p[0].vars:
         if symtab.lookup(c) is None:
             print(f"Error: variable {c} not declared")
-
     p[0].rhs += p[0].vars
     p[0].vars=[]
 
@@ -2248,7 +2256,7 @@ def p_error(p):
     print(pointer)
     
 # Build parser
-parser = yacc.yacc(debug=True)
+parser = yacc.yacc()
 testcases_dir = './tests/testing'
 
 def print_symbol_table(symtab):
