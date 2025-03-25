@@ -7,10 +7,11 @@
 // void v;
 // short short int s;
 
-// void int func(){}
-
 int main(){
-   void v;
+//    int i = fun;
+    
+    
+   
 }
 // int main(){
 //     int a=7;

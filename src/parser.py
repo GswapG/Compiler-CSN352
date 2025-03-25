@@ -1345,17 +1345,17 @@ def p_init_declarator(p):
             if p[0].isbraces:
                 if symtab.lookup(rhs_var) is not None and array_check != (symtab.lookup(rhs_var)).type.rstrip(' '):
                     raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs_var}\n| base_type = {base_no_const} |\n| rhs_type = {(symtab.lookup(rhs_var)).type} |")
-                # if checkfunc and symtab.lookup(rhs_var) is not None and symtab.lookup(rhs_var).kind == 'function':
-                #     raise Exception("Can't assign value of function")
+                if checkfunc and symtab.lookup(rhs_var) is not None and symtab.lookup(rhs_var).kind == 'function':
+                    raise Exception("Can't assign value of function")
             else:
 
                 if (base_no_const.rstrip(' ') != rhs.type.rstrip(' ') and not (base_no_const.split(" ")[0]=="enum" and rhs.type=="int")):
                     raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs_var}\n| base_type = {base_no_const} |\n| rhs_type = {rhs.type} |")
 
-                print("niche waali if statement kisne likhi hai ye bc")
+                # Prevents i = foo; type of assignments
 
-                # if checkfunc and symtab.lookup(rhs_var) is not None and symtab.lookup(rhs_var).kind == 'function':
-                #     raise Exception("Can't assign value of function")
+                if checkfunc and symtab.lookup(rhs_var) is not None and symtab.lookup(rhs_var).kind == 'function':
+                    raise Exception("Can't assign value of function")
 
                 
             rhs.type = original_type
