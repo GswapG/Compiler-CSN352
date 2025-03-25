@@ -63,11 +63,16 @@ def p_primary_expression_identifier(p):
     p[0].vars.append(str(p[1]))
 
     print(f"HELLO IM ADDING IDENTIFIER {p[1]} to the p[0].vars so {p[0].vars}")
-    check = symtab.lookup(p[1])
+    c1 = 0
+    c2 = 0
+    cpy = p[1]
+    while isinstance(cpy,str) and cpy[0] == '@':
+        c1+=1
+        cpy = cpy[1:]
+    check = symtab.lookup(cpy)
     print(f"HELL NAHH DID I FIND {p[1]} IN SYMBOL TABLE? {check}")
     if(check!=None):
-        p[0].dtypes = [check.type]
-        print(check.type)
+        p[0].dtypes = check.type
         p[0].return_type = check.type
 
 def p_primary_expression_error(p):
@@ -187,6 +192,11 @@ def p_postfix_expression(p):
             for i in range(0,len(p[1].vars)):
                 p[1].vars[i] = '@' + p[1].vars[i]
             print(p[1].vars)
+            # if p[1].return_type is not None:
+            #     if p[1].return_type[0] == '*':
+            #         p[0].return_type = p[1].return_type[1:]
+            #     else:
+            #         raise Exception("invalid deref")
         p[0] = Node("postfix_expression", [p[1], p[3]])
         if p[2] == '(':
             p[0].iscall = 1
@@ -319,14 +329,22 @@ def p_unary_expression(p):
         p[0] = Node("unary_expression", [p[1]])
     elif len(p) == 3:
         p[0] = Node("unary_expression", [p[1], p[2]])
+        p[0].return_type = p[2].return_type
         if p[1].children[0].type =='&':
             p[0].is_address = True
             for i in range(0,len(p[0].vars)):
                 p[0].vars[i] = '!' + p[0].vars[i]
+            p[0].return_type = '*'+p[0].return_type
  
         if p[1].children[0].type == '*':
             for i in range(0,len(p[0].vars)):
                 p[0].vars[i] = '@' + p[0].vars[i]
+            if p[0].return_type is not None:
+                if p[0].return_type[0] == '*':
+                    p[0].return_type = p[0].return_type[1:]
+                else:
+                    raise Exception("invalid deref")
+        
 
     elif len(p) == 5:
         p[0] = Node("unary_expression", [p[1], p[3]])

@@ -6,14 +6,20 @@
 // long double int c;
 // void v;
 // short short int s;
-float fun(float i){
+int fun(int *ptr,int i , int **j,...){
+
+}
+int fun2(int k){
 
 }
 int main(){
 //    int i = fun;
-    float f = fun(1.1)*11.1;
-    // fun();
-    
+    int ***j;
+    int hi;
+    fun(&hi,hi,*j,j);
+    int arr[10];
+    arr[1];
+    //arrays dont work inside funcs i'll see later
    
 }
 // int main(){
