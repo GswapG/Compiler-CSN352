@@ -176,6 +176,10 @@ class SymbolTable:
 
         if not isinstance(symbol, SymbolEntry):
             raise ValueError("Incorrect type of object")
+        
+        if symbol.kind != "function":
+            if "void" in (symbol.type).split(" "):
+                raise ValueError("void type is not allowed for variables")
 
         for entry in self.current_scope.entries:
             if strict_equal(entry.name, symbol.name):

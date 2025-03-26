@@ -642,9 +642,21 @@ def validate_c_datatype(data_type):
 
     if(tokens[0]=="typedef"):
         tokens = tokens[1:]
+    
+    if tokens[0]=="const":
+        tokens=tokens[1:]
+        if tokens[0]=="static":
+            tokens=tokens[1:]
+
+    elif tokens[0]=="static":
+        tokens=tokens[1:]
+        if tokens[0]=="const":
+            tokens=tokens[1:]
 
     if tokens[0]=="struct":
-        return True
+        tokens = tokens[1:]
+        if tokens in allowed_with_sign:
+            return False
 
     abcd = symtab.lookup(tokens[0])
     if(abcd is not None and abcd.type == "struct"):
