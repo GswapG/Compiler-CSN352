@@ -11,6 +11,7 @@ from symtab_new import *
 
 ## pip3 install pycryptodome 
 from Crypto.Hash import SHA256
+import uuid
 
 datatypeslhs=[]
 returns = set()
@@ -1846,6 +1847,13 @@ def p_error(p):
     pointer = " " * (col - 1) + "^"
     print(pointer)
     
+def strip_file(file):
+    lines = file.split('\n')
+    new_file = ""
+    for line in lines:
+        new_file += line.strip()
+    return new_file
+
 # Build parser
 parser = yacc.yacc()
 strargv = [str(x) for x in argv]
@@ -1858,7 +1866,7 @@ for filename in sorted(os.listdir(stress_testing)):
         with open(filepath, 'r') as file:
             data = file.read()
         current_filename = filepath
-        input_text = data.strip()
+        input_text = strip_file(data)
 
         hash = SHA256.new() 
         hash.update(input_text.encode())
@@ -1926,13 +1934,17 @@ for filename in sorted(os.listdir(testcases_dir)):
             data = file.read()
         print(f"Parsing file: {filepath}")
         current_filename = filepath
-        input_text = data.strip()
+        input_text = strip_file(data)
+
+        lines = data.split('\n')
+        new_file = ""
+        for line in lines:
+            new_file += line.strip()
+
 
         hash = SHA256.new() 
         hash.update(input_text.encode())
         input_hash = hash.hexdigest()
-
-        lines = data.split('\n')
 
         root = parser.parse(data)
         print("Final Symbol Table:\n")
@@ -1942,8 +1954,8 @@ for filename in sorted(os.listdir(testcases_dir)):
         if input_hash not in testcase_hashes:
             testcase_hashes.append(input_hash)
 
-            with open(f"{stress_testing}{stress_test_file}.c", "w") as f:
-                f.write(input_text)
+            with open(f"{stress_testing}{uuid.uuid4()}.c", "w") as f:
+                f.write(data)
                 f.close()
 
             with open(f"./testcasehashes.txt", "a") as f:
