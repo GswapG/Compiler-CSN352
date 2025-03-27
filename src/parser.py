@@ -862,7 +862,7 @@ def p_init_declarator(p):
             else:
                 if not (base_no_const.split(" ")[0] == "enum" and type_ == "int"):
                     if base_no_const != trim_const(type_):
-                        raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs_var}\n| base_type = {base_no_const} |\n| rhs_type = {rhs.type} |")
+                        raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs_var}\n| base_type = {base_no_const} |\n| rhs_type = {rhs_var_type} |")
                     else:
                         if base != type_ and type_ != trim_const(type_):
                             raise TypeError(f"Cannot Coerce {type_} to {base}")
@@ -1713,7 +1713,11 @@ def p_error(p):
     
 # Build parser
 parser = yacc.yacc()
-testcases_dir = './tests/testing'
+
+if len(argv) > 1 and (str(argv[1]) == "-st" or str(argv[1]) == "--stress-test"):
+    testcases_dir = '../compiler-tests/'
+else:
+    testcases_dir = './tests/testing/'
 
 def print_symbol_table(symtab):
     if not symtab:

@@ -212,3 +212,6 @@ def argument_param_match(argument_list, func_params):
 
         else:
             raise Exception("Invalid Function Parameter Length")
+        
+def iscompatible(type1, type2):
+    pass
