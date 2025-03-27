@@ -313,10 +313,12 @@ def check_types(type1, type2, allow_int_float=False):
         clean_ptr1 = trim_value(clean_ptr1, "const")
         clean_ptr1 = trim_value(clean_ptr1, "unsigned")
         clean_ptr1 = trim_value(clean_ptr1, "signed")
+        clean_ptr1 = trim_value(clean_ptr1, "static")
         
         clean_ptr2 = trim_value(clean_ptr2, "const")
         clean_ptr2 = trim_value(clean_ptr2, "unsigned")
         clean_ptr2 = trim_value(clean_ptr2, "signed")
+        clean_ptr2 = trim_value(clean_ptr2, "static")
 
         if clean_ptr1 != clean_ptr2:
             return True 

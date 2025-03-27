@@ -845,7 +845,7 @@ def p_init_declarator(p):
             kind2=f"{name}"
             base_type=f"{name}"
 
-        if isinstance(decl,str) and decl[0] == '%' :
+        if isinstance(decl, str) and decl[0] == '%' :
             if len(p[0].rhs) != 1:
                 raise Exception("invalid reference created") 
             if symtab.lookup(p[0].rhs[0]).kind == 'constant':
@@ -858,7 +858,7 @@ def p_init_declarator(p):
             )
             symtab.add_symbol(var_sym)
 
-        else:
+        elif symtab.lookup(decl) is None:
             var_sym = SymbolEntry(
                 name=str(decl),
                 type=str(base_type),
@@ -1286,7 +1286,7 @@ def p_direct_declarator(p):
                         | direct_declarator LBRACKET assignment_expression RBRACKET
                         | direct_declarator LPAREN parameter_type_list RPAREN
                         | direct_declarator LPAREN RPAREN
-                        | direct_declarator LPAREN identifier_list RPAREN 
+                        | direct_declarator LPAREN identifier_list RPAREN
                         | AND IDENTIFIER
                         '''
     # IDENTIFIER case
@@ -1462,8 +1462,9 @@ def p_parameter_declaration(p):
             kind="parameter",
             isForwardable=True
         )
-
-        symtab.add_symbol(param_sym)
+        print("hi")
+        print(param_sym.name)
+        symtab.add_symbol(param_sym)    
 
 
 def p_identifier_list(p):
