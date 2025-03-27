@@ -11,12 +11,10 @@ class Preprocessor:
         self.macros = {}
         self.conditional_stack = []
         self.current_inclusion = True
-        # A flag to ensure prototypes are added only once.
         self.prototypes_written = False
 
     def process(self, input_path, output_file, current_dir=''):
         try:
-            # Write the prototypes at the top of the file if not already written.
             if not self.prototypes_written:
                 prototypes = (
                     "void print_int(int x);\n"
@@ -28,7 +26,7 @@ class Preprocessor:
                 self.prototypes_written = True
 
             with open(input_path, 'r') as f:
-                for line in f:
+                for line_num, line in enumerate(f,start=1):
                     stripped = line.strip()
                     
                     # Process preprocessor directives.
@@ -44,19 +42,19 @@ class Preprocessor:
                             self._handle_endif()
                         elif self.current_inclusion:
                             if directive == '#include':
-                                self._handle_include(line, output_file, current_dir)
+                                self._handle_include((line,line_num), output_file, current_dir)
                             elif directive == '#define':
                                 self._handle_define(parts)
                             elif directive == '#undef':
                                 self._handle_undef(parts)
                             else:
-                                raise Exception(f"Invalid preprocessor directive :\n{stripped}")
+                                raise Exception(f"Invalid preprocessor directive at line number {line_num}:\n{stripped}")
     
                     else:
                         if self.current_inclusion:
                             # Check if the line is a printf statement that needs to be expanded.
                             if stripped.startswith("printf"):
-                                expanded = self._process_printf(line)
+                                expanded = self._process_printf((line,line_num))
                                 output_file.write(expanded + "\n")
                             else:
                                 output_file.write(self._apply_macros(line))
@@ -64,6 +62,7 @@ class Preprocessor:
             raise Exception(f"Error processing {input_path}: {e}")
 
     def _handle_include(self, line, output, current_dir):
+        line_num, line = line
         match = re.search(r'#include\s+[<"](.+?)[>"]', line)
         if not match:
             return
@@ -71,7 +70,7 @@ class Preprocessor:
         filename = match.group(1)
         if '<' in line:
             if filename not in STANDARD_LIBS:
-                raise ValueError(f"Unrecognized standard library: {filename}")
+                raise ValueError(f"Unrecognized standard library at line {line_num}: {filename}")
         else:
             path = os.path.join(current_dir, filename)
             if not os.path.exists(path):
@@ -136,6 +135,7 @@ class Preprocessor:
         This function also adds error comments if an unknown conversion specifier is used
         or if the number of arguments doesn't match the number of conversion specifiers.
         """
+        line, line_num = line
         # Pattern to extract the format string and the arguments.
         pattern = r'\s*printf\s*\(\s*"([^"]*)"\s*(?:,(.*))?\)\s*;'
         match = re.match(pattern, line)
@@ -152,20 +152,24 @@ class Preprocessor:
         arg_index = 0
 
         # Use a generic pattern to capture any conversion specifier following '%'.
-        specifier_pattern = re.compile(r'%(.)')
+        specifier_pattern = re.compile(r'%(\S)')
         last_pos = 0
-
+        percentage_exists = False
         for m in specifier_pattern.finditer(fmt):
             # Append any literal text before the specifier.
             literal = fmt[last_pos:m.start()]
             if literal:
                 literal_escaped = literal.replace('"', r'\"')
+                literal_escaped = literal_escaped.replace('%','')
+                if percentage_exists:
+                    literal_escaped = '%' + literal_escaped
+                    percentage_exists = False
                 new_lines.append(f'print_string("{literal_escaped}");')
             
             spec = m.group(1)
             # Only allow %d, %f, %c.
-            if spec not in ['d', 'f', 'c']:
-                new_lines.append(f'// Error: Unknown conversion specifier: %{spec}')
+            if spec not in ['d', 'f', 'c', '%', ' ']:
+                raise Exception(f"Unknown conversion identifier at line {line_num}: {spec}")
             else:
                 if arg_index < len(args):
                     if spec == 'd':
@@ -174,22 +178,26 @@ class Preprocessor:
                         new_lines.append(f'print_float({args[arg_index]});')
                     elif spec == 'c':
                         new_lines.append(f'print_char({args[arg_index]});')
+                    elif spec == '%':
+                        arg_index -= 1
+                        percentage_exists = True
                     arg_index += 1
                 else:
-                    new_lines.append(f'// Error: Missing argument for %{spec}')
+                    raise Exception(f"Missing argument at line {line_num} for : {spec}")
             last_pos = m.end()
-        
         # Append any trailing literal text after the last specifier.
         trailing_literal = fmt[last_pos:]
         if trailing_literal:
+            if percentage_exists:
+                trailing_literal = '%' + trailing_literal
+                percentage_exists = False
             trailing_literal = trailing_literal.replace('"', r'\"')
             new_lines.append(f'print_string("{trailing_literal}");')
         
         # Check if there are extra arguments that weren't used.
         if arg_index < len(args):
-            new_lines.append("// Error: Too many arguments provided for printf")
-        
-        return "\n".join(new_lines)
+            raise Exception(f"Provided too many arguments for printf at line {line_num}")
+        return " ".join(new_lines)
 
 def preprocess(input_file, output_file):
     processor = Preprocessor()
