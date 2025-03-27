@@ -258,6 +258,10 @@ def dominating_type(type1, type2):
                 return False
 
 def get_label(type):
+    type = trim_value(type, "const")
+    type = trim_value(type, "unsigned")
+    type = trim_value(type, "signed")
+    
     types = type.split(' ')
 
     allowed_int = ['signed', 'unsigned', 'short', 'long', 'int', 'char']
@@ -320,12 +324,12 @@ def check_types(type1, type2, allow_int_float=False):
             return False
         
     type1 = trim_value(type1, "const")
-    type1 = strip_value(type1, "unsigned")
-    type1 = strip_value(type1, "signed")
+    type1 = trim_value(type1, "unsigned")
+    type1 = trim_value(type1, "signed")
     
     type2 = trim_value(type2, "const")
-    type2 = strip_value(type2, "unsigned")
-    type2 = strip_value(type2, "signed")
+    type2 = trim_value(type2, "unsigned")
+    type2 = trim_value(type2, "signed")
 
     types1 = type1.split(' ')
     types2 = type2.split(' ')
