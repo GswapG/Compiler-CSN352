@@ -177,14 +177,23 @@ def p_postfix_expression(p):
         p[0] = Node("postfix_expression", [p[1]])
     if len(p) == 3:
         p[0] = Node("postfix_expression", [p[1],p[2]])
+
+        if isinstance(p[2], str):
+            if p[2] == "++" or p[2] == "--":
+                if get_label(p[1].return_type) == "float":
+                    raise ValueError(f"{p[2]} operator is incompatible with floating point values")
+
     elif len(p) == 4 and p[2] == ".":
         p[0] = Node("postfix_expression", [p[1], p[3]])
+
     elif len(p) == 4 and p[3] != ")":
         p[0] = Node("postfix_expression", [p[1], p[2], p[3]])
+
     elif len(p) == 4:
         p[0] = Node("postfix_expression", [p[1]])
         p[0].iscall = 1
         #here
+
     elif len(p) == 5:
         if p[2] == '[':
             for i in range(0,len(p[1].vars)):
@@ -277,19 +286,22 @@ def p_unary_expression(p):
                        | ALIGNOF LPAREN type_name RPAREN '''
     if len(p) == 2:
         p[0] = Node("unary_expression", [p[1]])
+        p[0].return_type = p[1].return_type
+
     elif len(p) == 3:
         p[0] = Node("unary_expression", [p[1], p[2]])
         p[0].return_type = p[2].return_type
-        if p[1].children[0].type =='&':
+
+        if isinstance(p[1], Node) and p[1].children[0].type == '&':
             p[0].is_address = True
             for i in range(0,len(p[0].vars)):
                 p[0].vars[i] = '!' + p[0].vars[i]
-            p[0].return_type = '*'+p[0].return_type
+            p[0].return_type = '*' + p[0].return_type
             if symtab.lookup(p[2].vars[0]):
                 if symtab.lookup(p[2].vars[0]).kind in ('constant','enumerator') :
                     raise Exception("Cant bind addr to constant/enum type")
  
-        if p[1].children[0].type == '*':
+        if isinstance(p[1], Node) and p[1].children[0].type == '*':
             for i in range(0,len(p[0].vars)):
                 p[0].vars[i] = '@' + p[0].vars[i]
             if p[0].return_type is not None:
@@ -298,6 +310,14 @@ def p_unary_expression(p):
                 else:
                     raise Exception("invalid deref")
         
+        if isinstance(p[1], Node) and p[1].operator == "~": 
+            if get_label(p[2].return_type) == "float":
+                raise ValueError("~ operation cannot be used on floating point values")
+            
+        if isinstance(p[1], str):
+            if p[1] == "++" or p[1] == "--":
+                if get_label(p[2].return_type) == "float":
+                    raise ValueError(f"{p[1]} operation cannot be used on floating point values")
 
     elif len(p) == 5:
         p[0] = Node("unary_expression", [p[1], p[3]])
@@ -316,6 +336,7 @@ def p_unary_operator(p):
                      | TILDE
                      | NOT '''
     p[0] = Node("unary_operator", [p[1]])
+    p[0].operator = p[1]
 
 # Cast expressions
 def p_cast_expression(p):
@@ -323,6 +344,7 @@ def p_cast_expression(p):
                       | LPAREN type_name RPAREN cast_expression'''
     if len(p) == 2:
         p[0] = Node("cast_expression", [p[1]])
+        p[0].return_type = p[1].return_type
     else:
         p[0] = Node("cast_expression", [p[2], p[4]])
 
@@ -349,18 +371,30 @@ def p_multiplicative_expression(p):
         d, r, var0 = count_deref_ref(p[1].vars[0])
         dtype1 = get_type_from_var(var0, d, r, symtab)
 
-    check_vars_type(p[1].vars, dtype1, "multiplicative", symtab)
+    # Check that each variable in the first operand has the expected type
+    check_vars_type(p[1].vars, dtype1, "multiplicative", symtab, True)
 
     if len(p) == 4:
-        check_vars_type(p[3].vars, dtype1, "multiplicative", symtab)
+        check_vars_type(p[3].vars, dtype1, p[2], symtab, True)
+
+        if isinstance(p[2], str) and p[2] == "%":
+            if get_label(p[1].return_type) == "float" or get_label(p[3].return_type) == "float":
+                raise ValueError(f"Floating type expressions incompatible with mod operation")
 
     # Additional function call validation:
-    ccc = 0
+    func_id = 0
     for v in p[0].vars:
         if symtab.lookup(v) is not None and symtab.lookup(v).kind == 'function':
-            ccc += 1
-    if ccc != p[0].iscall:
+            func_id += 1
+
+    if func_id != p[0].iscall:
         raise Exception("Invalid Function Call")
+    
+    if len(p) == 4:
+        if dominating_type(p[1].return_type, p[3].return_type):
+            p[0].return_type = p[1].return_type
+        else:
+            p[0].return_type = p[3].return_type
 
     p[0].return_type = p[1].return_type
 
@@ -380,12 +414,15 @@ def p_additive_expression(p):
         dtype1 = get_type_from_var(var0, d, r, symtab)
 
     # Check that each variable in the first operand has the expected type
-    check_vars_type(p[1].vars, dtype1, "addition", symtab)
+    check_vars_type(p[1].vars, dtype1, "addition", symtab, True)
 
     if len(p) == 4:
-        check_vars_type(p[3].vars, dtype1, "addition", symtab)
+        check_vars_type(p[3].vars, dtype1, p[2], symtab, True)
 
-    # If we get here, type-checking passed
+        if dominating_type(p[1].return_type, p[3].return_type):
+            p[0].return_type = p[1].return_type
+        else:
+            p[0].return_type = p[3].return_type
     p[0].return_type = p[1].return_type
     
 def p_shift_expression(p):
@@ -396,6 +433,25 @@ def p_shift_expression(p):
         p[0] = Node("shift_expression", [p[1]])
     else:
         p[0] = Node("shift_expression", [p[1], p[2], p[3]])
+
+    dtype1 = None
+    if len(p[1].vars) > 0:
+        d, r, var0 = count_deref_ref(p[1].vars[0])
+        dtype1 = get_type_from_var(var0, d, r, symtab)
+
+    if len(p) == 4:
+        check_vars_type(p[3].vars, dtype1, p[2], symtab, False)
+
+        if get_label(p[1].return_type) == "float" or get_label(p[3].return_type) == "float":
+            raise ValueError(f"Floating type expressions incompatible with shift operations")
+
+        if dominating_type(p[1].return_type, p[3].return_type):
+            p[0].return_type = p[1].return_type
+        else:
+            p[0].return_type = p[3].return_type
+
+    p[0].return_type = p[1].return_type
+
 
 def p_relational_expression(p):
     '''relational_expression : shift_expression
@@ -408,7 +464,7 @@ def p_relational_expression(p):
     else:
         p[0] = Node("relational_expression", [p[1], p[2], p[3]])
         # Validate that the symbols in the left and right operands have compatible types.
-        validate_relational_operands(p[1].vars, p[3].vars, symtab)
+        validate_relational_operands(p[1].vars, p[3].vars, symtab, True)
 
 def p_equality_expression(p):
     '''equality_expression : relational_expression
@@ -421,6 +477,15 @@ def p_equality_expression(p):
         for var in p[1].vars:
             if symtab.lookup(var) == None:
                 raise ValueError(f"No symbol '{var}' in the symbol table")
+            
+    dtype1 = None
+    if len(p[1].vars) > 0:
+        d, r, var0 = count_deref_ref(p[1].vars[0])
+        dtype1 = get_type_from_var(var0, d, r, symtab)
+
+    if len(p) == 4:
+        check_vars_type(p[3].vars, dtype1, p[2], symtab, True)
+
 
 def p_and_expression(p):
     '''and_expression : equality_expression
@@ -430,6 +495,25 @@ def p_and_expression(p):
     else:
         p[0] = Node("and_expression", [p[1], p[2], p[3]])
 
+    dtype1 = None
+    if len(p[1].vars) > 0:
+        d, r, var0 = count_deref_ref(p[1].vars[0])
+        dtype1 = get_type_from_var(var0, d, r, symtab)
+
+    if len(p) == 4:
+        check_vars_type(p[3].vars, dtype1, p[2], symtab, False)
+
+        if get_label(p[1].return_type) == "float" or get_label(p[3].return_type) == "float":
+            raise ValueError(f"Floating type expressions incompatible with {p[2].operator} operator")
+
+        if dominating_type(p[1].return_type, p[3].return_type):
+            p[0].return_type = p[1].return_type
+        else:
+            p[0].return_type = p[3].return_type
+
+    p[0].return_type = p[1].return_type
+        
+
 def p_exclusive_or_expression(p):
     '''exclusive_or_expression : and_expression
                               | exclusive_or_expression XOR and_expression'''
@@ -438,6 +522,24 @@ def p_exclusive_or_expression(p):
     else:
         p[0] = Node("exclusive_or_expression", [p[1], p[2], p[3]])
 
+    dtype1 = None
+    if len(p[1].vars) > 0:
+        d, r, var0 = count_deref_ref(p[1].vars[0])
+        dtype1 = get_type_from_var(var0, d, r, symtab)
+
+    if len(p) == 4:
+        check_vars_type(p[3].vars, dtype1, p[2], symtab, False)
+
+        if get_label(p[1].return_type) == "float" or get_label(p[3].return_type) == "float":
+            raise ValueError(f"Floating type expressions incompatible with {p[2].operator} operator")
+
+        if dominating_type(p[1].return_type, p[3].return_type):
+            p[0].return_type = p[1].return_type
+        else:
+            p[0].return_type = p[3].return_type
+
+    p[0].return_type = p[1].return_type
+
 def p_inclusive_or_expression(p):
     '''inclusive_or_expression : exclusive_or_expression
                               | inclusive_or_expression OR exclusive_or_expression'''
@@ -445,6 +547,24 @@ def p_inclusive_or_expression(p):
         p[0] = Node("inclusive_or_expression", [p[1]])
     else:
         p[0] = Node("inclusive_or_expression", [p[1], p[2], p[3]])
+
+    dtype1 = None
+    if len(p[1].vars) > 0:
+        d, r, var0 = count_deref_ref(p[1].vars[0])
+        dtype1 = get_type_from_var(var0, d, r, symtab)
+
+    if len(p) == 4:
+        check_vars_type(p[3].vars, dtype1, p[2], symtab, False)
+
+        if get_label(p[1].return_type) == "float" or get_label(p[3].return_type) == "float":
+            raise ValueError(f"Floating type expressions incompatible with {p[2].operator} operator")
+
+        if dominating_type(p[1].return_type, p[3].return_type):
+            p[0].return_type = p[1].return_type
+        else:
+            p[0].return_type = p[3].return_type
+
+    p[0].return_type = p[1].return_type
 
 def p_logical_and_expression(p):
     '''logical_and_expression : inclusive_or_expression
@@ -497,7 +617,16 @@ def p_assignment_expression(p):
         if lhs_entry.kind not in ['variable', 'parameter']:
             raise TypeError("Value can only be assigned to variable/param types!")
         
-        validate_assignment(lhs_entry, lhs_effective_without_const, p[3].vars, symtab)
+        if (p[2].operator == "<<=" or 
+            p[2].operator == ">>=" or 
+            p[2].operator == "%=" or
+            p[2].operator == "&=" or
+            p[2].operator == "^=" or 
+            p[2].operator == "|="):
+            validate_assignment(lhs_entry, lhs_effective_without_const, p[2].operator, p[3].vars, symtab, False, True)
+
+        else:
+            validate_assignment(lhs_entry, lhs_effective_without_const, p[2].operator, p[3].vars, symtab, True, False)
 
         if lhs_effective.startswith("const "):
             raise TypeError(f"Cannot re-assign value to const variable '{lhs_entry.name}' of type '{lhs_entry.type}'")
@@ -518,6 +647,7 @@ def p_assignment_operator(p):
                           | XOR_ASSIGN
                           | OR_ASSIGN'''
     p[0] = Node("assignment_operator", [p[1]])
+    p[0].operator = p[1]
 
 def p_expression(p):
     '''expression : assignment_expression
@@ -637,8 +767,11 @@ def validate_c_datatype(data_type):
 
     if tokens[0]=="struct":
         tokens = tokens[1:]
-        if tokens in allowed_with_sign:
-            return False
+        for c in tokens:
+            if c in allowed_keywords:
+                raise ValueError(f"Invalid data type structure '{data_type}'.")
+            else:
+                return True
 
     abcd = symtab.lookup(tokens[0])
     if(abcd is not None and abcd.type == "struct"):
@@ -761,7 +894,7 @@ def p_init_declarator(p):
     base = symtab.lookup(var).type
     base_no_const = base
     if "const " in base:
-        base_no_const = trim_const(base_no_const)
+        base_no_const = trim_value(base_no_const, "const")
         # base_no_const = ' '.join(word for word in base_no_const.split() if word != "const")
     if "static " in base_no_const:
         base_no_const = ' '.join(word for word in base_no_const.split() if word != "static")
@@ -854,18 +987,15 @@ def p_init_declarator(p):
 
             if p[0].isbraces:
                 if symtab.lookup(rhs_var) is not None and array_check != (symtab.lookup(rhs_var)).type:
-                    raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs_var}\n| base_type = {base_no_const} |\n| rhs_type = {(symtab.lookup(rhs_var)).type} |")
+                    raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs_var}\n| base_type = {base} |\n| rhs_type = {(symtab.lookup(rhs_var)).type} |")
                 
                 if checkfunc and symtab.lookup(rhs_var) is not None and symtab.lookup(rhs_var).kind == 'function':
                     raise Exception("Can't assign value of function")
                 
             else:
                 if not (base_no_const.split(" ")[0] == "enum" and type_ == "int"):
-                    if base_no_const != trim_const(type_):
-                        raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs_var}\n| base_type = {base_no_const} |\n| rhs_type = {rhs_var_type} |")
-                    else:
-                        if base != type_ and type_ != trim_const(type_):
-                            raise TypeError(f"Cannot Coerce {type_} to {base}")
+                    if check_types(base, type_, True):
+                        raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs_var}\n| base_type = {base} |\n| rhs_type = {type_} |")
             
     p[0].is_address = False
 

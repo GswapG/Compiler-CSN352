@@ -1,5 +1,3 @@
-
-
 int main(){
-    double d = 1.2;
+	double d = 1 <<  3;
 }	

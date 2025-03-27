@@ -22,6 +22,7 @@ class Node:
         self.return_type = None
         self.iscall = 0
         self.param_list = []
+        self.operator = None
         if children:
             children_conv = []
             for c in children:

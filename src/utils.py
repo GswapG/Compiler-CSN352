@@ -1,41 +1,47 @@
-def trim_const(type):
+def spaced(word):
+    new_word = ""
+    for i in range(len(word)):
+        if len(new_word) == 0:
+            if word[i] != ' ':
+                new_word += word[i]
+        else:
+            if word[i] == ' ':
+                if new_word[-1] != ' ':
+                    new_word += word[i]
+            else:
+                new_word += word[i]
+    return new_word
+
+def trim_value(type, value):
     """
-    trim out const qualifiers from a type in the middle
+    trim out value qualifiers from a type in the middle
     """
     if isinstance(type, str):
-        # if type starts with const, just strip the beginning
-        if type.startswith("const "):
-            type_without_const = type[len("const "):]
-            return type_without_const
+        # if type starts with value, just strip the beginning
+        if type.startswith(f"{value} "):
+            type_without_value = type[len(f"{value} "):]
+            return spaced(type_without_value)
         
-        # if variable type is const char** c
-        # then symbol table entry type is "**const char"
-        # in that case, i'll strip all the beginning ** and then strip const if it exists
+        # if variable type is value char** c
+        # then symbol table entry type is "**value char"
+        # in that case, i'll strip all the beginning ** and then strip value if it exists
         # and then return **char (for example)
-        elif type.startswith("*"):
-            type_without_const = type
-            deref_count = 0
-
-            while len(type_without_const) > 0 and type_without_const.startswith("*"):
-                type_without_const = type_without_const[1:]
-                deref_count += 1
-
-            if type_without_const.startswith("const "):
-                type_without_const = "*" * deref_count + type_without_const[len("const "):]
-                return type_without_const
+        elif f"{value} " in type:
+            type_without_value = type.replace(f"{value} ", "", 1)
+            return spaced(type_without_value)
 
     return type
 
-def strip_const(type):
+def strip_value(type, value):
     """
-    strip out constant qualifiers from a type from the beginning
+    strip out value qualifiers from a type from the beginning
     """
 
     if isinstance(type, str):
-        # if type starts with const, just strip the beginning
-        if type.startswith("const "):
-            type_without_const = type[len("const "):]
-            return type_without_const
+        # if type starts with value, just strip the beginning
+        if type.startswith(f"{value} "):
+            type_without_value = type[len(f"{value} "):]
+            return type_without_value
         
     return type
 
@@ -58,7 +64,7 @@ def count_deref_ref(var):
             break
     return deref_count, ref_count, var
 
-def validate_relational_operands(left_vars, right_vars, symtab):
+def validate_relational_operands(left_vars, right_vars, symtab, allow_int_float):
     # Validate left variables exist in the symbol table.
     for var in left_vars:
         d, r, clean_var = count_deref_ref(var)
@@ -72,7 +78,7 @@ def validate_relational_operands(left_vars, right_vars, symtab):
         for var2 in right_vars:
             d2, r2, clean_var2 = count_deref_ref(var2)
             right_type = get_type_from_var(clean_var2, d2, r2, symtab)
-            if left_type.rstrip(' ') != right_type.rstrip(' '):
+            if check_types(left_type, right_type, allow_int_float):
                 raise ValueError(f"Incompatible relational op with '{clean_var}' and '{clean_var2}'")
 
 def get_type_from_var(var, deref_count, ref_count, symtab):
@@ -102,7 +108,7 @@ def get_type_from_var(var, deref_count, ref_count, symtab):
     return type_
 
 
-def check_vars_type(vars_list, expected_type, op_name, symtab):
+def check_vars_type(vars_list, expected_type, op_name, symtab, allow_int_float=False):
 
     for var in vars_list:
         d, r, clean_var = count_deref_ref(var)
@@ -110,7 +116,7 @@ def check_vars_type(vars_list, expected_type, op_name, symtab):
         # Compare types after stripping any trailing spaces.
         # Additionally, if the variable represents a struct field or is not a function,
         # then ensure the types are compatible.
-        if type_.rstrip(' ') != expected_type.rstrip(' ') and (
+        if check_types(type_, expected_type, allow_int_float) and (
             (isinstance(clean_var, str) and ' ' in clean_var) or symtab.lookup(clean_var).kind != "function"
         ):
             raise ValueError(f"Incompatible {op_name} op with '{clean_var}'")
@@ -154,7 +160,7 @@ def process_deref_ref(var):
 def effective_type(entry, deref_count, ref_count, remove_const=False):
     # Remove "const " from the type for assignment checking, if present.
     if remove_const:
-        base_type = trim_const(entry.type)
+        base_type = trim_value(entry.type, "const")
     else:
         base_type = entry.type
 
@@ -170,7 +176,7 @@ def effective_type(entry, deref_count, ref_count, remove_const=False):
             base_type = "*" + base_type
     return base_type
 
-def validate_assignment(lhs_entry, lhs_effective_type, rhs_vars, symtab):
+def validate_assignment(lhs_entry, lhs_effective_type, operator, rhs_vars, symtab, allow_int_float=False, no_float=False):
 
     for rhs_var in rhs_vars:
         # For struct members in RHS, handle separately.
@@ -185,8 +191,12 @@ def validate_assignment(lhs_entry, lhs_effective_type, rhs_vars, symtab):
             rhs_entry = lookup_symbol(clean_rhs, symtab)
             rhs_effective = effective_type(rhs_entry, d, r, True)
         # Compare after stripping trailing spaces.
-        if rhs_effective != lhs_effective_type:
+        if check_types(rhs_effective, lhs_effective_type, allow_int_float):
             raise ValueError(f"Type mismatch in assignment of {lhs_entry.name} and {rhs_entry.name}\n {lhs_effective_type} vs {rhs_effective}")
+
+        if no_float:
+            if get_label(rhs_effective) == "float" or get_label(lhs_effective_type) == "float":
+                raise ValueError(f"Cannot use {operator} operator with floating type")
 
 def argument_param_match(argument_list, func_params):
     argument_ptr = 0
@@ -197,7 +207,8 @@ def argument_param_match(argument_list, func_params):
             argument_ptr += 1
             pass
         else:
-            if trim_const(func_params[params_ptr].type) != trim_const(argument_list[argument_ptr]):
+            if (trim_value(func_params[params_ptr].type, "const") != 
+                trim_value(argument_list[argument_ptr], "const")):
                 raise Exception("Invalid Function Paramters")
             else:
                 argument_ptr += 1 
@@ -213,5 +224,138 @@ def argument_param_match(argument_list, func_params):
         else:
             raise Exception("Invalid Function Parameter Length")
         
-def iscompatible(type1, type2):
-    pass
+def dominating_type(type1, type2):
+    types1 = type1.split(' ')
+    types2 = type2.split(' ')
+
+    allowed_int = ['signed', 'unsigned', 'short', 'long', 'int', 'char']
+    # allowed_double = ['signed', 'unsigned', 'float', 'double']
+    
+    label1 = None
+    label2 = None
+
+    if "double" in types1 and "double" in types2:
+        return True
+    else:
+        if "double" not in types1 and "double" not in types2:
+            if "float" in types1 and "float" in types2:
+                return True
+            else:
+                if "float" not in types1 and "float" not in types2:
+                    if "float" in types1 and "float" in types2:
+                        return True
+
+                else:
+                    if "float" in types1:
+                        return True
+                    else:
+                        return False
+
+        else:
+            if "double" in types1:
+                return True
+            else:
+                return False
+
+def get_label(type):
+    types = type.split(' ')
+
+    allowed_int = ['signed', 'unsigned', 'short', 'long', 'int', 'char']
+
+    label = None
+    if ("float" in types) or ("double" in types):
+        label = "float"
+    elif all(t in allowed_int for t in types):
+        label = "int"
+
+    return label
+
+        
+def check_types(type1, type2, allow_int_float=False):
+    ## implicit type conversion
+    if type1 == type2:
+        return False
+    
+    ptr1 = True if type1.startswith("*") else False
+    ptr2 = True if type2.startswith("*") else False 
+
+    if (ptr1 and not ptr2) or (ptr2 and not ptr1):
+        return True 
+    
+    elif ptr1 and ptr2:
+        deref_count1 = 0
+        clean_ptr1 = type1
+
+        deref_count2 = 0
+        clean_ptr2 = type2
+
+        while isinstance(clean_ptr1, str) and clean_ptr1.startswith("*"):
+            deref_count1 += 1
+            clean_ptr1 = clean_ptr1[1:]
+
+        while isinstance(clean_ptr2, str) and clean_ptr2.startswith("*"):
+            deref_count2 += 1
+            clean_ptr2 = clean_ptr2[1:]
+
+        if deref_count1 != deref_count2:
+            return True 
+
+        if deref_count1 == deref_count2 and deref_count1 >= 2:
+            if clean_ptr1 != clean_ptr2:
+                return True
+            else:
+                return False
+        
+        clean_ptr1 = trim_value(clean_ptr1, "const")
+        clean_ptr1 = trim_value(clean_ptr1, "unsigned")
+        clean_ptr1 = trim_value(clean_ptr1, "signed")
+        
+        clean_ptr2 = trim_value(clean_ptr2, "const")
+        clean_ptr2 = trim_value(clean_ptr2, "unsigned")
+        clean_ptr2 = trim_value(clean_ptr2, "signed")
+
+        if clean_ptr1 != clean_ptr2:
+            return True 
+        else:
+            return False
+        
+    type1 = trim_value(type1, "const")
+    type1 = strip_value(type1, "unsigned")
+    type1 = strip_value(type1, "signed")
+    
+    type2 = trim_value(type2, "const")
+    type2 = strip_value(type2, "unsigned")
+    type2 = strip_value(type2, "signed")
+
+    types1 = type1.split(' ')
+    types2 = type2.split(' ')
+    
+    allowed_int = ['signed', 'unsigned', 'short', 'long', 'int', 'char']
+
+    label1 = None
+    label2 = None
+
+    if ("float" in types1) or ("double" in types1):
+        label1 = "float"
+    elif all(t in allowed_int for t in types1):
+        label1 = "int"
+
+    if ("float" in types2) or ("double" in types2):
+        label2 = "float"
+    elif all(t in allowed_int for t in types2):
+        label2 = "int"
+
+    if allow_int_float:
+        if label1 is not None and label2 is not None:
+            return False
+        else:
+            return True
+    else:
+        if label1 is not None and label2 is not None:
+            if label1 != label2:
+                return True
+            else:
+                return False 
+        return True
+
+    return True
