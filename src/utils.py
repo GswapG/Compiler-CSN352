@@ -1,3 +1,44 @@
+def trim_const(type):
+    """
+    trim out const qualifiers from a type in the middle
+    """
+    if isinstance(type, str):
+        # if type starts with const, just strip the beginning
+        if type.startswith("const "):
+            type_without_const = type[len("const "):]
+            return type_without_const
+        
+        # if variable type is const char** c
+        # then symbol table entry type is "**const char"
+        # in that case, i'll strip all the beginning ** and then strip const if it exists
+        # and then return **char (for example)
+        elif type.startswith("*"):
+            type_without_const = type
+            deref_count = 0
+
+            while len(type_without_const) > 0 and type_without_const.startswith("*"):
+                type_without_const = type_without_const[1:]
+                deref_count += 1
+
+            if type_without_const.startswith("const "):
+                type_without_const = "*" * deref_count + type_without_const[len("const "):]
+                return type_without_const
+
+    return type
+
+def strip_const(type):
+    """
+    strip out constant qualifiers from a type from the beginning
+    """
+
+    if isinstance(type, str):
+        # if type starts with const, just strip the beginning
+        if type.startswith("const "):
+            type_without_const = type[len("const "):]
+            return type_without_const
+        
+    return type
+
 def count_deref_ref(var):
     """
     Count dereference (@) and reference (!) prefixes in a variable.
@@ -42,6 +83,7 @@ def get_type_from_var(var, deref_count, ref_count, symtab):
         entry = symtab.search_struct(name, identifier)
         if entry is None:
             raise Exception(f"identifier {identifier} does not exist in the struct {name}")
+        
         type_ = entry.type
     else:
         type_ = symtab.lookup(var).type
@@ -109,11 +151,13 @@ def process_deref_ref(var):
             break
     return deref_count, ref_count, var
 
-def effective_type(entry, deref_count, ref_count):
+def effective_type(entry, deref_count, ref_count, remove_const=False):
     # Remove "const " from the type for assignment checking, if present.
-    base_type = entry.type
-    if base_type.startswith("const "):
-        base_type = base_type[6:]
+    if remove_const:
+        base_type = trim_const(entry.type)
+    else:
+        base_type = entry.type
+
     # Apply dereference operations: remove one level of pointer per '@'
     for _ in range(deref_count):
         if isinstance(base_type, str) and base_type.startswith('*'):
@@ -139,8 +183,32 @@ def validate_assignment(lhs_entry, lhs_effective_type, rhs_vars, symtab):
         else:
             d, r, clean_rhs = process_deref_ref(rhs_var)
             rhs_entry = lookup_symbol(clean_rhs, symtab)
-            rhs_effective = effective_type(rhs_entry, d, r)
+            rhs_effective = effective_type(rhs_entry, d, r, True)
         # Compare after stripping trailing spaces.
-        if rhs_effective.rstrip(' ') != lhs_effective_type.rstrip(' '):
+        if rhs_effective != lhs_effective_type:
             raise ValueError(f"Type mismatch in assignment of {lhs_entry.name} and {rhs_entry.name}\n {lhs_effective_type} vs {rhs_effective}")
 
+def argument_param_match(argument_list, func_params):
+    argument_ptr = 0
+    params_ptr = 0
+
+    while argument_ptr < len(argument_list) and params_ptr < len(func_params):
+        if func_params[params_ptr].type == '...':
+            argument_ptr += 1
+            pass
+        else:
+            if trim_const(func_params[params_ptr].type) != trim_const(argument_list[argument_ptr]):
+                raise Exception("Invalid Function Paramters")
+            else:
+                argument_ptr += 1 
+                params_ptr += 1
+
+    if argument_ptr != len(argument_list):
+        raise Exception("Invalid Function Parameter Length")
+    
+    if params_ptr != len(func_params):
+        if params_ptr == len(func_params) - 1 and func_params[params_ptr].type =='...':
+            pass
+
+        else:
+            raise Exception("Invalid Function Parameter Length")

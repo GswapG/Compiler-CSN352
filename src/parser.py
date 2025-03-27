@@ -12,6 +12,7 @@ from ir_codegen import parseTree_to_3AC
 datatypeslhs=[]
 returns = set()
 constants = defaultdict(lambda: None)
+
 def table_entry(node):
     compound_dtype = ""
     for t in node.dtypes:
@@ -224,30 +225,12 @@ def p_postfix_expression(p):
 
     if len(p) == 5 and p[2] == "(" and len(p[0].vars) > 0:
         print(p[0].vars)
+
         func_params = symtab.search_params(p[0].vars[0])
         argument_list = p[3].param_list
         
-        i = 0
-        j = 0
-        while i < len(argument_list) and j < len(func_params):
-            if func_params[j].type == '...':
-                i += 1
-                pass
-            else:
-                if func_params[j].type.rstrip(' ') != argument_list[i].rstrip(' '):
-                    raise Exception("Invalid Function Paramters")
-                else:
-                    i+=1
-                    j+=1
-        if i != len(argument_list):
-            raise Exception("Invalid Function Parameter Length")
-        if j != len(func_params):
-            if j==len(func_params) - 1 and func_params[j].type =='...':
-                pass
-            else:
-                raise Exception("Invalid Function Parameter Length") 
+        argument_param_match(argument_list, func_params)
             
-
         p[0].vars = [p[0].vars[0]]
         p[0].return_type = p[1].return_type
 
@@ -255,12 +238,7 @@ def p_postfix_expression(p):
         func_params = symtab.search_params(p[0].vars[0])
         argument_list = []
 
-        if len(argument_list) != len(func_params):
-            raise Exception("incorrect function parameter length")
-
-        for argument, parameter in zip(argument_list, func_params):
-            if parameter.type.rstrip(" ") != symtab.lookup(argument).type.rstrip(" "):
-                raise Exception(f"Error: function parameter mismatch for {parameter.type} & {argument}")
+        argument_param_match(argument_list, func_params)
 
 def p_postfix_expression_error_1(p):
     '''postfix_expression : LPAREN type_name error LBRACE initializer_list RBRACE
@@ -500,25 +478,29 @@ def p_assignment_expression(p):
     else:  
         p[0] = Node("assignment_expression", [p[1], p[2], p[3]])
         
+        print(p[0].vars)
         lhs_raw = p[0].vars[0]
         if isinstance(lhs_raw, str) and ' ' in lhs_raw:
             lhs_entry = lookup_symbol(lhs_raw, symtab)
+            lhs_effective_without_const = effective_type(lhs_entry, 0, 0, True)
             lhs_effective = effective_type(lhs_entry, 0, 0)
+
         else:
             d, r, clean_lhs = process_deref_ref(lhs_raw)
             lhs_entry = lookup_symbol(clean_lhs, symtab)
+            lhs_effective_without_const = effective_type(lhs_entry, d, r, True)
             lhs_effective = effective_type(lhs_entry, d, r)
-        
+
         if lhs_entry is None:
             raise Exception(f"identifier {lhs_raw} does not exist")
         
-        if lhs_entry.type.startswith("const "):
-            raise TypeError(f"Cannot re-assign value to const variable '{lhs_entry.name}' of type '{lhs_entry.type}'")
         if lhs_entry.kind not in ['variable', 'parameter']:
             raise TypeError("Value can only be assigned to variable/param types!")
         
-        
-        validate_assignment(lhs_entry, lhs_effective, p[3].vars, symtab)
+        validate_assignment(lhs_entry, lhs_effective_without_const, p[3].vars, symtab)
+
+        if lhs_effective.startswith("const "):
+            raise TypeError(f"Cannot re-assign value to const variable '{lhs_entry.name}' of type '{lhs_entry.type}'")
         
         p[0].is_address = False
 
@@ -562,10 +544,10 @@ def p_declaration(p):
         p[0] = Node("declaration", [p[1]])
 
     global datatypeslhs
-    if(len(datatypeslhs)>0 and datatypeslhs[0]=="typedef"):
+    if len(datatypeslhs) > 0 and datatypeslhs[0] == "typedef":
         for var in p[0].vars:
             typedef_names.add(str(var))
-    datatypeslhs=[]
+    datatypeslhs = []
 
 def p_declaration_error(p):
     '''declaration : declaration_specifiers error
@@ -590,7 +572,7 @@ def p_declaration_specifiers(p):
         p[0] = Node("declaration_specifiers", [p[1]])
 
     global datatypeslhs
-    datatypeslhs=p[0].dtypes
+    datatypeslhs = p[0].dtypes
 
 def p_storage_class_specifier(p):
     '''storage_class_specifier : TYPEDEF
@@ -636,7 +618,7 @@ def validate_c_datatype(data_type):
 
     allowed_keywords = {'signed', 'unsigned', 'short', 'long', 'int', 'char', 'float', 'double', 'void'}
 
-
+    
     data_type = data_type.lstrip('*')
     tokens = data_type.strip().split()
 
@@ -718,10 +700,12 @@ def p_init_declarator(p):
 
     for decl in p[0].vars:
         kind2="variable"
+
         if(base_type.split(" ")[0]=="typedef" and len(base_type.split(" "))>=1):
             name = base_type.split(" ")[-1]
             kind2=f"{name}"
             base_type=f"{name}"
+
         if isinstance(decl,str) and decl[0] == '%' :
             if len(p[0].rhs) != 1:
                 raise Exception("invalid reference created") 
@@ -734,6 +718,7 @@ def p_init_declarator(p):
                 refsto= p[0].rhs[0]
             )
             symtab.add_symbol(var_sym)
+
         else:
             var_sym = SymbolEntry(
                 name=str(decl),
@@ -749,13 +734,9 @@ def p_init_declarator(p):
                 raise ValueError(f"No symbol '{var}' in the symbol table")
 
             continue
-        while isinstance(var, str):
-            if var[0] == '@':
-                var = var[1:]
-            elif var[0] == '!':
-                var = var[1:]
-            else:
-                break
+
+        _, __, var = process_deref_ref(var)
+
         if symtab.lookup(var) == None:
             raise ValueError(f"No symbol '{var}' in the symbol table")
         
@@ -777,17 +758,18 @@ def p_init_declarator(p):
         else:
             break 
 
-
-    base_no_const = symtab.lookup(var).type
-    if "const " in base_no_const:
-        base_no_const = ' '.join(word for word in base_no_const.split() if word != "const")
+    base = symtab.lookup(var).type
+    base_no_const = base
+    if "const " in base:
+        base_no_const = trim_const(base_no_const)
+        # base_no_const = ' '.join(word for word in base_no_const.split() if word != "const")
     if "static " in base_no_const:
         base_no_const = ' '.join(word for word in base_no_const.split() if word != "static")
     checkfunc = True
+
     if len(p) == 4:
         checkfunc = not p[3].iscall
 
-    
     ## struct or union
     if (symtab.lookup(base_no_const) is not None and (symtab.lookup(base_no_const).type == 'struct' or symtab.lookup(base_no_const).type == 'union')) or ('struct' in base_no_const or 'union' in base_no_const) and not base_no_const.startswith("*"):
 
@@ -800,17 +782,7 @@ def p_init_declarator(p):
                 raise Exception("Number of identifiers in struct doesnt match with initialiser list length")
 
             for struct_entry, list_entry in zip(struct_entries, p[0].rhs):
-                deref_count = 0
-                ref_count = 0
-                while isinstance(list_entry, str):
-                    if list_entry[0] == '@':
-                        deref_count += 1
-                        list_entry = list_entry[1:]
-                    elif list_entry[0] == '!':
-                        ref_count += 1
-                        list_entry = list_entry[1:]
-                    else:
-                        break
+                deref_count, ref_count, list_entry = count_deref_ref(list_entry)
 
                 if isinstance(list_entry, str) and ' ' in list_entry:
                     name, identifier, field = list_entry.split(" ")
@@ -851,19 +823,7 @@ def p_init_declarator(p):
         else:
             if len(p) > 2:
                 if len(p[0].rhs) == 1:
-                    deref_count = 0
-                    ref_count = 0
-
-                    rhs_var = p[0].rhs[0]
-                    while isinstance(rhs_var, str):
-                        if rhs_var[0] == '@':
-                            deref_count += 1
-                            rhs_var = rhs_var[1:]
-                        elif rhs_var[0] == '!':
-                            ref_count += 1
-                            rhs_var = rhs_var[1:]
-                        else:
-                            break
+                    deref_count, ref_count, rhs_var = count_deref_ref(p[0].rhs[0])
 
                     rhs_var = symtab.lookup(rhs_var)
                     rhs_var_type = rhs_var.type
@@ -884,51 +844,28 @@ def p_init_declarator(p):
 
     ## other types
     else: 
-        f_cnt = 0  
+
         for rhs_var in p[0].rhs:
-            deref_count = 0
-            ref_count = 0
-            while isinstance(rhs_var, str):
-                if rhs_var[0] == '@':
-                    deref_count += 1
-                    rhs_var = rhs_var[1:]
-                elif rhs_var[0] == '!':
-                    ref_count += 1
-                    rhs_var = rhs_var[1:]
-                else:
-                    break
-            
-            if isinstance(rhs_var, str) and ' ' in rhs_var:
-                name, _, identifier = rhs_var.split(' ')
-                rhs = symtab.search_struct(name, identifier)
-            else: 
-                rhs = symtab.lookup(rhs_var)
 
-            original_type = rhs.type
+            deref_count, ref_count, rhs_var = count_deref_ref(rhs_var)
+            type_ = get_type_from_var(rhs_var, deref_count, ref_count, symtab)
 
-            for i in range(0, deref_count):
-                if isinstance(rhs.type,str) and rhs.type[0] == '*':
-                    rhs.type = rhs.type[1:]
-                else:
-                    raise TypeError("Invalid Deref Op")  
-                
-            for j in range(0, ref_count):
-                if isinstance(rhs.type, str):
-                    rhs.type = "*" + rhs.type
+            array_check = base_no_const.lstrip('*')
 
-
-            array_check = base_no_const.rstrip(' ').lstrip('*')
             if p[0].isbraces:
-                if symtab.lookup(rhs_var) is not None and array_check != (symtab.lookup(rhs_var)).type.rstrip(' '):
+                if symtab.lookup(rhs_var) is not None and array_check != (symtab.lookup(rhs_var)).type:
                     raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs_var}\n| base_type = {base_no_const} |\n| rhs_type = {(symtab.lookup(rhs_var)).type} |")
+                
                 if checkfunc and symtab.lookup(rhs_var) is not None and symtab.lookup(rhs_var).kind == 'function':
                     raise Exception("Can't assign value of function")
+                
             else:
-
-                if (base_no_const.rstrip(' ') != rhs.type.rstrip(' ') and not (base_no_const.split(" ")[0]=="enum" and rhs.type=="int")):
-                    raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs_var}\n| base_type = {base_no_const} |\n| rhs_type = {rhs.type} |")
-      
-            rhs.type = original_type
+                if not (base_no_const.split(" ")[0] == "enum" and type_ == "int"):
+                    if base_no_const != trim_const(type_):
+                        raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs_var}\n| base_type = {base_no_const} |\n| rhs_type = {rhs.type} |")
+                    else:
+                        if base != type_ and type_ != trim_const(type_):
+                            raise TypeError(f"Cannot Coerce {type_} to {base}")
             
     p[0].is_address = False
 
