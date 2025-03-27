@@ -11,13 +11,27 @@ class Preprocessor:
         self.macros = {}
         self.conditional_stack = []
         self.current_inclusion = True
+        # A flag to ensure prototypes are added only once.
+        self.prototypes_written = False
 
     def process(self, input_path, output_file, current_dir=''):
         try:
+            # Write the prototypes at the top of the file if not already written.
+            if not self.prototypes_written:
+                prototypes = (
+                    "void print_int(int x);\n"
+                    "void print_float(float x);\n"
+                    "void print_char(char x);\n"
+                    "void print_string(const char *s);\n\n"
+                )
+                output_file.write(prototypes)
+                self.prototypes_written = True
+
             with open(input_path, 'r') as f:
                 for line in f:
                     stripped = line.strip()
                     
+                    # Process preprocessor directives.
                     if stripped.startswith('#'):
                         parts = re.split(r'\s+', stripped)
                         directive = parts[0].lower()
@@ -40,7 +54,12 @@ class Preprocessor:
     
                     else:
                         if self.current_inclusion:
-                            output_file.write(self._apply_macros(line))
+                            # Check if the line is a printf statement that needs to be expanded.
+                            if stripped.startswith("printf"):
+                                expanded = self._process_printf(line)
+                                output_file.write(expanded + "\n")
+                            else:
+                                output_file.write(self._apply_macros(line))
         except IOError as e:
             raise Exception(f"Error processing {input_path}: {e}")
 
@@ -96,14 +115,81 @@ class Preprocessor:
     def _apply_macros(self, line):
         for macro in sorted(self.macros.keys(), key=len, reverse=True):
             line = re.sub(r'\b{}\b'.format(re.escape(macro)), self.macros[macro], line)
-        empty = True
-        for c in line:
-            if not c.isspace():
-                empty = False
-                break
-        if empty:
-            line = ""
+        # Remove the line if it becomes empty.
+        if line.strip() == "":
+            return ""
         return line
+
+    def _process_printf(self, line):
+        """
+        Expands a printf statement into multiple print_* calls.
+        For example:
+            printf("Hi %d is an integer, %f is a float, %c is a char", x, y, z);
+        is expanded into:
+            print_string("Hi ");
+            print_int(x);
+            print_string(" is an integer, ");
+            print_float(y);
+            print_string(" is a float, ");
+            print_char(z);
+            print_string(" is a char");
+        This function also adds error comments if an unknown conversion specifier is used
+        or if the number of arguments doesn't match the number of conversion specifiers.
+        """
+        # Pattern to extract the format string and the arguments.
+        pattern = r'\s*printf\s*\(\s*"([^"]*)"\s*(?:,(.*))?\)\s*;'
+        match = re.match(pattern, line)
+        if not match:
+            return line  # Return unchanged if not matching expected pattern.
+        
+        fmt = match.group(1)
+        args_str = match.group(2)
+        args = []
+        if args_str:
+            args = [arg.strip() for arg in args_str.split(',')]
+        
+        new_lines = []
+        arg_index = 0
+
+        # Use a generic pattern to capture any conversion specifier following '%'.
+        specifier_pattern = re.compile(r'%(.)')
+        last_pos = 0
+
+        for m in specifier_pattern.finditer(fmt):
+            # Append any literal text before the specifier.
+            literal = fmt[last_pos:m.start()]
+            if literal:
+                literal_escaped = literal.replace('"', r'\"')
+                new_lines.append(f'print_string("{literal_escaped}");')
+            
+            spec = m.group(1)
+            # Only allow %d, %f, %c.
+            if spec not in ['d', 'f', 'c']:
+                new_lines.append(f'// Error: Unknown conversion specifier: %{spec}')
+            else:
+                if arg_index < len(args):
+                    if spec == 'd':
+                        new_lines.append(f'print_int({args[arg_index]});')
+                    elif spec == 'f':
+                        new_lines.append(f'print_float({args[arg_index]});')
+                    elif spec == 'c':
+                        new_lines.append(f'print_char({args[arg_index]});')
+                    arg_index += 1
+                else:
+                    new_lines.append(f'// Error: Missing argument for %{spec}')
+            last_pos = m.end()
+        
+        # Append any trailing literal text after the last specifier.
+        trailing_literal = fmt[last_pos:]
+        if trailing_literal:
+            trailing_literal = trailing_literal.replace('"', r'\"')
+            new_lines.append(f'print_string("{trailing_literal}");')
+        
+        # Check if there are extra arguments that weren't used.
+        if arg_index < len(args):
+            new_lines.append("// Error: Too many arguments provided for printf")
+        
+        return "\n".join(new_lines)
 
 def preprocess(input_file, output_file):
     processor = Preprocessor()
