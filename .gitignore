@@ -182,3 +182,5 @@ tempCodeRunnerFile*
 **/ast.png
 **/renderedTrees
 **/renderedSymbolTables
+**/parsetab.py
+**/hashes.bin

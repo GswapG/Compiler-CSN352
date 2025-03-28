@@ -1,12 +1,12 @@
 import ply.yacc as yacc
 import os
-from tokens import tokens  # Assuming you have a matching lexer
+from .tokens import tokens  # Assuming you have a matching lexer
 from sys import argv
 from ply import yacc
-from utils import *
-from lexer import *
-from tree import *
-from symtab_new import *
+from .utils import *
+from .lexer import *
+from .tree import *
+from .symtab_new import *
 # from ir_codegen import parseTree_to_3AC
 
 ## pip3 install pycryptodome 
@@ -1903,48 +1903,48 @@ def strip_file(file):
     return new_file
 
 # Build parser
-parser = yacc.yacc()
-strargv = [str(x) for x in argv]
+parser = yacc.yacc(debug=False)
+# strargv = [str(x) for x in argv]
 
-testcase_hashes = []
-stress_testing = './stress_testing/'
-for filename in sorted(os.listdir(stress_testing)): 
-    filepath = os.path.join(stress_testing, filename)
-    if os.path.isfile(filepath):
-        with open(filepath, 'r') as file:
-            data = file.read()
-        current_filename = filepath
-        input_text = strip_file(data)
+# testcase_hashes = []
+# stress_testing = './stress_testing/'
+# for filename in sorted(os.listdir(stress_testing)): 
+#     filepath = os.path.join(stress_testing, filename)
+#     if os.path.isfile(filepath):
+#         with open(filepath, 'r') as file:
+#             data = file.read()
+#         current_filename = filepath
+#         input_text = strip_file(data)
 
-        hash = SHA256.new() 
-        hash.update(input_text.encode())
-        input_hash = hash.hexdigest()
+#         hash = SHA256.new() 
+#         hash.update(input_text.encode())
+#         input_hash = hash.hexdigest()
 
-        testcase_hashes.append(input_hash)
+#         testcase_hashes.append(input_hash)
 
-with open(f"./testcasehashes.txt", "w") as f:
-    for hash in testcase_hashes:
-        f.write(hash)
-        f.write("\n")
+# with open(f"./testcasehashes.txt", "w") as f:
+#     for hash in testcase_hashes:
+#         f.write(hash)
+#         f.write("\n")
 
-    f.close()
+#     f.close()
 
-stress_test_file = len(testcase_hashes)
-testcases_dir = './tests/testing/'
-if "-d" in strargv or "--directory" in strargv:
-    position = 1 + (strargv.index("-d") if strargv.index("-d") != -1 else strargv.index("--directory"))
-    if len(strargv) <= position:
-        raise Exception("Incorrect use of the flag \"-d\" or \"--directory\". Please specify the directory path following the flag.")
+# stress_test_file = len(testcase_hashes)
+# testcases_dir = './tests/testing/'
+# if "-d" in strargv or "--directory" in strargv:
+#     position = 1 + (strargv.index("-d") if strargv.index("-d") != -1 else strargv.index("--directory"))
+#     if len(strargv) <= position:
+#         raise Exception("Incorrect use of the flag \"-d\" or \"--directory\". Please specify the directory path following the flag.")
     
-    testcases_dir = strargv[position]
+#     testcases_dir = strargv[position]
 
-specific_filename = None
-if "-f" in strargv or "--file" in strargv:
-    position = 1 + (strargv.index("-f") if strargv.index("-f") != -1 else strargv.index("--file"))
-    if len(strargv) <= position:
-        raise Exception("Incorrect use of the flag \"-f\" or \"--file\". Please specify the directory path following the flag.")
+# specific_filename = None
+# if "-f" in strargv or "--file" in strargv:
+#     position = 1 + (strargv.index("-f") if strargv.index("-f") != -1 else strargv.index("--file"))
+#     if len(strargv) <= position:
+#         raise Exception("Incorrect use of the flag \"-f\" or \"--file\". Please specify the directory path following the flag.")
     
-    specific_filename = strargv[position]
+#     specific_filename = strargv[position]
 
 def print_symbol_table(symtab):
     if not symtab:
@@ -1970,64 +1970,87 @@ def print_symbol_table(symtab):
     print(border)
 
 # Iterate over all files in the directory
-i = 1
-for filename in sorted(os.listdir(testcases_dir)): 
-    if specific_filename is not None:
-        if filename != specific_filename:
-            continue
+# i = 1
+# for filename in sorted(os.listdir(testcases_dir)): 
+#     if specific_filename is not None:
+#         if filename != specific_filename:
+#             continue
 
-    filepath = os.path.join(testcases_dir, filename)
-    if os.path.isfile(filepath):
-        with open(filepath, 'r') as file:
-            data = file.read()
-        print(f"Parsing file: {filepath}")
-        current_filename = filepath
-        input_text = strip_file(data)
+#     filepath = os.path.join(testcases_dir, filename)
+#     if os.path.isfile(filepath):
+#         with open(filepath, 'r') as file:
+#             data = file.read()
+#         print(f"Parsing file: {filepath}")
+#         current_filename = filepath
+#         input_text = strip_file(data)
 
-        lines = data.split('\n')
-        new_file = ""
-        for line in lines:
-            new_file += line.strip()
+#         lines = data.split('\n')
+#         new_file = ""
+#         for line in lines:
+#             new_file += line.strip()
 
 
-        hash = SHA256.new() 
-        hash.update(input_text.encode())
-        input_hash = hash.hexdigest()
+#         hash = SHA256.new() 
+#         hash.update(input_text.encode())
+#         input_hash = hash.hexdigest()
 
-        root = parser.parse(data)
-        print("Final Symbol Table:\n")
-        print(symtab)
-        print("\n")
+#         root = parser.parse(data)
+#         print("Final Symbol Table:\n")
+#         print(symtab)
+#         print("\n")
 
-        if input_hash not in testcase_hashes:
-            testcase_hashes.append(input_hash)
+#         if input_hash not in testcase_hashes:
+#             testcase_hashes.append(input_hash)
 
-            with open(f"{stress_testing}{uuid.uuid4()}.c", "w") as f:
-                f.write(data)
-                f.close()
+#             with open(f"{stress_testing}{uuid.uuid4()}.c", "w") as f:
+#                 f.write(data)
+#                 f.close()
 
-            with open(f"./testcasehashes.txt", "a") as f:
-                f.write(input_hash)
-                f.write("\n")
-                f.close()
+#             with open(f"./testcasehashes.txt", "a") as f:
+#                 f.write(input_hash)
+#                 f.write("\n")
+#                 f.close()
             
-            stress_test_file += 1
+#             stress_test_file += 1
 
-        if len(argv) > 1:
-            if "-g" in strargv or "--graph" in strargv:
-                graph = root.to_graph()
-                graph.render(f'renderedTrees/{filename+""}', format='png')
-                print(f"Parse tree saved as renderedTrees/{filename}.png")
-                graph = symtab.to_graph()
-                graph.render(f'renderedSymbolTables/{filename}', format='png', cleanup=True)
-                print(f"Symbol table tree saved as renderedSymbolTables/{filename}.png")
+#         if len(argv) > 1:
+#             if "-g" in strargv or "--graph" in strargv:
+#                 graph = root.to_graph()
+#                 graph.render(f'renderedTrees/{filename+""}', format='png')
+#                 print(f"Parse tree saved as renderedTrees/{filename}.png")
+#                 graph = symtab.to_graph()
+#                 graph.render(f'renderedSymbolTables/{filename}', format='png', cleanup=True)
+#                 print(f"Symbol table tree saved as renderedSymbolTables/{filename}.png")
 
-        # parseTree_to_3AC(root,symtab)
-        i += 1
+#         # parseTree_to_3AC(root,symtab)
+#         i += 1
 
-        symtab.clear()
+#         symtab.clear()
 
-    symbol_table.clear()
+#     symbol_table.clear()
+#     typedef_names.clear()
+#     lines = ""  
+#     lexer.lineno = 0
+
+
+def parseFile(filename, ogfilename, treedir, symtabdir,graphgen=False):
+    with open(filename, 'r') as file:
+        data = file.read()
+    print(f"Parsing file: {filename}")
+    root = parser.parse(data)
+    print("Final Symbol Table:\n")
+    print(symtab)
+    print("\n")
+    if graphgen:
+        treepath = os.path.join(treedir, ogfilename[:-2])
+        symtabpath = os.path.join(symtabdir, ogfilename[:-2])
+        graph = root.to_graph()
+        graph.render(treepath, format='png', cleanup=True)
+        print(f"Parse tree saved as renderedTrees/{ogfilename[:-2]}.png")
+        graph = symtab.to_graph()
+        graph.render(symtabpath, format='png', cleanup=True)
+        print(f"Symbol table tree saved as renderedSymbolTables/{ogfilename[:-2]}.png")
+
+    symtab.clear()
     typedef_names.clear()
-    lines = ""  
     lexer.lineno = 0

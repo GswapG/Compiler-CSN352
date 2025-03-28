@@ -1,5 +1,5 @@
 import ply.lex as lex 
-from tokens import *
+from .tokens import *
 typedef_names = set()
 line_start_positions = [0]
 

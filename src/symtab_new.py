@@ -1,6 +1,6 @@
 from collections import defaultdict, deque
 from graphviz import Digraph
-from utils import *
+from .utils import *
 
 def strict_equal(a, b):
     return type(a) is type(b) and a == b
