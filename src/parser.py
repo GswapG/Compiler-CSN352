@@ -776,8 +776,7 @@ def validate_c_datatype(data_type):
         for c in tokens:
             if c in allowed_keywords:
                 raise ValueError(f"Invalid data type structure '{data_type}'.")
-            else:
-                return True
+        return True
 
     abcd = symtab.lookup(tokens[0])
     if(abcd is not None and abcd.type == "struct"):
