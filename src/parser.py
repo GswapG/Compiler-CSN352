@@ -829,7 +829,7 @@ def p_init_declarator(p):
 
     base_type = ''
     abcd = 0
-    for dtype in datatypeslhs:
+    for dtype in p[1].fdtypes:
         base_type += dtype
         base_type += " "
         abcd += 1

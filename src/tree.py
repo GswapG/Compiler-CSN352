@@ -44,6 +44,7 @@ class Node:
             if isinstance(c,Node):
                 self.vars += c.vars
                 self.dtypes += c.dtypes
+                self.fdtypes += c.fdtypes
                 self.rhs += c.rhs
                 self.is_const |= c.is_const
 
