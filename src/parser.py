@@ -840,7 +840,7 @@ def p_init_declarator(p):
     for decl in p[0].vars:
         kind2="variable"
 
-        if(base_type.split(" ")[0]=="typedef" and len(base_type.split(" "))>=1):
+        if(base_type.split(" ")[0]=="typedef" and len(base_type.split(" ")) >= 1):
             name = base_type.split(" ")[-1]
             kind2=f"{name}"
             base_type=f"{name}"
@@ -864,8 +864,18 @@ def p_init_declarator(p):
                 type=str(base_type),
                 kind=str(kind2)
             )
+            print("OKAY IM CALLED")
             symtab.add_symbol(var_sym)
         
+        elif symtab.lookup(decl).kind != "function":
+            var_sym = SymbolEntry(
+                name=str(decl),
+                type=str(base_type),
+                kind=str(kind2)
+            )
+            print("OKAY IM CALLED")
+            symtab.add_symbol(var_sym)
+            
     for var in p[0].rhs:
         if isinstance(var, str) and ' ' in var:
             name, _, identifier = var.split(' ')
@@ -1376,9 +1386,11 @@ def p_direct_declarator(p):
             type=str(base_type),  # Return type from declaration_specifiers
             kind="function"
         )
-        symtab.add_symbol(func_sym)
-        symtab.to_add_parent = True
-        symtab.the_parent = symtab.lookup(func_name) 
+
+        # symtab.add_symbol(func_sym)
+        symtab.add_symbol_and_create_child_scope(func_sym)
+        # symtab.to_add_parent = True
+        # symtab.the_parent = symtab.lookup(func_name) 
 
 def p_direct_declarator_error(p):
     '''direct_declarator : LPAREN declarator error
@@ -1450,22 +1462,26 @@ def p_parameter_declaration(p):
         p[0] = Node("parameter_declaration", [p[1], p[2]])
 
     # -- Symbol Table Handling (only for concrete declarators) --
-    if len(p) > 2 and hasattr(p[2], 'name'):
-        base_type = ''
-        for dtype in p[0].dtypes:
-            base_type += dtype
-            base_type += " "
-        base_type = base_type[:-1]
-        param_sym = SymbolEntry(
-            name=str(p[0].vars[0]), #check gang
-            type=str(base_type),
-            kind="parameter",
-            isForwardable=True
-        )
-        print("hi")
-        print(param_sym.name)
-        symtab.add_symbol(param_sym)    
+        if len(p) > 2 and hasattr(p[2], 'name'):
+            base_type = ''
+            for dtype in p[0].dtypes:
+                base_type += dtype
+                base_type += " "
+            base_type = base_type[:-1]
+            param_sym = SymbolEntry(
+                name=str(p[0].vars[0]), #check gang
+                type=str(base_type),
+                kind="parameter",
+                isForwardable=True
+            )
+            print("hi")
+            print(param_sym.name)
+            symtab.add_symbol(param_sym)   
 
+            ## if you dont do this it forwards this up and in init_declarator you end up adding all the params again to global scope 
+            ## for test case run this on function definition 
+            ## at init_declarator, we have already cleared out all the params and pushed them in the function scope, we dont need the params to forward up to the parent anyway
+            p[0].vars = [] 
 
 def p_identifier_list(p):
     '''identifier_list : IDENTIFIER
@@ -1800,7 +1816,7 @@ def p_function_definition(p):
         raise Exception("Multiple Return Types")
 
     for type in returns:
-        if b_type.rstrip(' ') != type.rstrip(' '):
+        if check_types(b_type, type, True):
             raise Exception("Invalid Type of Value returned")
     returns = set()
     # Enter FUNCTION SCOPE (for parameters/local vars)

@@ -207,9 +207,11 @@ def argument_param_match(argument_list, func_params):
             argument_ptr += 1
             pass
         else:
+            print(trim_value(func_params[params_ptr].type, "const"))
+            print(trim_value(argument_list[argument_ptr], "const"))
             if (trim_value(func_params[params_ptr].type, "const") != 
                 trim_value(argument_list[argument_ptr], "const")):
-                raise Exception("Invalid Function Paramters")
+                raise Exception("Invalid Function Parameters")
             else:
                 argument_ptr += 1 
                 params_ptr += 1
