@@ -2036,6 +2036,9 @@ def print_symbol_table(symtab):
 def parseFile(filename, ogfilename, treedir, symtabdir,graphgen=False):
     with open(filename, 'r') as file:
         data = file.read()
+    print("file==================")
+    print(data)
+    print("======================")
     print(f"Parsing file: {filename}")
     root = parser.parse(data)
     print("Final Symbol Table:\n")

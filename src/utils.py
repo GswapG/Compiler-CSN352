@@ -118,7 +118,7 @@ def get_type_from_var(var, deref_count, ref_count, symtab):
         name, _, identifier = var.split(' ')
         entry = symtab.search_struct(name, identifier)
         if entry is None:
-            raise Exception(f"identifier {identifier} does not exist in the struct {name}")
+            raise Exception(f"identifier |{identifier}| does not exist in the struct |{name}|")
         
         type_ = entry.type
     else:

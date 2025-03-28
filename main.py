@@ -106,21 +106,18 @@ def process_directory(source_dir=testcase_dir):
         raise Exception(f"Error: {source_dir} is not a valid directory.")
     calc_and_dump_hashes()
     temp_files = []
-    try:
-        for filename in os.listdir(source_dir):
-            print(filename)
-            temp_files.append(process_file(filename))
-                
-    except Exception as e:
-        print(f"Error: {str(e)}", file=sys.stderr)
-    
-    finally:
-        for temp_file in temp_files:
-            print(type(temp_file))
-            if os.path.exists(temp_file):
-                os.remove(temp_file)
-        with open(HASH_FILE, 'wb') as file:
-            pickle.dump(hashes, file)
+    for filename in os.listdir(source_dir):
+        print(filename)
+        ret = process_file(filename)
+        print(ret)
+        temp_files.append(ret)
+
+    for temp_file in temp_files:
+        print(type(temp_file))
+        if os.path.exists(temp_file):
+            os.remove(temp_file)
+    with open(HASH_FILE, 'wb') as file:
+        pickle.dump(hashes, file)
 
 if __name__ == "__main__":
     process_directory()

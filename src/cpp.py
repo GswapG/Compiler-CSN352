@@ -62,8 +62,10 @@ class Preprocessor:
             raise Exception(f"Error processing {input_path}: {e}")
 
     def _handle_include(self, line, output, current_dir):
-        line_num, line = line
+        line, line_num = line
+        print("hello")
         match = re.search(r'#include\s+[<"](.+?)[>"]', line)
+        print("hello")
         if not match:
             return
         
