@@ -353,6 +353,8 @@ def p_cast_expression(p):
         p[0].return_type = p[1].return_type
     else:
         p[0] = Node("cast_expression", [p[2], p[4]])
+        print(f"cast expression => {p[2].return_type}")
+        p[0].return_type = p[2].return_type
 
 def p_cast_expression_error(p):
     '''cast_expression : LPAREN type_name error cast_expression'''
@@ -825,14 +827,24 @@ def p_init_declarator(p):
         p[0] = Node("init_declarator", [p[1]])
 
     global datatypeslhs
-
     base_type = ''
-    abcd = 0
-    for dtype in p[1].fdtypes:
-        base_type += dtype
-        base_type += " "
-        abcd += 1
-    base_type = base_type[:-1]
+    if len(p) == 4: 
+        p[0] = Node("init_declarator", [p[1], p[2], p[3]])
+        abcd = 0
+        for dtype in p[1].fdtypes:
+            base_type += dtype
+            base_type += " "
+            abcd += 1
+        base_type = base_type[:-1]
+
+    else:  # Case: declarator
+        p[0] = Node("init_declarator", [p[1]])
+        abcd = 0
+        for dtype in datatypeslhs:
+            base_type += dtype
+            base_type += " "
+            abcd += 1
+        base_type = base_type[:-1]
 
     validate_c_datatype(base_type)
 
@@ -969,6 +981,7 @@ def p_init_declarator(p):
                     if struct_entry_type != list_entry_type:
                         raise Exception(f"Type mismatch in {struct_entry_type} with provided {list_entry_type}")
         else:
+            
             if len(p) > 2:
                 if len(p[0].rhs) == 1:
                     deref_count, ref_count, rhs_var = count_deref_ref(p[0].rhs[0])
@@ -992,25 +1005,27 @@ def p_init_declarator(p):
 
     ## other types
     else: 
+        if p[0].isbraces:
+            for rhs_var in p[0].rhs:
+                print(rhs_var)
+                deref_count, ref_count, rhs_var = count_deref_ref(rhs_var)
+                type_ = get_type_from_var(rhs_var, deref_count, ref_count, symtab)
 
-        for rhs_var in p[0].rhs:
-
-            deref_count, ref_count, rhs_var = count_deref_ref(rhs_var)
-            type_ = get_type_from_var(rhs_var, deref_count, ref_count, symtab)
-
-            array_check = base_no_const.lstrip('*')
-
-            if p[0].isbraces:
+                array_check = base_no_const.lstrip('*')
                 if symtab.lookup(rhs_var) is not None and array_check != (symtab.lookup(rhs_var)).type:
                     raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs_var}\n| base_type = {base} |\n| rhs_type = {(symtab.lookup(rhs_var)).type} |")
                 
                 if checkfunc and symtab.lookup(rhs_var) is not None and symtab.lookup(rhs_var).kind == 'function':
                     raise Exception("Can't assign value of function")
                 
-            else:
+        else:
+            if len(p) == 4:
+                print(f"rhs return type = {p[3].return_type}")
+                type_ = p[3].return_type
+                
                 if not (base_no_const.split(" ")[0] == "enum" and type_ == "int"):
                     if check_types(base, type_, True):
-                        raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs_var}\n| base_type = {base} |\n| rhs_type = {type_} |")
+                        raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]}\n| base_type = {base} |\n| rhs_type = {type_} |")
             
     p[0].is_address = False
 
@@ -1039,6 +1054,10 @@ def p_type_specifier(p):
                      | enum_specifier
                      | TYPEDEF_NAME'''
     p[0] = Node("type_specifier", [p[1]])
+    if isinstance(p[1],str):
+        p[0].return_type = p[1]
+    else:
+        p[0].return_type = p[1].return_type
     if not isinstance(p[1],Node):
         p[0].dtypes.append(p[1])
     pass
@@ -1062,7 +1081,6 @@ def p_struct_or_union_specifier(p):
             kind=f"{p[0].dtypes[0]}"
         )
 
-        
         symtab.add_symbol(struct_sym)
 
     else:
@@ -1076,6 +1094,7 @@ def p_struct_or_union(p):
     '''struct_or_union : STRUCT
                       | UNION'''
     p[0] = Node("struct_or_union", [p[1]])
+    p[0].return_type = p[1]
     p[0].dtypes.append(p[1])
     pass
 
@@ -1129,8 +1148,10 @@ def p_specifier_qualifier_list(p):
                                 | type_qualifier '''
     if len(p) == 2:
         p[0] = Node("specifier_qualifier_list", [p[1]])
+        p[0].return_type = p[1].return_type
     else:
         p[0] = Node("specifier_qualifier_list", [p[1], p[2]])
+        p[0].return_type = pretty_type_concat(p[1].return_type, p[2].return_type)
     #neelkumar
     global datatypeslhs
     datatypeslhs=p[0].dtypes
@@ -1230,6 +1251,7 @@ def p_type_qualifier(p):
                      | VOLATILE
                      | ATOMIC'''
     p[0] = Node("type_qualifier", [p[1]])
+    p[0].return_type = p[1]
     p[0].dtypes.append("const")
     p[0].is_const = 1
     pass
@@ -1407,10 +1429,13 @@ def p_pointer(p):
               | TIMES '''
     if len(p) == 4:
         p[0] = Node("pointer", [p[1],p[2],p[3]])
+        p[0].return_type = pretty_type_concat(p[1].return_type, p[2].return_type, p[3].return_type)
     elif len(p) == 2:
         p[0] = Node("pointer", [p[1]])
+        p[0].return_type = "*"
     else:
         p[0] = Node("pointer", [p[1], p[2]])
+        p[0].return_type = pretty_type_concat(p[1], p[2].return_type)
         if "const" in p[0].dtypes:
             p[0].dtypes.remove("const")
     datatypeslhs[0] = '*' + datatypeslhs[0]
@@ -1420,8 +1445,10 @@ def p_type_qualifier_list(p):
                           | type_qualifier_list type_qualifier'''
     if len(p) == 2:
         p[0] = Node("type_qualifier_list", [p[1]])
+        p[0].return_type = p[1].return_type
     else:
         p[0] = Node("type_qualifier_list", [p[1], p[2]])
+        p[0].return_type = pretty_type_concat(p[1].return_type, p[2].return_type)
     pass
 
 # Parameters
@@ -1497,8 +1524,11 @@ def p_type_name(p):
                 | specifier_qualifier_list'''
     if len(p) == 2:
         p[0] = Node("type_name", [p[1]])
+        p[0].return_type = p[1].return_type
     else:
         p[0] = Node("type_name", [p[1], p[2]])
+        p[0].return_type = pretty_type_concat(p[1].return_type, p[2].return_type)
+        print(f"AT TYPE_NAME => {p[0].return_type}")
     p[0].dtypes = []
     pass
 
@@ -1509,8 +1539,10 @@ def p_abstract_declarator(p):
                           | direct_abstract_declarator'''
     if len(p) == 2:
         p[0] = Node("abstract_declarator", [p[1]])
+        p[0].return_type = p[1].return_type
     else:
         p[0] = Node("abstract_declarator", [p[1], p[2]])
+        p[0].return_type = pretty_type_concat(p[1].return_type, p[2].return_type)
     pass
 
 def p_direct_abstract_declarator(p):

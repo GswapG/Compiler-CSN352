@@ -1,3 +1,33 @@
+def pretty_type_concat(*args):
+    print(f"ABOUT TO PERFORM PRETTY PRINT ON {args}")
+    return_type = ""
+    for arg in args:
+        print(arg)
+        if arg is not None and arg != "":
+            if len(return_type) > 0:
+                if return_type[-1] == " ":
+                    return_type += arg
+                else:
+                    if arg == "*":
+                        return_type += arg 
+                    else:
+                        return_type += " " + arg
+            else:
+                return_type += arg
+    print(return_type)
+    ptr_count = return_type.count("*")
+    if return_type.endswith("*" * ptr_count):
+        if ptr_count == 0:
+            return return_type
+        new_type = "*" * ptr_count + return_type[:-ptr_count]
+        print(f"RETURNING THE NEW_TYPE => {new_type}")
+        return new_type
+
+    else:
+        raise Exception(f"wrong pretty_type for {args} parsed as {return_type}")
+    
+    pass
+
 def spaced(word):
     new_word = ""
     for i in range(len(word)):
