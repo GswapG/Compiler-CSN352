@@ -1,3 +1,3 @@
 int func(char x, char y, int z) {
-    int x = 5;
+    // int x = 5;
 } 
