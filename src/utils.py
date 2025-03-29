@@ -138,6 +138,7 @@ def get_type_from_var(var, deref_count, ref_count, symtab, kind_check=None):
         if kind_check is not None and var_.kind not in kind_check:
             raise TypeError("Value can only be assigned to variable/param types!")
 
+    print(f"the type is {type_}")
     # Process dereference operations: remove leading '*' for each '@'
     for _ in range(deref_count):
         if isinstance(type_, str) and type_.startswith('*'):
@@ -154,11 +155,14 @@ def get_type_from_var(var, deref_count, ref_count, symtab, kind_check=None):
 def check_vars_type(vars_list, expected_type, op_name, symtab, allow_int_float=False):
 
     for var in vars_list:
+        print(var)
         d, r, clean_var = count_deref_ref(var)
         type_ = get_type_from_var(clean_var, d, r, symtab)
         # Compare types after stripping any trailing spaces.
         # Additionally, if the variable represents a struct field or is not a function,
         # then ensure the types are compatible.
+
+        print(var, type_)
         if check_types(type_, expected_type, allow_int_float) and (
             (isinstance(clean_var, str) and ' ' in clean_var) or symtab.lookup(clean_var).kind != "function"
         ):
@@ -224,6 +228,9 @@ def argument_param_match(argument_list, func_params):
     argument_ptr = 0
     params_ptr = 0
 
+    print(f"func_params = {func_params}")
+    print(f"argument_list = {argument_list}")
+
     while argument_ptr < len(argument_list) and params_ptr < len(func_params):
         if func_params[params_ptr].type == '...':
             argument_ptr += 1
@@ -282,6 +289,7 @@ def get_label(type):
     type = trim_value(type, "const")
     type = trim_value(type, "unsigned")
     type = trim_value(type, "signed")
+    type = trim_value(type, "static")
     
     types = type.split(' ')
 
@@ -348,10 +356,18 @@ def check_types(type1, type2, allow_int_float=False):
     type1 = trim_value(type1, "const")
     type1 = trim_value(type1, "unsigned")
     type1 = trim_value(type1, "signed")
+    type1 = trim_value(type1, "static")
     
+    if "enum" in type1:
+        type1 = "int"
+
     type2 = trim_value(type2, "const")
     type2 = trim_value(type2, "unsigned")
     type2 = trim_value(type2, "signed")
+    type2 = trim_value(type2, "static")
+
+    if "enum" in type2:
+        type2 = "int"
 
     types1 = type1.split(' ')
     types2 = type2.split(' ')

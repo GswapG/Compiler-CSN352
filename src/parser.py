@@ -227,6 +227,7 @@ def p_postfix_expression(p):
             print(f"The identifier '{field_identifier}' does not exist in the struct {struct_object}")
 
         p[0].vars = [f"{struct_object}.{field_identifier}"]
+        p[0].return_type = symtab.search_struct(struct_object, field_identifier)
 
     if len(p) == 5 and p[2] == "(" and len(p[0].vars) > 0:
         print(p[0].vars)
@@ -244,6 +245,7 @@ def p_postfix_expression(p):
         argument_list = []
 
         argument_param_match(argument_list, func_params)
+        p[0].return_type = p[1].return_type
 
 def p_postfix_expression_error_1(p):
     '''postfix_expression : LPAREN type_name error LBRACE initializer_list RBRACE
@@ -368,6 +370,7 @@ def p_multiplicative_expression(p):
     # Process first operand to get expected type (dtype1)
     dtype1 = None
     if len(p[1].vars) > 0:
+        print(p[1].vars[0])
         d, r, var0 = count_deref_ref(p[1].vars[0])
         dtype1 = get_type_from_var(var0, d, r, symtab)
 
@@ -651,6 +654,7 @@ def p_assignment_expression(p):
                              | unary_expression assignment_operator assignment_expression'''
     if len(p) == 2:  
         p[0] = Node("assignment_expression", [p[1]])
+        
     else:  
         p[0] = Node("assignment_expression", [p[1], p[2], p[3]])
         
@@ -675,8 +679,10 @@ def p_assignment_expression(p):
             validate_assignment(trim_value(lhs_type, "const"), p[2].operator, p[3].vars, symtab, True, False)
 
         p[0].is_address = False
+        
 
     p[0].return_type = p[1].return_type
+    print(p[0].return_type)
 
 def p_assignment_operator(p):
     '''assignment_operator : ASSIGN
@@ -930,7 +936,6 @@ def p_init_declarator(p):
     if len(p) == 4:
         checkfunc = not p[3].iscall
 
-    ## struct or union
     if ("struct" in base_type or "union" in base_type) and not base_type.startswith("*"):
         if p[0].isbraces:
             struct_name = base_type.split(' ')[-1]
@@ -945,7 +950,7 @@ def p_init_declarator(p):
                 struct_entry_type = struct_entry.type
 
                 field_type = get_type_from_var(clean_list_entry, deref_count, ref_count, symtab)
-
+    
                 if check_types(struct_entry_type, field_type, True):
                     raise Exception(f"Type mismatch in {struct_entry_type} with provided {field_type}")
         
@@ -968,9 +973,9 @@ def p_init_declarator(p):
                 deref_count, ref_count, rhs_var = count_deref_ref(rhs_var)
                 type_ = get_type_from_var(rhs_var, deref_count, ref_count, symtab)
 
-                array_check = base_no_const.lstrip('*')
-                if symtab.lookup(rhs_var) is not None and array_check != (symtab.lookup(rhs_var)).type:
-                    raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs_var}\n| base_type = {base} |\n| rhs_type = {(symtab.lookup(rhs_var)).type} |")
+                array_check = base_type.lstrip('*')
+                if symtab.lookup(rhs_var) is not None and check_types(array_check, type_, True):
+                    raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs_var}\n| base_type = {base_type} |\n| rhs_type = {type_} |")
                 
                 if checkfunc and symtab.lookup(rhs_var) is not None and symtab.lookup(rhs_var).kind == 'function':
                     raise Exception("Can't assign value of function")
@@ -982,7 +987,7 @@ def p_init_declarator(p):
                 
                 if not (trim_value(base_type, "const").split(" ")[0] == "enum" and type_ == "int"):
                     if check_types(base_type, type_, True):
-                        raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]}\n| base_type = {base} |\n| rhs_type = {type_} |")
+                        raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]}\n| base_type = {base_type} |\n| rhs_type = {type_} |")
             
     p[0].is_address = False
 
@@ -1823,8 +1828,8 @@ def p_function_definition(p):
         func_name = func_name[:-1]
     b_type = symtab.lookup(func_name).type
 
-    if len(returns) > 1:
-        raise Exception("Multiple Return Types")
+    # if len(returns) > 1:
+    #     raise Exception("Multiple Return Types")
 
     for type in returns:
         if check_types(b_type, type, True):
