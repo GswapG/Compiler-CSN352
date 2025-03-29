@@ -1,9 +1,4 @@
-struct Node {
-    int f;
-    double d;
-};
-
-int main() {
-    int x = 5;
-    struct Node n;
+struct Node factorial(struct Node* A){
+    struct Node m = *A;
+    return m;
 }

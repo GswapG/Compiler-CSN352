@@ -40,11 +40,14 @@ class SymbolEntryNode:
         self.entries = []
         self.scope_level = scope_level
         self.scope_name = scope_name
+        self.size = 0
 
     def add_entry(self, entry):
         if not isinstance(entry, SymbolEntry):
             raise ValueError("Incorrect Use of add_entry method")
         
+        entry.offset = self.size
+        self.size += entry.size
         self.entries.append(entry)
 
     def to_graph(self, graph=None):
@@ -328,7 +331,7 @@ class SymbolTable:
         symbol.size = get_size(symbol, self)
 
         if not symbol.isForwardable:
-            self.current_scope.entries.append(symbol)
+            self.current_scope.add_entry(symbol)
         else:
             for entry in self.parameters:
                 if strict_equal(entry.name, symbol.name):
@@ -342,14 +345,14 @@ class SymbolTable:
             c = 0
             if not isinstance(symbol.name,str) or symbol.name[-1] != '$':
                 
-                entry = SymbolTableEntry(symbol.name, symbol.type, symbol.kind, symbol, symbol.node, self.current_scope_level, self.current_scope_name, size=symbol.size)
+                entry = SymbolTableEntry(symbol.name, symbol.type, symbol.kind, symbol, symbol.node, self.current_scope_level, self.current_scope_name, size=symbol.size, offset=symbol.offset)
                 self.table_entries.append(entry)
             else:
                 while symbol.name[-1] == '$':
                     symbol.name = symbol.name[:-1]
                     c += 1
                 
-                entry = SymbolTableEntry(symbol.name, c* '*' + symbol.type, symbol.kind, symbol, symbol.node, self.current_scope_level, self.current_scope_name,symbol.refsto, size=symbol.size)
+                entry = SymbolTableEntry(symbol.name, c* '*' + symbol.type, symbol.kind, symbol, symbol.node, self.current_scope_level, self.current_scope_name,symbol.refsto, size=symbol.size, offset=symbol.offset)
                 self.table_entries.append(entry)
         
     def lookup(self, name):
@@ -359,7 +362,6 @@ class SymbolTable:
                 if strict_equal(entry.name, name):
                     return entry
             scope_pointer = scope_pointer.parent
-        return None
     
     def search_params(self, name):
         func_entry = None

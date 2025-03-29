@@ -816,7 +816,7 @@ def validate_c_datatype(data_type):
         return True
 
     abcd = symtab.lookup(tokens[0])
-    if(abcd is not None and abcd.type == "struct"):
+    if abcd is not None and abcd.type == "struct":
         return True
     
     # Check for invalid tokens
