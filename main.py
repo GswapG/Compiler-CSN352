@@ -69,8 +69,6 @@ def add_file(filepath):
     with open(filepath, "r") as f:
         file = f.read()
     h = hash(file)
-    print('h:',h)
-    print(hashes)
     if h in hashes:
         return
     hashes.append(h)
@@ -112,9 +110,7 @@ def process_directory(source_dir=testcase_dir):
         raise Exception(f"Error: {source_dir} is not a valid directory.")
     temp_files = []
     for filename in os.listdir(source_dir):
-        print(filename)
         ret = process_file(filename)
-        print(ret)
         temp_files.append(ret)
 
     for temp_file in temp_files:
