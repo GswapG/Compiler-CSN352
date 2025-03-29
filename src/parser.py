@@ -1841,7 +1841,6 @@ def p_declaration_list(p):
     else:
         p[0] = Node("declaration_list", [p[1], p[2]])
 
-current_filename = ""
 lines = ""
 input_text = ""
 
@@ -1874,143 +1873,8 @@ def p_error(p):
     pointer = " " * (col - 1) + "^"
     print(pointer)
     
-def strip_file(file):
-    lines = file.split('\n')
-    new_file = ""
-    for line in lines:
-        new_file += line.strip()
-    return new_file
-
 # Build parser
 parser = yacc.yacc(debug=False)
-# strargv = [str(x) for x in argv]
-
-# testcase_hashes = []
-# stress_testing = './stress_testing/'
-# for filename in sorted(os.listdir(stress_testing)): 
-#     filepath = os.path.join(stress_testing, filename)
-#     if os.path.isfile(filepath):
-#         with open(filepath, 'r') as file:
-#             data = file.read()
-#         current_filename = filepath
-#         input_text = strip_file(data)
-
-#         hash = SHA256.new() 
-#         hash.update(input_text.encode())
-#         input_hash = hash.hexdigest()
-
-#         testcase_hashes.append(input_hash)
-
-# with open(f"./testcasehashes.txt", "w") as f:
-#     for hash in testcase_hashes:
-#         f.write(hash)
-#         f.write("\n")
-
-#     f.close()
-
-# stress_test_file = len(testcase_hashes)
-# testcases_dir = './tests/testing/'
-# if "-d" in strargv or "--directory" in strargv:
-#     position = 1 + (strargv.index("-d") if strargv.index("-d") != -1 else strargv.index("--directory"))
-#     if len(strargv) <= position:
-#         raise Exception("Incorrect use of the flag \"-d\" or \"--directory\". Please specify the directory path following the flag.")
-    
-#     testcases_dir = strargv[position]
-
-# specific_filename = None
-# if "-f" in strargv or "--file" in strargv:
-#     position = 1 + (strargv.index("-f") if strargv.index("-f") != -1 else strargv.index("--file"))
-#     if len(strargv) <= position:
-#         raise Exception("Incorrect use of the flag \"-f\" or \"--file\". Please specify the directory path following the flag.")
-    
-#     specific_filename = strargv[position]
-
-def print_symbol_table(symtab):
-    if not symtab:
-        print("Symbol table is empty")
-        return
-
-    # Calculate column widths
-    max_token = max(len(str(token)) for token, _ in symtab)
-    max_type = max(len(str(type_)) for _, type_ in symtab)
-    max_token = max(max_token, len("Token"))  # Ensure header fits
-    max_type = max(max_type, len("Type"))
-
-    # Define formatting strings
-    border = "+" + "-" * (max_token + 2) + "+" + "-" * (max_type + 2) + "+"
-    row_format = f"| {{:<{max_token}}} | {{:<{max_type}}} |"
-
-    # Print table
-    print(border)
-    print(row_format.format("Token", "Type"))
-    print(border)
-    for token, type_ in symtab:
-        print(row_format.format(str(token), str(type_)))
-    print(border)
-
-# Iterate over all files in the directory
-# i = 1
-# for filename in sorted(os.listdir(testcases_dir)): 
-#     if specific_filename is not None:
-#         if filename != specific_filename:
-#             continue
-
-#     filepath = os.path.join(testcases_dir, filename)
-#     if os.path.isfile(filepath):
-#         with open(filepath, 'r') as file:
-#             data = file.read()
-#         print(f"Parsing file: {filepath}")
-#         current_filename = filepath
-#         input_text = strip_file(data)
-
-#         lines = data.split('\n')
-#         new_file = ""
-#         for line in lines:
-#             new_file += line.strip()
-
-
-#         hash = SHA256.new() 
-#         hash.update(input_text.encode())
-#         input_hash = hash.hexdigest()
-
-#         root = parser.parse(data)
-#         print("Final Symbol Table:\n")
-#         print(symtab)
-#         print("\n")
-
-#         if input_hash not in testcase_hashes:
-#             testcase_hashes.append(input_hash)
-
-#             with open(f"{stress_testing}{uuid.uuid4()}.c", "w") as f:
-#                 f.write(data)
-#                 f.close()
-
-#             with open(f"./testcasehashes.txt", "a") as f:
-#                 f.write(input_hash)
-#                 f.write("\n")
-#                 f.close()
-            
-#             stress_test_file += 1
-
-#         if len(argv) > 1:
-#             if "-g" in strargv or "--graph" in strargv:
-#                 graph = root.to_graph()
-#                 graph.render(f'renderedTrees/{filename+""}', format='png')
-#                 print(f"Parse tree saved as renderedTrees/{filename}.png")
-#                 graph = symtab.to_graph()
-#                 graph.render(f'renderedSymbolTables/{filename}', format='png', cleanup=True)
-#                 print(f"Symbol table tree saved as renderedSymbolTables/{filename}.png")
-
-#         # parseTree_to_3AC(root,symtab)
-#         i += 1
-
-#         symtab.clear()
-
-#     symbol_table.clear()
-#     typedef_names.clear()
-#     lines = ""  
-#     lexer.lineno = 0
-
 
 def parseFile(filename, ogfilename, treedir, symtabdir,graphgen=False):
     with open(filename, 'r') as file:

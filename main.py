@@ -69,6 +69,8 @@ def add_file(filepath):
     with open(filepath, "r") as f:
         file = f.read()
     h = hash(file)
+    print('h:',h)
+    print(hashes)
     if h in hashes:
         return
     hashes.append(h)
@@ -99,6 +101,7 @@ def process_directory(source_dir=testcase_dir):
     For all .c files in source_dir, run preprocessor on them to create a temp file and pass it onto the parser.
     """
     # Check if specific file is to be parsed
+    calc_and_dump_hashes()
     if specific_filename is not None:
         if not os.path.exists(specific_filename):
             raise Exception(f"Error: {specific_filename} does not exist. Make sure the path is correct!!")
@@ -107,7 +110,6 @@ def process_directory(source_dir=testcase_dir):
         return
     if not os.path.isdir(source_dir):
         raise Exception(f"Error: {source_dir} is not a valid directory.")
-    calc_and_dump_hashes()
     temp_files = []
     for filename in os.listdir(source_dir):
         print(filename)
