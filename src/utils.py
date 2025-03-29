@@ -388,23 +388,37 @@ def dominating_type(type1, type2):
     types1 = type1.split(' ')
     types2 = type2.split(' ')
 
-    allowed_int = ['signed', 'unsigned', 'short', 'long', 'int', 'char']
-    # allowed_double = ['signed', 'unsigned', 'float', 'double']
-    
-    label1 = None
-    label2 = None
-
     if "double" in types1 and "double" in types2:
         return True
+    
     else:
         if "double" not in types1 and "double" not in types2:
             if "float" in types1 and "float" in types2:
                 return True
             else:
                 if "float" not in types1 and "float" not in types2:
-                    if "float" in types1 and "float" in types2:
+                    if "int" in types1 and "int" in types2:
                         return True
-
+                    else:
+                        if "int" not in types1 and "int" not in types2:
+                            if "short" in types1 and "short" in types2:
+                                return True
+                            else:
+                                if "short" not in types1 and "short" not in types2:
+                                    if "char" in types1 and "char" in types2:
+                                        return True
+                                    else:
+                                        raise Exception(f"Unexpected types received {types1} {types2}")
+                                else:
+                                    if "short" in types1:
+                                        return True
+                                    else:
+                                        return False
+                        else:
+                            if "int" in types1:
+                                return True
+                            else:
+                                return False
                 else:
                     if "float" in types1:
                         return True

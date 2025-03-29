@@ -1,17 +1,10 @@
 import ply.yacc as yacc
 import os
-from .tokens import tokens  # Assuming you have a matching lexer
-from sys import argv
 from ply import yacc
 from .utils import *
 from .lexer import *
 from .tree import *
 from .symtab_new import *
-# from ir_codegen import parseTree_to_3AC
-
-## pip3 install pycryptodome 
-from Crypto.Hash import SHA256
-import uuid
 
 datatypeslhs=[]
 returns = set()
@@ -26,13 +19,13 @@ def table_entry(node):
     for var in node.vars:
         stars = ""
         consts = ""
-        while(isinstance(var,str) and var[-1]=='$'):
+        while isinstance(var, str) and var[-1] == '$':
             stars += "*"
             var = var[:-1]
-        while(isinstance(var,str) and var[0]=='#'):
+        while isinstance(var, str) and var[0] == '#':
             consts += " const"
             var = var[1:]
-        symbol_table.append((var,compound_dtype+stars+consts))
+        symbol_table.append((var, compound_dtype + stars + consts))
     if compound_dtype.split(" ")[0] == "typedef":
         for var in node.vars:
             typedef_names.add(str(var))
@@ -59,8 +52,10 @@ def p_primary_expression(p):
                           | generic_selection'''
     if len(p) == 2:
         p[0] = Node("primary_expression", [p[1]])
+        
     elif len(p) == 4:
         p[0] = Node("primary_expression", [p[2]])
+        p[0].return_type = p[2].return_type
 
 def p_primary_expression_identifier(p):
     '''primary_expression : IDENTIFIER'''
@@ -68,7 +63,6 @@ def p_primary_expression_identifier(p):
     p[0] = Node("primary_expression", [p[1]])
     p[0].vars.append(str(p[1]))
     c1 = 0
-    c2 = 0
     cpy = p[1]
     
     while isinstance(cpy, str) and cpy[0] == '@':
@@ -76,7 +70,7 @@ def p_primary_expression_identifier(p):
         cpy = cpy[1:]
 
     check = symtab.lookup(cpy)
-    if check != None:
+    if check is not None:
         p[0].dtypes = check.type
         p[0].return_type = check.type
 
@@ -85,40 +79,29 @@ def p_primary_expression_error(p):
 
     print("Error: Missing ')' Paranthesis")
 
-
 def p_constant(p):
     '''constant : I_CONSTANT
                 | F_CONSTANT
                 | CHAR_CONSTANT
                 | enumeration_constant'''
-    p[0] = Node("constant", [p[1]])  # Include the constant value
+    
+    p[0] = Node("constant", [p[1]])
     token_type = p.slice[1].type
-    if token_type == "I_CONSTANT":
-        var_sym = SymbolEntry(
-                name=str(p[1]),
-                type="int",
-                kind="constant"
-            )
-        symtab.add_symbol(var_sym)
-        p[0].return_type = 'int'
-    elif token_type == "F_CONSTANT":
-        var_sym = SymbolEntry(
-                name=str(p[1]),
-                type="float",
-                kind="constant"
-            )
-        symtab.add_symbol(var_sym)
-        p[0].return_type = 'float'
-    elif token_type == "CHAR_CONSTANT":
-        var_sym = SymbolEntry(
-                name=str(p[1]),
-                type="char",
-                kind="constant"
-            )
-        symtab.add_symbol(var_sym)
-        p[0].return_type = 'char'
-    p[0].vars.append(str(p[1]))
 
+    type_map = {
+        "I_CONSTANT": "int",
+        "F_CONSTANT": "float",
+        "CHAR_CONSTANT": "char"
+    }
+
+    if token_type in type_map:
+        constant_type = type_map[token_type]
+        var_sym = SymbolEntry(str(p[1]), constant_type, "constant")
+        symtab.add_symbol(var_sym)
+
+        p[0].return_type = constant_type
+
+    p[0].vars.append(str(p[1]))
 
 def p_enumeration_constant(p):
     '''enumeration_constant : IDENTIFIER'''
@@ -126,24 +109,19 @@ def p_enumeration_constant(p):
     p[0] = Node("enumeration_constant", [p[1]])
     symbol_table.append((p[1] , "int"))
 
-    var_sym = SymbolEntry(
-                name=str(p[1]),
-                type="int",
-                kind="enumerator"
-            )
+    var_sym = SymbolEntry(str(p[1]), "int", "enumerator")
     symtab.add_symbol(var_sym)
+
+    p[0].return_type = "int"
 
 def p_string(p):
     '''string : STRING_LITERAL'''
     p[0] = Node("string", [p[1]])
-    symtab.add_symbol(SymbolEntry(
-        name=str(p[1]),
-        type='*char',
-        kind='constant'
-    ))
+    string_sym = SymbolEntry(str(p[1]), type='*char', kind='constant')
+    symtab.add_symbol(string_sym)
 
     p[0].vars.append(p[1])
-    p[0].return_type = '*char'
+    p[0].return_type = "*char"
 
 def p_generic_selection(p):
     '''generic_selection : GENERIC LPAREN assignment_expression COMMA generic_assoc_list RPAREN '''
@@ -181,6 +159,7 @@ def p_postfix_expression(p):
                          | LPAREN type_name RPAREN LBRACE initializer_list COMMA RBRACE '''
     if len(p) == 2:
         p[0] = Node("postfix_expression", [p[1]])
+
     if len(p) == 3:
         p[0] = Node("postfix_expression", [p[1],p[2]])
 
@@ -198,7 +177,6 @@ def p_postfix_expression(p):
     elif len(p) == 4:
         p[0] = Node("postfix_expression", [p[1]])
         p[0].iscall = 1
-        #here
 
     elif len(p) == 5:
         if p[2] == '[':
@@ -215,6 +193,7 @@ def p_postfix_expression(p):
 
     elif len(p) == 7:
         p[0] = Node("postfix_expression", [p[2], p[5]])
+
     elif len(p) == 8:
         p[0] = Node("postfix_expression", [p[2], p[5]])
 
@@ -259,7 +238,6 @@ def p_postfix_expression_error_2(p):
     
     print("Error: Missing '}' Brace")
 
-
 def p_argument_expression_list(p):
     '''argument_expression_list : assignment_expression
                                | argument_expression_list COMMA assignment_expression'''
@@ -270,8 +248,6 @@ def p_argument_expression_list(p):
         p[0] = Node("argument_expression_list", [p[1], p[3]])
         p[0].param_list = p[1].param_list
         p[0].param_list.append(p[3].return_type)
-
-    print(f"parameter_list = {p[0].param_list}")
 
 # Unary expressions
 def p_unary_expression(p):
@@ -319,6 +295,9 @@ def p_unary_expression(p):
 
     elif len(p) == 5:
         p[0] = Node("unary_expression", [p[1], p[3]])
+        
+    if p[1] == "sizeof" or p[1] == "alignof":
+        p[0].return_type = "int"
 
 def p_unary_expression_error(p):
     '''unary_expression : SIZEOF LPAREN type_name error
@@ -380,7 +359,6 @@ def p_multiplicative_expression(p):
             if get_label(p[1].return_type) == "float" or get_label(p[3].return_type) == "float":
                 raise ValueError(f"Floating type expressions incompatible with mod operation")
 
-    # Additional function call validation:
     func_id = 0
     for v in p[0].vars:
         if symtab.lookup(v) is not None and symtab.lookup(v).kind == 'function':
@@ -390,6 +368,9 @@ def p_multiplicative_expression(p):
         raise Exception("Invalid Function Call")
     
     if len(p) == 4:
+        if "*" in p[1].return_type or "*" in p[3].return_type:
+            raise Exception(f"Invalid Operands of type {p[1].return_type} and {p[3].return_type} to the operator *")
+
         if dominating_type(p[1].return_type, p[3].return_type):
             p[0].return_type = p[1].return_type
         else:
@@ -412,16 +393,17 @@ def p_additive_expression(p):
         d, r, var0 = count_deref_ref(p[1].vars[0])
         dtype1 = get_type_from_var(var0, d, r, symtab)
 
-    # Check that each variable in the first operand has the expected type
-    # check_vars_type(p[1].vars, dtype1, "addition", symtab, True)
-
     if len(p) == 4:
         check_vars_type(p[3].vars, dtype1, p[2], symtab, True)
+
+        if "*" in p[1].return_type or "*" in p[3].return_type:
+            raise Exception(f"Invalid Operands of type {p[1].return_type} and {p[3].return_type} to the operator +")
 
         if dominating_type(p[1].return_type, p[3].return_type):
             p[0].return_type = p[1].return_type
         else:
             p[0].return_type = p[3].return_type
+
     p[0].return_type = p[1].return_type
     
 def p_shift_expression(p):
@@ -982,6 +964,7 @@ def p_init_declarator(p):
         else:
             if len(p) == 4:
                 type_ = p[3].return_type
+                print(base_type, type_)
                 
                 if not (trim_value(base_type, "const").split(" ")[0] == "enum" and type_ == "int"):
                     if check_types(base_type, type_, True):
