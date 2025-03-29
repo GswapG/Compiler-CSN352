@@ -202,16 +202,17 @@ def p_postfix_expression(p):
 
     elif len(p) == 5:
         if p[2] == '[':
-            for i in range(0,len(p[1].vars)):
-                p[1].vars[i] = '@' + p[1].vars[i]
-            # if p[1].return_type is not None:
-            #     if p[1].return_type[0] == '*':
-            #         p[0].return_type = p[1].return_type[1:]
-            #     else:
-            #         raise Exception("invalid deref")
+            print(p[1].vars)
+            p[1].vars[0] = '@' + p[1].vars[0]
+
+            d, r, clean_var = count_deref_ref(p[1].vars[0])
+            p[1].return_type = get_type_from_var(clean_var, d, r, symtab)
+
         p[0] = Node("postfix_expression", [p[1], p[3]])
         if p[2] == '(':
             p[0].iscall = 1
+
+        p[0].return_type = p[1].return_type
 
     elif len(p) == 7:
         p[0] = Node("postfix_expression", [p[2], p[5]])
