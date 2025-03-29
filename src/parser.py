@@ -202,7 +202,6 @@ def p_postfix_expression(p):
 
     elif len(p) == 5:
         if p[2] == '[':
-            print(p[1].vars)
             p[1].vars[0] = '@' + p[1].vars[0]
 
             d, r, clean_var = count_deref_ref(p[1].vars[0])
@@ -220,7 +219,6 @@ def p_postfix_expression(p):
         p[0] = Node("postfix_expression", [p[2], p[5]])
 
     if len(p) == 4 and p[2] == ".":
-        print(p[0].vars[0], p[1], p[2], p[3])
         field_identifier = p[3]
         struct_object = p[0].vars[0]
 
@@ -231,7 +229,6 @@ def p_postfix_expression(p):
         p[0].return_type = symtab.search_struct(struct_object, field_identifier)
 
     if len(p) == 5 and p[2] == "(" and len(p[0].vars) > 0:
-        print(p[0].vars)
 
         func_params = symtab.search_params(p[0].vars[0])
         argument_list = p[3].param_list
@@ -348,7 +345,6 @@ def p_cast_expression(p):
         p[0].return_type = p[1].return_type
     else:
         p[0] = Node("cast_expression", [p[2], p[4]])
-        print(f"cast expression => {p[2].return_type}")
         p[0].return_type = p[2].return_type
 
 def p_cast_expression_error(p):
@@ -371,12 +367,11 @@ def p_multiplicative_expression(p):
     # Process first operand to get expected type (dtype1)
     dtype1 = None
     if len(p[1].vars) > 0:
-        print(p[1].vars[0])
         d, r, var0 = count_deref_ref(p[1].vars[0])
         dtype1 = get_type_from_var(var0, d, r, symtab)
 
     # Check that each variable in the first operand has the expected type
-    check_vars_type(p[1].vars, dtype1, "multiplicative", symtab, True)
+    # check_vars_type(p[1].vars, dtype1, "multiplicative", symtab, True)
 
     if len(p) == 4:
         check_vars_type(p[3].vars, dtype1, p[2], symtab, True)
@@ -418,7 +413,7 @@ def p_additive_expression(p):
         dtype1 = get_type_from_var(var0, d, r, symtab)
 
     # Check that each variable in the first operand has the expected type
-    check_vars_type(p[1].vars, dtype1, "addition", symtab, True)
+    # check_vars_type(p[1].vars, dtype1, "addition", symtab, True)
 
     if len(p) == 4:
         check_vars_type(p[3].vars, dtype1, p[2], symtab, True)
@@ -659,7 +654,6 @@ def p_assignment_expression(p):
     else:  
         p[0] = Node("assignment_expression", [p[1], p[2], p[3]])
         
-        print(p[0].vars)
         lhs = p[0].vars[0]
 
         d, r, clean_lhs = count_deref_ref(lhs)
@@ -676,14 +670,12 @@ def p_assignment_expression(p):
             p[2].operator == "|="):
             validate_assignment(trim_value(lhs_type, "const"), p[2].operator, p[3].vars, symtab, False, True)
 
-        else:
-            validate_assignment(trim_value(lhs_type, "const"), p[2].operator, p[3].vars, symtab, True, False)
+        # else:
+        #     validate_assignment(trim_value(lhs_type, "const"), p[2].operator, p[3].vars, symtab, True, False)
 
         p[0].is_address = False
         
-
     p[0].return_type = p[1].return_type
-    print(p[0].return_type)
 
 def p_assignment_operator(p):
     '''assignment_operator : ASSIGN
@@ -977,7 +969,6 @@ def p_init_declarator(p):
     else: 
         if p[0].isbraces:
             for rhs_var in p[0].rhs:
-                print(rhs_var)
                 deref_count, ref_count, rhs_var = count_deref_ref(rhs_var)
                 type_ = get_type_from_var(rhs_var, deref_count, ref_count, symtab)
 
@@ -990,7 +981,6 @@ def p_init_declarator(p):
                 
         else:
             if len(p) == 4:
-                print(f"rhs return type = {p[3].return_type}")
                 type_ = p[3].return_type
                 
                 if not (trim_value(base_type, "const").split(" ")[0] == "enum" and type_ == "int"):
@@ -1467,8 +1457,6 @@ def p_parameter_declaration(p):
                 kind="parameter",
                 isForwardable=True
             )
-            print("hi")
-            print(param_sym.name)
             symtab.add_symbol(param_sym)   
 
             ## if you dont do this it forwards this up and in init_declarator you end up adding all the params again to global scope 
@@ -1495,7 +1483,6 @@ def p_type_name(p):
     else:
         p[0] = Node("type_name", [p[1], p[2]])
         p[0].return_type = pretty_type_concat(p[1].return_type, p[2].return_type)
-        print(f"AT TYPE_NAME => {p[0].return_type}")
     p[0].dtypes = []
     pass
 
@@ -1793,7 +1780,6 @@ def p_jump_statement(p):
     elif len(p) == 4:
         p[0] = Node("jump_statement", [p[1], p[2]])
         if p[1] == 'return':
-            print(f"return type jump {p[2].return_type}")
             returns.add(p[2].return_type)
 
 

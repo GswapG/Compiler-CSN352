@@ -1,8 +1,6 @@
 def pretty_type_concat(*args):
-    print(f"ABOUT TO PERFORM PRETTY PRINT ON {args}")
     return_type = ""
     for arg in args:
-        print(arg)
         if arg is not None and arg != "":
             if len(return_type) > 0:
                 if return_type[-1] == " ":
@@ -14,13 +12,11 @@ def pretty_type_concat(*args):
                         return_type += " " + arg
             else:
                 return_type += arg
-    print(return_type)
     ptr_count = return_type.count("*")
     if return_type.endswith("*" * ptr_count):
         if ptr_count == 0:
             return return_type
         new_type = "*" * ptr_count + return_type[:-ptr_count]
-        print(f"RETURNING THE NEW_TYPE => {new_type}")
         return new_type
 
     else:
@@ -138,7 +134,6 @@ def get_type_from_var(var, deref_count, ref_count, symtab, kind_check=None):
         if kind_check is not None and var_.kind not in kind_check:
             raise TypeError("Value can only be assigned to variable/param types!")
 
-    print(f"the type is {type_}")
     # Process dereference operations: remove leading '*' for each '@'
     for _ in range(deref_count):
         if isinstance(type_, str) and type_.startswith('*'):
@@ -155,14 +150,12 @@ def get_type_from_var(var, deref_count, ref_count, symtab, kind_check=None):
 def check_vars_type(vars_list, expected_type, op_name, symtab, allow_int_float=False):
 
     for var in vars_list:
-        print(var)
         d, r, clean_var = count_deref_ref(var)
         type_ = get_type_from_var(clean_var, d, r, symtab)
         # Compare types after stripping any trailing spaces.
         # Additionally, if the variable represents a struct field or is not a function,
         # then ensure the types are compatible.
 
-        print(var, type_)
         if check_types(type_, expected_type, allow_int_float) and (
             (isinstance(clean_var, str) and ' ' in clean_var) or symtab.lookup(clean_var).kind != "function"
         ):
@@ -227,9 +220,6 @@ def validate_assignment(lhs_effective_type, operator, rhs_vars, symtab, allow_in
 def argument_param_match(argument_list, func_params):
     argument_ptr = 0
     params_ptr = 0
-
-    print(f"func_params = {func_params}")
-    print(f"argument_list = {argument_list}")
 
     while argument_ptr < len(argument_list) and params_ptr < len(func_params):
         if func_params[params_ptr].type == '...':

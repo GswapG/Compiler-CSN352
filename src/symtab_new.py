@@ -179,6 +179,13 @@ class SymbolTable:
         if not isinstance(symbol, SymbolEntry):
             raise ValueError("Incorrect type of object")
         
+        if isinstance(symbol.name, str) and symbol.name[-1] == '$':
+            c = 0
+            while symbol.name[-1] == '$':
+                c+=1
+                symbol.name = symbol.name[:-1]
+            symbol.type = c*'*' + symbol.type
+        
         if symbol.kind != "function":
             if "void" in (symbol.type).split(" "):
                 raise ValueError("void type is not allowed for variables")
@@ -186,11 +193,9 @@ class SymbolTable:
         isDefinition = False
         definitionScope = None
         definitionSymbol = None
-        print(f"adding {symbol.name}")
 
         for entry in self.current_scope.entries:
             if strict_equal(entry.name, symbol.name):
-                print(entry.name, entry.type)
                 if entry.kind != "constant":
                     if entry.kind == "function":
                         if not entry.isFunctionDefinition:
@@ -206,13 +211,6 @@ class SymbolTable:
                 else:
                     return
 
-        if isinstance(symbol.name, str) and symbol.name[-1] == '$':
-            c = 0
-            while symbol.name[-1] == '$':
-                c+=1
-                symbol.name = symbol.name[:-1]
-            symbol.type = c*'*' + symbol.type
-
         symbol.node = self.current_scope
         symbol.isFunctionDefinition = True
         
@@ -222,15 +220,12 @@ class SymbolTable:
         if not isDefinition:
             c = 0
             if not isinstance(symbol.name,str) or  symbol.name[-1] != '$':
-                print(f"function_Def => {symbol.name}")
                 entry = SymbolTableEntry(symbol.name, symbol.type, symbol.kind, symbol, symbol.node, self.current_scope_level, self.current_scope_name)
                 self.table_entries.append(entry)
             else:
                 while symbol.name[-1] == '$':
                     symbol.name = symbol.name[:-1]
                     c += 1
-                # print(symbol.name)
-                print(f"function_Def => {symbol.name}")
                 entry = SymbolTableEntry(symbol.name, c * '*' + symbol.type, symbol.kind, symbol, symbol.node, self.current_scope_level, self.current_scope_name,symbol.refsto)
                 self.table_entries.append(entry)
 
@@ -242,7 +237,6 @@ class SymbolTable:
                 child_scope.entries.append(new_entry)
 
                 # Add to table_entries if not forwardable anymore
-                print(f"add parameters to function scope => {new_entry.name}")
                 new_entry = SymbolTableEntry(new_entry.name, new_entry.type, new_entry.kind, new_entry, new_entry.node, new_entry.node.scope_level, new_entry.node.scope_name)
                 if not isDefinition:
                     self.table_entries.append(new_entry)
@@ -298,13 +292,19 @@ class SymbolTable:
         if not isinstance(symbol, SymbolEntry):
             raise ValueError("Incorrect type of object")
         
+        if isinstance(symbol.name,str) and symbol.name[-1] == '$':
+            c = 0
+            while symbol.name[-1] == '$':
+                c+=1
+                symbol.name = symbol.name[:-1]
+            symbol.type = c*'*' + symbol.type
+        
         if symbol.kind != "function":
             if "void" in (symbol.type).split(" "):
                 raise ValueError("void type is not allowed for variables")
 
         for entry in self.current_scope.entries:
             if strict_equal(entry.name, symbol.name):
-                # print(entry.type)
                 if entry.kind != "constant":
                     raise ValueError(f"Duplicate symbol '{symbol.name}' in scope {self.current_scope_name}")
                 else:
@@ -320,12 +320,6 @@ class SymbolTable:
             symbol.child = self.the_child
             self.the_child = None 
 
-        if isinstance(symbol.name,str) and symbol.name[-1] == '$':
-            c = 0
-            while symbol.name[-1] == '$':
-                c+=1
-                symbol.name = symbol.name[:-1]
-            symbol.type = c*'*' + symbol.type
         symbol.node = self.current_scope
 
         if not symbol.isForwardable:
@@ -342,15 +336,14 @@ class SymbolTable:
         if not symbol.isForwardable:
             c = 0
             if not isinstance(symbol.name,str) or symbol.name[-1] != '$':
-                print(f"add symbol => {symbol.name}, {symbol.type}")
+                
                 entry = SymbolTableEntry(symbol.name, symbol.type, symbol.kind, symbol, symbol.node, self.current_scope_level, self.current_scope_name)
                 self.table_entries.append(entry)
             else:
                 while symbol.name[-1] == '$':
                     symbol.name = symbol.name[:-1]
                     c += 1
-                # print(symbol.name)
-                print(f"add symbol => {symbol.name}, {symbol.type}")
+                
                 entry = SymbolTableEntry(symbol.name, c* '*' + symbol.type, symbol.kind, symbol, symbol.node, self.current_scope_level, self.current_scope_name,symbol.refsto)
                 self.table_entries.append(entry)
         

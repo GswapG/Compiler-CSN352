@@ -63,9 +63,7 @@ class Preprocessor:
 
     def _handle_include(self, line, output, current_dir):
         line, line_num = line
-        print("hello")
         match = re.search(r'#include\s+[<"](.+?)[>"]', line)
-        print("hello")
         if not match:
             return
         

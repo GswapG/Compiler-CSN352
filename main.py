@@ -86,10 +86,10 @@ def process_file(filename,source_dir=testcase_dir):
     with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.c') as temp_file:
         preprocess(input_path, temp_file.name)
         print(f"Preprocessed: {filename} -> {temp_file.name}")
-    print('hi')
+
     # Pass the temporary file to the parser.
     parseFile(temp_file.name,filename,TREE_PATH,SYMBOL_TABLE_PATH,graphgen)
-    print('hi')
+
     add_file(input_path)
     return temp_file.name
     
@@ -113,7 +113,6 @@ def process_directory(source_dir=testcase_dir):
         temp_files.append(ret)
 
     for temp_file in temp_files:
-        print(type(temp_file))
         if os.path.exists(temp_file):
             os.remove(temp_file)
     with open(HASH_FILE, 'wb') as file:
