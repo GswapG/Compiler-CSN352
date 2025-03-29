@@ -936,7 +936,14 @@ def p_init_declarator(p):
     if len(p) == 4:
         checkfunc = not p[3].iscall
 
-    if ("struct" in base_type or "union" in base_type) and not base_type.startswith("*"):
+    if p[0].vars[0][-1] == "$":
+        base_type = "*" + base_type
+
+    if ((("struct" in base_type or "union" in base_type) or
+            (symtab.lookup(base_type.split(' ')[-1]) is not None and 
+            ("struct" in symtab.lookup(base_type.split(' ')[-1]).type or 
+             "union" in symtab.lookup(base_type.split(' ')[-1]).type))) and
+        not base_type.startswith("*")):
         if p[0].isbraces:
             struct_name = base_type.split(' ')[-1]
             struct_scope = symtab.lookup(struct_name).child
@@ -975,7 +982,7 @@ def p_init_declarator(p):
 
                 array_check = base_type.lstrip('*')
                 if symtab.lookup(rhs_var) is not None and check_types(array_check, type_, True):
-                    raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs_var}\n| base_type = {base_type} |\n| rhs_type = {type_} |")
+                    raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs_var}\n| base_type = {array_check} |\n| rhs_type = {type_} |")
                 
                 if checkfunc and symtab.lookup(rhs_var) is not None and symtab.lookup(rhs_var).kind == 'function':
                     raise Exception("Can't assign value of function")

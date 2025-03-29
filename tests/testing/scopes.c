@@ -1,38 +1,7 @@
 #include <stdio.h>
 
-/* Define a simple struct with typedef */
-struct Point {
-    int x;
-    int y;
-};
-
-/* Define a struct that uses a nested struct */
-struct Rectangle {
-    struct Point topLeft;
-    struct Point bottomRight;
-};
-
-/* A function that takes a struct as a parameter and returns its area */
-int area(struct Rectangle rect) {
-    int width = rect.bottomRight.x - rect.topLeft.x;
-    int height = rect.bottomRight.y - rect.topLeft.y;
-    return width * height;
-}
-
-int main(void) {
-    /* Initialize Points using aggregate initialization */
-    struct Point p1 = {10, 20};
-    struct Point p2 = {30, 40};
-
-    /* Initialize a Rectangle struct using the above Points */
-    struct Rectangle rect = {p1, p2};
-
-    /* Print the points and the rectangle area */
-    printf("Point p1: (%d, %d)\n", p1.x, p1.y);
-    printf("Point p2: (%d, %d)\n", p2.x, p2.y);
-    printf("Rectangle top left: (%d, %d), bottom right: (%d, %d)\n",
-           rect.topLeft.x, rect.topLeft.y, rect.bottomRight.x, rect.bottomRight.y);
-    printf("Area of rectangle: %d\n", area(rect));
-
+int main() {
+    int arr[5][2] = {{10,1}, {20,2}, {30,3}, {40,4}, {50,5}};
+    int a = arr[1][1];
     return 0;
 }
