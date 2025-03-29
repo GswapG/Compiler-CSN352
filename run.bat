@@ -1,6 +1,6 @@
 @echo off
 setlocal EnableDelayedExpansion
-set VERSION=1.2.82
+set VERSION=1.3.198
 set INTERPRETER=python
 
 :: Check if -h or --help is passed
@@ -20,7 +20,7 @@ for %%A in (%*) do (
 )
 
 :: Run the script with the selected interpreter
-%INTERPRETER% src\parser.py !ARGS!
+%INTERPRETER% main.py !ARGS!
 exit /b
 
 :help

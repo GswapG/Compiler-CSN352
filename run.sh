@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION="1.2.82"
+VERSION="1.3.198"
 INTERPRETER="python3"
 
 # Function to install Graphviz based on OS
@@ -69,7 +69,7 @@ fi
 
 # Check if -v or --version is passed
 if [[ " ${ARGS[*]} " =~ " -v " || " ${ARGS[*]} " =~ " --version " ]]; then
-    echo "parser.py version $VERSION"
+    echo "Compiler version $VERSION"
     exit 0
 fi
 
@@ -89,4 +89,4 @@ if [[ " ${ARGS[*]} " =~ " -g " || " ${ARGS[*]} " =~ " --graph " ]]; then
 fi
 
 # Run the script with the selected interpreter
-$INTERPRETER src/parser.py "${ARGS[@]}"
+$INTERPRETER main.py "${ARGS[@]}"

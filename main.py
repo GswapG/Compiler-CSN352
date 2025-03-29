@@ -100,7 +100,10 @@ def process_directory(source_dir=testcase_dir):
     """
     # Check if specific file is to be parsed
     if specific_filename is not None:
-        process_file(specific_filename)
+        if not os.path.exists(specific_filename):
+            raise Exception(f"Error: {specific_filename} does not exist. Make sure the path is correct!!")
+        directory, filename = os.path.split(specific_filename)
+        process_file(filename,directory)
         return
     if not os.path.isdir(source_dir):
         raise Exception(f"Error: {source_dir} is not a valid directory.")
