@@ -111,18 +111,32 @@ def validate_relational_operands(left_vars, right_vars, symtab, allow_int_float)
             if check_types(left_type, right_type, allow_int_float):
                 raise ValueError(f"Incompatible relational op with '{clean_var}' and '{clean_var2}'")
 
-def get_type_from_var(var, deref_count, ref_count, symtab):
-
-    if isinstance(var, str) and ' ' in var:
+def get_type_from_var(var, deref_count, ref_count, symtab, kind_check=None):
+    if isinstance(var, str) and '.' in var:
         # struct member: "structName identifier"
-        name, _, identifier = var.split(' ')
-        entry = symtab.search_struct(name, identifier)
-        if entry is None:
-            raise Exception(f"identifier |{identifier}| does not exist in the struct |{name}|")
+        if symtab.lookup(var) is not None:
+            var_ = symtab.lookup(var)
+            type_ = var_.type
+
+            if kind_check is not None and var_.kind not in kind_check:
+                raise TypeError("Value can only be assigned to variable/param types!")
         
-        type_ = entry.type
+        else:
+            struct_scope, identifier = var.rsplit(".", 1)
+            entry_type = symtab.search_struct(struct_scope, identifier)
+            if entry_type is None:
+                raise Exception(f"identifier |{identifier}| does not exist in the struct |{struct_scope}|")
+            
+            type_ = entry_type
     else:
-        type_ = symtab.lookup(var).type
+        if symtab.lookup(var) is None:
+            raise Exception(f"{var} does not exist in the scope")
+        
+        var_ = symtab.lookup(var)
+        type_ = var_.type
+
+        if kind_check is not None and var_.kind not in kind_check:
+            raise TypeError("Value can only be assigned to variable/param types!")
 
     # Process dereference operations: remove leading '*' for each '@'
     for _ in range(deref_count):
@@ -136,7 +150,6 @@ def get_type_from_var(var, deref_count, ref_count, symtab):
         if isinstance(type_, str):
             type_ = "*" + type_
     return type_
-
 
 def check_vars_type(vars_list, expected_type, op_name, symtab, allow_int_float=False):
 
@@ -173,26 +186,12 @@ def lookup_symbol(var, symtab):
             raise ValueError(f"No symbol '{data}' in the symbol table")
         return entry
 
-def process_deref_ref(var):
-    deref_count = 0
-    ref_count = 0
-    while isinstance(var, str) and var:
-        if var[0] == '@':
-            deref_count += 1
-            var = var[1:]
-        elif var[0] == '!':
-            ref_count += 1
-            var = var[1:]
-        else:
-            break
-    return deref_count, ref_count, var
-
-def effective_type(entry, deref_count, ref_count, remove_const=False):
+def effective_type(entry_type, deref_count, ref_count, remove_const=False):
     # Remove "const " from the type for assignment checking, if present.
     if remove_const:
-        base_type = trim_value(entry.type, "const")
+        base_type = trim_value(entry_type, "const")
     else:
-        base_type = entry.type
+        base_type = entry_type
 
     # Apply dereference operations: remove one level of pointer per '@'
     for _ in range(deref_count):
@@ -206,23 +205,16 @@ def effective_type(entry, deref_count, ref_count, remove_const=False):
             base_type = "*" + base_type
     return base_type
 
-def validate_assignment(lhs_entry, lhs_effective_type, operator, rhs_vars, symtab, allow_int_float=False, no_float=False):
+def validate_assignment(lhs_effective_type, operator, rhs_vars, symtab, allow_int_float=False, no_float=False):
 
     for rhs_var in rhs_vars:
         # For struct members in RHS, handle separately.
-        is_struct, data = clean_var(rhs_var)
-        if is_struct:
-            # Lookup the struct field
-            rhs_entry = lookup_symbol(rhs_var, symtab)
-            # For struct members, assume no extra deref/ref needed.
-            rhs_effective = rhs_entry.type
-        else:
-            d, r, clean_rhs = process_deref_ref(rhs_var)
-            rhs_entry = lookup_symbol(clean_rhs, symtab)
-            rhs_effective = effective_type(rhs_entry, d, r, True)
+        d, r, clean_rhs = count_deref_ref(rhs_var)
+        rhs_effective = get_type_from_var(clean_rhs, d, r, symtab)
+
         # Compare after stripping trailing spaces.
         if check_types(rhs_effective, lhs_effective_type, allow_int_float):
-            raise ValueError(f"Type mismatch in assignment of {lhs_entry.name} and {rhs_entry.name}\n {lhs_effective_type} vs {rhs_effective}")
+            raise ValueError(f"Type mismatch in assignment\n {lhs_effective_type} vs {rhs_effective}")
 
         if no_float:
             if get_label(rhs_effective) == "float" or get_label(lhs_effective_type) == "float":
@@ -237,11 +229,8 @@ def argument_param_match(argument_list, func_params):
             argument_ptr += 1
             pass
         else:
-            print(trim_value(func_params[params_ptr].type, "const"))
-            print(trim_value(argument_list[argument_ptr], "const"))
-            if (trim_value(func_params[params_ptr].type, "const") != 
-                trim_value(argument_list[argument_ptr], "const")):
-                raise Exception("Invalid Function Parameters")
+            if check_types(func_params[params_ptr].type, argument_list[argument_ptr]):
+                raise Exception(f"Invalid Function Parameters => {trim_value(func_params[params_ptr].type, "const")} | {trim_value(argument_list[argument_ptr], "const")}")
             else:
                 argument_ptr += 1 
                 params_ptr += 1
@@ -305,7 +294,6 @@ def get_label(type):
         label = "int"
 
     return label
-
         
 def check_types(type1, type2, allow_int_float=False):
     ## implicit type conversion

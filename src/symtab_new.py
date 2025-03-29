@@ -96,9 +96,6 @@ class SymbolTable:
         self.to_add_child = False
         self.the_child = None
 
-        self.to_add_parent = False
-        self.the_parent = None
-
         self.function_definition = False
         self.function_scope = None
         self.function_symbol = None
@@ -112,7 +109,7 @@ class SymbolTable:
         self.current_scope_level = self.root.scope_level
         self.table_entries = []
 
-    def enter_scope(self):
+    def function_enter_scope(self):
         self.current_scope_level += 1
         self.current_scope_name = f"block@{self.current_scope_level}"
 
@@ -127,31 +124,35 @@ class SymbolTable:
                 raise Exception(f"Function {self.function_symbol.name} has been already defined")
             
             self.function_symbol.isFunctionDefinition = False
-
             self.function_definition = False
             self.function_scope = None
             self.function_symbol = None
 
-        if self.to_add_parent:
-            self.to_add_parent = False
-            self.the_parent.child = scope_node
-            self.the_parent = None
+        self.current_scope = scope_node
 
-        forward_entries = []
-        for entry in scope_node.parent.entries:
-            if entry.isForwardable:
-                forward_entries.append(entry)
-                entry.node = scope_node
-                entry.isForwardable = False
-                scope_node.entries.append(entry)
+    def enter_scope(self):
+        self.current_scope_level += 1
+        self.current_scope_name = f"block@{self.current_scope_level}"
 
-                # Add to table_entries if not forwardable anymore
-                print(f"enter_scope => {entry.name}")
-                entry = SymbolTableEntry(entry.name, entry.type, entry.kind, entry, entry.node, entry.node.scope_level, entry.node.scope_name)
-                self.table_entries.append(entry)
+        if self.function_definition:
+            self.function_definition = False
+            self.function_scope = None
+            self.function_symbol = None
 
-        # Correctly update parent's entries by filtering out forwarded entries
-        scope_node.parent.entries = [entry for entry in scope_node.parent.entries if entry not in forward_entries]
+        if not self.function_definition:
+            scope_node = SymbolEntryNode(self.current_scope_level, self.current_scope_name, self.current_scope)
+            self.current_scope.children.append(scope_node)
+
+        else:
+            scope_node = self.function_scope
+            
+            if not self.function_symbol.isFunctionDefinition:
+                raise Exception(f"Function {self.function_symbol.name} has been already defined")
+            
+            self.function_symbol.isFunctionDefinition = False
+            self.function_definition = False
+            self.function_scope = None
+            self.function_symbol = None
 
         self.current_scope = scope_node
 
@@ -162,36 +163,19 @@ class SymbolTable:
 
         self.to_add_child = True
         self.the_child = self.current_scope
-
         parent = self.current_scope.parent 
 
         self.current_scope_name = parent.scope_name
         self.current_scope_level = parent.scope_level 
         self.current_scope = parent 
 
-    def link_symbol(self, symbol):
-        if not isinstance(symbol, SymbolEntry):
-            raise ValueError("Incorrect type of object")
-        
-        found = False
-        present_symbol = None
+    def function_exit_scope(self):
+        parent = self.current_scope.parent 
+        self.current_scope_name = parent.scope_name
+        self.current_scope_level = parent.scope_level 
+        self.current_scope = parent 
 
-        for entry in self.current_scope.entries:
-            if strict_equal(entry.name, symbol.name):
-                if entry.kind != "constant":
-                    found = True
-
-                    if self.to_add_child:
-                        self.to_add_child = False
-                        entry.child = self.the_child
-                        self.the_child = None 
-
-                    break 
-        
-        if not found:
-            raise Exception("this symbol entry doesnt exist, cant link it up")
-
-    def add_symbol_and_create_child_scope(self, symbol):
+    def add_function_symbol(self, symbol):
         if not isinstance(symbol, SymbolEntry):
             raise ValueError("Incorrect type of object")
         
@@ -222,19 +206,18 @@ class SymbolTable:
                 else:
                     return
 
-        sym2 = symbol
-        if isinstance(sym2.name, str) and sym2.name[-1] == '$':
+        if isinstance(symbol.name, str) and symbol.name[-1] == '$':
             c = 0
-            while sym2.name[-1] == '$':
+            while symbol.name[-1] == '$':
                 c+=1
-                sym2.name = sym2.name[:-1]
-            sym2.type = c*'*' + sym2.type
+                symbol.name = symbol.name[:-1]
+            symbol.type = c*'*' + symbol.type
 
-        sym2.node = self.current_scope
-        sym2.isFunctionDefinition = True
+        symbol.node = self.current_scope
+        symbol.isFunctionDefinition = True
         
         child_scope = SymbolEntryNode(self.current_scope_level + 1, f"block@{self.current_scope_level + 1}", self.current_scope)
-        sym2.child = child_scope
+        symbol.child = child_scope
 
         if not isDefinition:
             c = 0
@@ -269,8 +252,8 @@ class SymbolTable:
                 if entry.kind == "parameter":
                     def_entry.append(entry)
 
-            if definitionSymbol.type != sym2.type:
-                raise ValueError(f"function redefinition return type mismatches\nfunction definition = {definitionSymbol.type}\nfunction redefinition = {sym2.type}")
+            if definitionSymbol.type != symbol.type:
+                raise ValueError(f"function redefinition return type mismatches\nfunction definition = {definitionSymbol.type}\nfunction redefinition = {symbol.type}")
 
             if len(def_entry) != len(self.parameters):
                 raise ValueError(f"function redefinition parameter list type mismatches\nfunction definition len = {len(def_entry)}\nfunction redefinition len = {len(self.parameters)}")
@@ -297,12 +280,12 @@ class SymbolTable:
 
         if not isDefinition:
             self.current_scope.children.append(child_scope)
-            self.current_scope.entries.append(sym2)
+            self.current_scope.entries.append(symbol)
 
         self.function_definition = True
         if not isDefinition:
             self.function_scope = child_scope
-            self.function_symbol = sym2
+            self.function_symbol = symbol
         else:
             self.function_scope = definitionScope
             self.function_symbol = definitionSymbol
@@ -332,36 +315,34 @@ class SymbolTable:
             self.function_scope = None
             self.function_symbol = None
         
-        # if self.to_add_child:
-        #     self.to_add_child = False
-        #     symbol.child = self.the_child
-        #     self.the_child = None 
+        if self.to_add_child:
+            self.to_add_child = False
+            symbol.child = self.the_child
+            self.the_child = None 
 
-        sym2 = symbol
-        if isinstance(sym2.name,str) and sym2.name[-1] == '$':
+        if isinstance(symbol.name,str) and symbol.name[-1] == '$':
             c = 0
-            while sym2.name[-1] == '$':
+            while symbol.name[-1] == '$':
                 c+=1
-                sym2.name = sym2.name[:-1]
-            sym2.type = c*'*' + sym2.type
-        sym2.node = self.current_scope
+                symbol.name = symbol.name[:-1]
+            symbol.type = c*'*' + symbol.type
+        symbol.node = self.current_scope
 
         if not symbol.isForwardable:
-            self.current_scope.entries.append(sym2)
+            self.current_scope.entries.append(symbol)
         else:
             for entry in self.parameters:
                 if strict_equal(entry.name, symbol.name):
-                    # print(entry.type)
                     if entry.kind != "constant":
                         raise ValueError(f"Duplicate symbol '{symbol.name}' in scope {self.current_scope_name}")
                     else:
                         return
-            self.parameters.append(sym2)
+            self.parameters.append(symbol)
 
         if not symbol.isForwardable:
             c = 0
-            if not isinstance(symbol.name,str) or  symbol.name[-1] != '$':
-                print(f"add symbol => {symbol.name}")
+            if not isinstance(symbol.name,str) or symbol.name[-1] != '$':
+                print(f"add symbol => {symbol.name}, {symbol.type}")
                 entry = SymbolTableEntry(symbol.name, symbol.type, symbol.kind, symbol, symbol.node, self.current_scope_level, self.current_scope_name)
                 self.table_entries.append(entry)
             else:
@@ -369,7 +350,7 @@ class SymbolTable:
                     symbol.name = symbol.name[:-1]
                     c += 1
                 # print(symbol.name)
-                print(f"add symbol => {symbol.name}")
+                print(f"add symbol => {symbol.name}, {symbol.type}")
                 entry = SymbolTableEntry(symbol.name, c* '*' + symbol.type, symbol.kind, symbol, symbol.node, self.current_scope_level, self.current_scope_name,symbol.refsto)
                 self.table_entries.append(entry)
         
@@ -400,29 +381,30 @@ class SymbolTable:
 
         return params
     
-    def search_struct(self, name, identifier):
-        scope_pointer = self.current_scope
+    def search_struct(self, struct_object, identifier):
+        field_chain = struct_object.split('.')
 
-        found_struct = None
-        found = False
-        while scope_pointer:
-            for entry in scope_pointer.entries:
-                if strict_equal(entry.name, name):
+        if symtab.lookup(field_chain[0]) is None:
+            raise Exception(f"{field_chain[0]} not declared")
+        
+        field_chain[0] = symtab.lookup(field_chain[0]).type.split(' ')[-1]
+        current_scope = self.root
+
+        for scope in field_chain:
+            found = False
+            for entry in current_scope.entries:
+                if entry.name == scope:
+                    current_scope = entry.child
                     found = True
-                    found_struct = entry
                     break
-            if found:
-                break
-            scope_pointer = scope_pointer.parent
 
-        if not found:
-            return None
-        
-        struct_scope = entry.child
-        for entry in struct_scope.entries:
-            if strict_equal(entry.name, identifier):
-                return entry
-        
+            if not found:
+                return None
+            
+        for entry in current_scope.entries:
+            if entry.name == identifier:
+                return entry.type
+
         return None
 
     def __str__(self):

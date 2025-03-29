@@ -219,24 +219,14 @@ def p_postfix_expression(p):
         p[0] = Node("postfix_expression", [p[2], p[5]])
 
     if len(p) == 4 and p[2] == ".":
-        identifier = p[3]
-        variable_identifier = str(p[0].vars[0]).split(" ")[-1]
-        variable = symtab.lookup(variable_identifier)
+        print(p[0].vars[0], p[1], p[2], p[3])
+        field_identifier = p[3]
+        struct_object = p[0].vars[0]
 
-        struct_name = str(variable.type).rstrip(" ").split(" ")[-1]
-        struct_table = symtab.lookup(struct_name)
-        struct_scope = struct_table.child
+        if symtab.search_struct(struct_object, field_identifier) is None:
+            print(f"The identifier '{field_identifier}' does not exist in the struct {struct_object}")
 
-        # checking if the identifier exists in the struct 
-        exists = False
-        for entry in struct_scope.entries:
-            if entry.name == identifier:
-                exists = True
-
-        if not exists:
-            print(f"The identifier '{identifier}' does not exist in the struct {struct_name}")
-
-        p[0].vars = [f"{struct_name} {variable.name} {identifier}"]
+        p[0].vars = [f"{struct_object}.{field_identifier}"]
 
     if len(p) == 5 and p[2] == "(" and len(p[0].vars) > 0:
         print(p[0].vars)
@@ -280,6 +270,8 @@ def p_argument_expression_list(p):
         p[0] = Node("argument_expression_list", [p[1], p[3]])
         p[0].param_list = p[1].param_list
         p[0].param_list.append(p[3].return_type)
+
+    print(f"parameter_list = {p[0].param_list}")
 
 # Unary expressions
 def p_unary_expression(p):
@@ -474,6 +466,8 @@ def p_relational_expression(p):
         # Validate that the symbols in the left and right operands have compatible types.
         validate_relational_operands(p[1].vars, p[3].vars, symtab, True)
 
+        p[0].return_type = "int"
+
 def p_equality_expression(p):
     '''equality_expression : relational_expression
                           | equality_expression EQ_OP relational_expression
@@ -494,6 +488,7 @@ def p_equality_expression(p):
     if len(p) == 4:
         check_vars_type(p[3].vars, dtype1, p[2], symtab, True)
 
+        p[0].return_type = "int"
 
 def p_and_expression(p):
     '''and_expression : equality_expression
@@ -582,6 +577,24 @@ def p_logical_and_expression(p):
     else:
         p[0] = Node("logical_and_expression", [p[1], p[2], p[3]])
 
+    dtype1 = None
+    if len(p[1].vars) > 0:
+        d, r, var0 = count_deref_ref(p[1].vars[0])
+        dtype1 = get_type_from_var(var0, d, r, symtab)
+
+    if len(p) == 4:
+        check_vars_type(p[3].vars, dtype1, p[2], symtab, False)
+
+        if get_label(p[1].return_type) == "float" or get_label(p[3].return_type) == "float":
+            raise ValueError(f"Floating type expressions incompatible with {p[2].operator} operator")
+
+        if dominating_type(p[1].return_type, p[3].return_type):
+            p[0].return_type = p[1].return_type
+        else:
+            p[0].return_type = p[3].return_type
+
+    p[0].return_type = p[1].return_type
+
 def p_logical_or_expression(p):
     '''logical_or_expression : logical_and_expression
                             | logical_or_expression OR_OP logical_and_expression'''
@@ -590,6 +603,24 @@ def p_logical_or_expression(p):
     else:
         p[0] = Node("logical_or_expression", [p[1], p[2], p[3]])
 
+    dtype1 = None
+    if len(p[1].vars) > 0:
+        d, r, var0 = count_deref_ref(p[1].vars[0])
+        dtype1 = get_type_from_var(var0, d, r, symtab)
+
+    if len(p) == 4:
+        check_vars_type(p[3].vars, dtype1, p[2], symtab, False)
+
+        if get_label(p[1].return_type) == "float" or get_label(p[3].return_type) == "float":
+            raise ValueError(f"Floating type expressions incompatible with {p[2].operator} operator")
+
+        if dominating_type(p[1].return_type, p[3].return_type):
+            p[0].return_type = p[1].return_type
+        else:
+            p[0].return_type = p[3].return_type
+
+    p[0].return_type = p[1].return_type
+
 def p_conditional_expression(p):
     '''conditional_expression : logical_or_expression
                              | logical_or_expression QUESTION expression COLON conditional_expression'''
@@ -597,6 +628,23 @@ def p_conditional_expression(p):
         p[0] = Node("conditional_expression", [p[1]])
     else:
         p[0] = Node("conditional_expression", [p[1], p[3], p[5]])
+
+    dtype1 = None
+    if len(p[1].vars) > 0:
+        d, r, var0 = count_deref_ref(p[1].vars[0])
+        dtype1 = get_type_from_var(var0, d, r, symtab)
+
+    if len(p) == 6:
+        if check_types(p[3].return_type, p[5].return_type, True):
+            raise Exception(f"Ternary operators require both types to be compatible. Incompatible return types supplied: {p[3].return_type} | {p[5].return_type}")
+
+        if dominating_type(p[3].return_type, p[5].return_type):
+            p[0].return_type = p[3].return_type
+        else:
+            p[0].return_type = p[5].return_type
+
+    else:
+        p[0].return_type = p[1].return_type
 
 def p_assignment_expression(p):
     '''assignment_expression : conditional_expression
@@ -607,41 +655,29 @@ def p_assignment_expression(p):
         p[0] = Node("assignment_expression", [p[1], p[2], p[3]])
         
         print(p[0].vars)
-        lhs_raw = p[0].vars[0]
-        if isinstance(lhs_raw, str) and ' ' in lhs_raw:
-            lhs_entry = lookup_symbol(lhs_raw, symtab)
-            lhs_effective_without_const = effective_type(lhs_entry, 0, 0, True)
-            lhs_effective = effective_type(lhs_entry, 0, 0)
+        lhs = p[0].vars[0]
 
-        else:
-            d, r, clean_lhs = process_deref_ref(lhs_raw)
-            lhs_entry = lookup_symbol(clean_lhs, symtab)
-            lhs_effective_without_const = effective_type(lhs_entry, d, r, True)
-            lhs_effective = effective_type(lhs_entry, d, r)
+        d, r, clean_lhs = count_deref_ref(lhs)
+        lhs_type = get_type_from_var(clean_lhs, d, r, symtab, kind_check=['variable', 'parameter', 'reference'])
 
-        if lhs_entry is None:
-            raise Exception(f"identifier {lhs_raw} does not exist")
-        
-        if lhs_entry.kind not in ['variable', 'parameter']:
-            raise TypeError("Value can only be assigned to variable/param types!")
-        
+        if lhs_type.startswith("const "):
+            raise TypeError(f"Cannot re-assign value to const variable")
+
         if (p[2].operator == "<<=" or 
             p[2].operator == ">>=" or 
             p[2].operator == "%=" or
             p[2].operator == "&=" or
             p[2].operator == "^=" or 
             p[2].operator == "|="):
-            validate_assignment(lhs_entry, lhs_effective_without_const, p[2].operator, p[3].vars, symtab, False, True)
+            validate_assignment(trim_value(lhs_type, "const"), p[2].operator, p[3].vars, symtab, False, True)
 
         else:
-            validate_assignment(lhs_entry, lhs_effective_without_const, p[2].operator, p[3].vars, symtab, True, False)
+            validate_assignment(trim_value(lhs_type, "const"), p[2].operator, p[3].vars, symtab, True, False)
 
-        if lhs_effective.startswith("const "):
-            raise TypeError(f"Cannot re-assign value to const variable '{lhs_entry.name}' of type '{lhs_entry.type}'")
-        
         p[0].is_address = False
 
-        
+    p[0].return_type = p[1].return_type
+
 def p_assignment_operator(p):
     '''assignment_operator : ASSIGN
                           | MUL_ASSIGN
@@ -773,7 +809,7 @@ def validate_c_datatype(data_type):
         if tokens[0]=="const":
             tokens=tokens[1:]
 
-    if tokens[0]=="struct":
+    if tokens[0]=="struct" or tokens[0] == "union" or tokens[0] == "enum":
         tokens = tokens[1:]
         for c in tokens:
             if c in allowed_keywords:
@@ -848,93 +884,56 @@ def p_init_declarator(p):
 
     validate_c_datatype(base_type)
 
-    for decl in p[0].vars:
-        kind2="variable"
+    for variable in p[0].vars:
+        kind="variable"
 
-        if(base_type.split(" ")[0]=="typedef" and len(base_type.split(" ")) >= 1):
+        if base_type.split(" ")[0] == "typedef" and len(base_type.split(" ")) >= 1:
             name = base_type.split(" ")[-1]
-            kind2=f"{name}"
+            kind=f"{name}"
             base_type=f"{name}"
 
-        if isinstance(decl, str) and decl[0] == '%' :
+        if isinstance(variable, str) and variable[0] == '%':
             if len(p[0].rhs) != 1:
                 raise Exception("invalid reference created") 
+            
             if symtab.lookup(p[0].rhs[0]).kind == 'constant':
                 raise Exception("references can't be bound to constants")
+            
             var_sym = SymbolEntry(
-                name=str(decl[1:]),
+                name=str(variable[1:]),
                 type=str(base_type),
                 kind="reference",
                 refsto= p[0].rhs[0]
             )
             symtab.add_symbol(var_sym)
 
-        elif symtab.lookup(decl) is None:
+        elif symtab.lookup(variable) is None:
             var_sym = SymbolEntry(
-                name=str(decl),
+                name=str(variable),
                 type=str(base_type),
-                kind=str(kind2)
+                kind=str(kind)
             )
-            print("OKAY IM CALLED")
             symtab.add_symbol(var_sym)
         
-        elif symtab.lookup(decl).kind != "function":
+        elif symtab.lookup(variable).kind != "function":
             var_sym = SymbolEntry(
-                name=str(decl),
+                name=str(variable),
                 type=str(base_type),
-                kind=str(kind2)
+                kind=str(kind)
             )
-            print("OKAY IM CALLED")
             symtab.add_symbol(var_sym)
             
     for var in p[0].rhs:
-        if isinstance(var, str) and ' ' in var:
-            name, _, identifier = var.split(' ')
-            if symtab.search_struct(name, identifier) == None:
-                raise ValueError(f"No symbol '{var}' in the symbol table")
-
-            continue
-
-        _, __, var = process_deref_ref(var)
-
-        if symtab.lookup(var) == None:
-            raise ValueError(f"No symbol '{var}' in the symbol table")
-        
-    var = p[0].vars[0]
-    deref_count = 0
-    ref_count = 0
-
-    while isinstance(var, str):
-        if var[-1] == '$':
-            deref_count += 1
-            var = var[:-1]
-            
-        ## we can support references here
-        else:
-            break
-    while isinstance(var, str) and len(var) > 0:
-        if var[0] == '%':
-            var = var[1:]  # Remove '%'
-        else:
-            break 
-
-    base = symtab.lookup(var).type
-    base_no_const = base
-    if "const " in base:
-        base_no_const = trim_value(base_no_const, "const")
-        # base_no_const = ' '.join(word for word in base_no_const.split() if word != "const")
-    if "static " in base_no_const:
-        base_no_const = ' '.join(word for word in base_no_const.split() if word != "static")
-    checkfunc = True
+        d, r, var0 = count_deref_ref(var)
+        dtype1 = get_type_from_var(var0, d, r, symtab)
 
     if len(p) == 4:
         checkfunc = not p[3].iscall
 
     ## struct or union
-    if (symtab.lookup(base_no_const) is not None and (symtab.lookup(base_no_const).type == 'struct' or symtab.lookup(base_no_const).type == 'union')) or ('struct' in base_no_const or 'union' in base_no_const) and not base_no_const.startswith("*"):
-
+    if ("struct" in base_type or "union" in base_type) and not base_type.startswith("*"):
         if p[0].isbraces:
-            struct_name = base_no_const.split(' ')[-1]
+            struct_name = base_type.split(' ')[-1]
             struct_scope = symtab.lookup(struct_name).child
             struct_entries = struct_scope.entries
 
@@ -942,68 +941,26 @@ def p_init_declarator(p):
                 raise Exception("Number of identifiers in struct doesnt match with initialiser list length")
 
             for struct_entry, list_entry in zip(struct_entries, p[0].rhs):
-                deref_count, ref_count, list_entry = count_deref_ref(list_entry)
+                deref_count, ref_count, clean_list_entry = count_deref_ref(list_entry)
+                struct_entry_type = struct_entry.type
 
-                if isinstance(list_entry, str) and ' ' in list_entry:
-                    name, identifier, field = list_entry.split(" ")
+                field_type = get_type_from_var(clean_list_entry, deref_count, ref_count, symtab)
 
-                    struct_entry_type = struct_entry.type
-                    if "const " in struct_entry_type or "static " in struct_entry_type:
-                        struct_entry_type = ' '.join(word for word in struct_entry_type.split() if word not in ["const", "static"]).rstrip(' ')
-                    field_type = symtab.search_struct(name, field).type.rstrip(' ')
-
-                    for i in range(0, deref_count):
-                        if isinstance(field_type, str) and field_type[0] == '*':
-                            field_type = field_type[1:]
-                        else:
-                            raise TypeError("Invalid Deref")
-                    for j in range(0, ref_count):
-                        if isinstance(field_type, str):
-                            field_type = "*" + field_type  
-                    
-                    if struct_entry_type != field_type:
-                        raise Exception(f"Type mismatch in {struct_entry_type} with provided {field_type}")
-                
-                else:
-                    struct_entry_type = struct_entry.type.split("const ")[-1].rstrip(' ')
-                    list_entry_type = symtab.lookup(list_entry).type.rstrip(' ')
-
-                    for i in range(0, deref_count):
-                        if list_entry_type[0] == '*':
-                            list_entry_type = list_entry_type[1:]
-                        else:
-                            raise TypeError("Invalid Deref")
-                        
-                    for j in range(0, ref_count):
-                        if isinstance(list_entry_type, str):
-                            list_entry_type = "*" + list_entry_type 
-
-                    if struct_entry_type != list_entry_type:
-                        raise Exception(f"Type mismatch in {struct_entry_type} with provided {list_entry_type}")
-        else:
-            
+                if check_types(struct_entry_type, field_type, True):
+                    raise Exception(f"Type mismatch in {struct_entry_type} with provided {field_type}")
+        
+        else:  
             if len(p) > 2:
+                if len(p[0].rhs) > 1:
+                    raise Exception("more than one variables in the rhs")
+                
                 if len(p[0].rhs) == 1:
                     deref_count, ref_count, rhs_var = count_deref_ref(p[0].rhs[0])
+                    rhs_var_type = get_type_from_var(rhs_var, deref_count, ref_count, symtab)
 
-                    rhs_var = symtab.lookup(rhs_var)
-                    rhs_var_type = rhs_var.type
-
-                    for i in range(0, deref_count):
-                        if isinstance(rhs_var_type, str) and rhs_var_type[0] == '*':
-                            rhs_var_type = rhs_var_type[1:]
-                        else:
-                            raise TypeError("Invalid Deref")
-                    for j in range(0, ref_count):
-                        if isinstance(rhs_var_type, str):
-                            rhs_var_type = "*" + rhs_var_type 
-
-                    if base_no_const != rhs_var_type:
-                        raise Exception(f"Type mismatch in {base_no_const} with provided {rhs_var_type}")
-                elif len(p[0].rhs) > 1:
-                    raise Exception("more than one variables in the rhs")
-
-    ## other types
+                    if check_types(base_type, rhs_var_type):
+                        raise Exception(f"Type mismatch in {base_type} with provided {rhs_var_type}")
+        
     else: 
         if p[0].isbraces:
             for rhs_var in p[0].rhs:
@@ -1023,8 +980,8 @@ def p_init_declarator(p):
                 print(f"rhs return type = {p[3].return_type}")
                 type_ = p[3].return_type
                 
-                if not (base_no_const.split(" ")[0] == "enum" and type_ == "int"):
-                    if check_types(base, type_, True):
+                if not (trim_value(base_type, "const").split(" ")[0] == "enum" and type_ == "int"):
+                    if check_types(base_type, type_, True):
                         raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]}\n| base_type = {base} |\n| rhs_type = {type_} |")
             
     p[0].is_address = False
@@ -1186,7 +1143,7 @@ def p_enum_specifier(p):
         p[0] = Node("enum_specifier", [p[2]])
         p[0].dtypes.append(p[1]+" "+p[2])
         if symtab.lookup(p[2])==None:
-            print(f"Error: Enum Identifier {p[2]} not found")
+            raise Exception(f"Error: Enum Identifier {p[2]} not found")
     elif len(p) == 6 and p[3] == '{':
         p[0] = Node("enum_specifier", [p[2], p[4]])
     elif len(p) == 6:
@@ -1408,10 +1365,7 @@ def p_direct_declarator(p):
             kind="function"
         )
 
-        # symtab.add_symbol(func_sym)
-        symtab.add_symbol_and_create_child_scope(func_sym)
-        # symtab.to_add_parent = True
-        # symtab.the_parent = symtab.lookup(func_name) 
+        symtab.add_function_symbol(func_sym)
 
 def p_direct_declarator_error(p):
     '''direct_declarator : LPAREN declarator error
@@ -1599,10 +1553,13 @@ def p_initializer(p):
         p[0] = Node("initializer", [p[1]])  
     
     for c in p[0].vars:
-        if symtab.lookup(c) is None:
-            print(f"Error: variable {c} not declared")
+        deref_count, ref_count, clean_var = count_deref_ref(c)
+        type_ = get_type_from_var(clean_var, deref_count, ref_count, symtab)
+
+        if type_ is None:
+            raise Exception(f"Error: variable {clean_var} not declared")
     p[0].rhs += p[0].vars
-    p[0].vars=[]
+    p[0].vars = []
 
 
 def p_initializer_error(p):
@@ -1703,15 +1660,34 @@ def p_compound_statement(p):
     else:
         p[0] = Node("compound_statement", [p[3]])  # p[3] = block_item_list
 
+def p_function_compound_statement(p):
+    '''function_compound_statement : LBRACE RBRACE
+                          | LBRACE function_enter_scope block_item_list function_exit_scope RBRACE'''
+    # Handle empty block
+    if len(p) == 3:
+        symtab.function_enter_scope()    # Enter new scope
+        symtab.function_exit_scope()     # Exit immediately for empty block
+        p[0] = Node("compound_statement", [])
+    # Handle block with content
+    else:
+        p[0] = Node("compound_statement", [p[3]])  # p[3] = block_item_list
 
 # Mid-rule action helpers
 def p_enter_scope(p):
     'enter_scope :'
     symtab.enter_scope()
 
+def p_function_enter_scope(p):
+    'function_enter_scope :'
+    symtab.function_enter_scope()
+
 def p_exit_scope(p):
     'exit_scope :'
     symtab.exit_scope()
+
+def p_function_exit_scope(p):
+    'function_exit_scope :'
+    symtab.function_exit_scope()
 
 def p_compound_statement_error(p):
     '''compound_statement : LBRACE error
@@ -1819,13 +1795,17 @@ def p_jump_statement_error(p):
 
 # Function definitions
 def p_function_definition(p):
-    '''function_definition : declaration_specifiers declarator declaration_list compound_statement
-                           | declaration_specifiers declarator compound_statement'''
+    '''function_definition : declaration_specifiers declarator declaration_list function_compound_statement
+                           | declaration_specifiers declarator function_compound_statement'''
     # Create AST node
     if len(p) == 5:
         p[0] = Node("function_definition", [p[1], p[2], p[3], p[4]])
     else:
         p[0] = Node("function_definition", [p[1], p[2], p[3]])
+
+    ## because child scope was created earlier and attached already.
+    symtab.to_add_child = False
+    symtab.the_child = None
 
     # -- Symbol Table Handling --
     # Get function name from declarator (assume p[2] has 'name' attribute)
