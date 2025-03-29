@@ -296,7 +296,7 @@ def p_unary_expression(p):
     elif len(p) == 5:
         p[0] = Node("unary_expression", [p[1], p[3]])
         
-    if p[1] == "sizeof" or p[1] == "alignof":
+    if p[1] == "sizeof":
         p[0].return_type = "int"
 
 def p_unary_expression_error(p):
@@ -422,6 +422,9 @@ def p_shift_expression(p):
 
     if len(p) == 4:
         check_vars_type(p[3].vars, dtype1, p[2], symtab, False)
+
+        if "*" in p[1].return_type or "*" in p[3].return_type:
+            raise Exception(f"Invalid Operands of type {p[1].return_type} and {p[3].return_type} to the operator +")
 
         if get_label(p[1].return_type) == "float" or get_label(p[3].return_type) == "float":
             raise ValueError(f"Floating type expressions incompatible with shift operations")
