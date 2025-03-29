@@ -1,11 +1,12 @@
-from tree import *
-from symtab_new import *
+DEFAULT_OUTPUT_DIRECTORY = "generatedIR"
 
 class IRGenerator:
     def __init__(self):
         self.temp_counter = 0
         self.label_counter = 0
         self.function_labels = {}
+        self.output_directory = DEFAULT_OUTPUT_DIRECTORY
+        self.outfile = ""
 
     def new_temp(self):
         """Generate a new unique temporary variable."""
@@ -26,3 +27,5 @@ class IRGenerator:
         label = f'L{self.label_counter}'
         self.label_counter += 1
         return label
+
+    

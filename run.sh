@@ -45,11 +45,14 @@ install_graphviz() {
     esac
 }
 
-# Parse arguments and detect --fast flag
+# Parse arguments and detect --fast or --clear flag
 ARGS=()
+CLEAR=false
 for arg in "$@"; do
     if [[ "$arg" == "--fast" ]]; then
         INTERPRETER="pypy3"
+    elif [[ "$arg" == "-c" || "$arg" == "--clear" ]]; then
+        CLEAR=true
     else
         ARGS+=("$arg")
     fi
@@ -64,12 +67,26 @@ if [[ " ${ARGS[*]} " =~ " -h " || " ${ARGS[*]} " =~ " --help " ]]; then
     echo "  -v, --version   Show version information and exit"
     echo "  -g, --graph     Render the graph for all testcases"
     echo "  --fast          Use PyPy3 instead of Python3"
+    echo "  -c, --clear     Remove all files in renderedTrees and renderedSymbolTables folders"
     exit 0
 fi
 
 # Check if -v or --version is passed
 if [[ " ${ARGS[*]} " =~ " -v " || " ${ARGS[*]} " =~ " --version " ]]; then
     echo "Compiler version $VERSION"
+    exit 0
+fi
+
+# Check if --clear flag is set
+if [ "$CLEAR" = true ]; then
+    if [ -d "renderedTrees" ]; then
+        rm -rf renderedTrees/*
+        echo "Cleared renderedTrees folder."
+    fi
+    if [ -d "renderedSymbolTables" ]; then
+        rm -rf renderedSymbolTables/*
+        echo "Cleared renderedSymbolTables folder."
+    fi
     exit 0
 fi
 
