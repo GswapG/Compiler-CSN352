@@ -6,7 +6,7 @@ def strict_equal(a, b):
     return type(a) is type(b) and a == b
 
 class SymbolEntry:
-    def __init__(self, name, type, kind, child=None, node=None, isForwardable=False,refsto = None):
+    def __init__(self, name, type, kind, child = None, node = None, isForwardable = False, refsto = None, size = 0, offset = 0):
         """
             name        -> identifier
             type        -> data type
@@ -23,6 +23,8 @@ class SymbolEntry:
         self.isForwardable = isForwardable
         self.refsto = refsto
         self.isFunctionDefinition = False
+        self.size = size 
+        self.offset = offset
 
 class SymbolEntryNode:
     def __init__(self, scope_level, scope_name, parent=None):
@@ -75,7 +77,7 @@ class SymbolEntryNode:
         return graph
 
 class SymbolTableEntry:
-    def __init__(self, name, type, kind, entry, node, scope, scope_name,refers_to = None):
+    def __init__(self, name, type, kind, entry, node, scope, scope_name,refers_to = None, size = 0, offset = 0):
         self.name = name 
         self.type = type 
         self.kind = kind 
@@ -84,6 +86,8 @@ class SymbolTableEntry:
         self.scope = scope
         self.scope_name = scope_name
         self.refers_to = refers_to
+        self.size = size
+        self.offset = offset
 
 class SymbolTable:
     def __init__(self):
@@ -237,7 +241,7 @@ class SymbolTable:
                 child_scope.entries.append(new_entry)
 
                 # Add to table_entries if not forwardable anymore
-                new_entry = SymbolTableEntry(new_entry.name, new_entry.type, new_entry.kind, new_entry, new_entry.node, new_entry.node.scope_level, new_entry.node.scope_name)
+                new_entry = SymbolTableEntry(new_entry.name, new_entry.type, new_entry.kind, new_entry, new_entry.node, new_entry.node.scope_level, new_entry.node.scope_name, size=new_entry.size)
                 if not isDefinition:
                     self.table_entries.append(new_entry)
         else:
@@ -295,9 +299,9 @@ class SymbolTable:
         if isinstance(symbol.name,str) and symbol.name[-1] == '$':
             c = 0
             while symbol.name[-1] == '$':
-                c+=1
+                c += 1
                 symbol.name = symbol.name[:-1]
-            symbol.type = c*'*' + symbol.type
+            symbol.type = c * '*' + symbol.type
         
         if symbol.kind != "function":
             if "void" in (symbol.type).split(" "):
@@ -321,6 +325,7 @@ class SymbolTable:
             self.the_child = None 
 
         symbol.node = self.current_scope
+        symbol.size = get_size(symbol, self)
 
         if not symbol.isForwardable:
             self.current_scope.entries.append(symbol)
@@ -337,14 +342,14 @@ class SymbolTable:
             c = 0
             if not isinstance(symbol.name,str) or symbol.name[-1] != '$':
                 
-                entry = SymbolTableEntry(symbol.name, symbol.type, symbol.kind, symbol, symbol.node, self.current_scope_level, self.current_scope_name)
+                entry = SymbolTableEntry(symbol.name, symbol.type, symbol.kind, symbol, symbol.node, self.current_scope_level, self.current_scope_name, size=symbol.size)
                 self.table_entries.append(entry)
             else:
                 while symbol.name[-1] == '$':
                     symbol.name = symbol.name[:-1]
                     c += 1
                 
-                entry = SymbolTableEntry(symbol.name, c* '*' + symbol.type, symbol.kind, symbol, symbol.node, self.current_scope_level, self.current_scope_name,symbol.refsto)
+                entry = SymbolTableEntry(symbol.name, c* '*' + symbol.type, symbol.kind, symbol, symbol.node, self.current_scope_level, self.current_scope_name,symbol.refsto, size=symbol.size)
                 self.table_entries.append(entry)
         
     def lookup(self, name):
@@ -405,12 +410,12 @@ class SymbolTable:
             print the symbol table object
         """
 
-        headers = ["Name", "Type", "Kind", "Scope", "ScopeName"]
+        headers = ["Name", "Type", "Kind", "Scope", "ScopeName", "Size", "Offset"]
         rows = []
 
         for entry in self.table_entries:
             rows.append([
-                entry.name, entry.type, entry.kind, entry.scope, entry.scope_name
+                entry.name, entry.type, entry.kind, entry.scope, entry.scope_name, entry.size, entry.offset
             ])
 
         return tabulate(rows, headers=headers, tablefmt="grid")

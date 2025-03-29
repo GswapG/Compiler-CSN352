@@ -242,6 +242,58 @@ def argument_param_match(argument_list, func_params):
         else:
             raise Exception("Invalid Function Parameter Length")
         
+def compute_container(symbol, symtab):
+    if symbol.child is None:
+        struct_name = symbol.type.split(' ')[-1]
+        return symtab.lookup(struct_name).size
+
+    entries = symbol.child.entries
+    maximum_alignment = 0
+    for entry in entries:
+        maximum_alignment = max(maximum_alignment, entry.size)
+
+    if maximum_alignment == 0:
+        return maximum_alignment
+
+    size = 0
+    for entry in entries:
+        offset = size % entry.size
+        if offset == 0:
+            offset = entry.size
+        size += (entry.size - offset) + entry.size
+
+    offset = size % maximum_alignment
+    if offset == 0:
+        offset = maximum_alignment
+    
+    size += (maximum_alignment - offset)
+    return size
+
+def get_size(symbol, symtab):
+    if "*" in symbol.type:
+        return 8 
+    
+    if "double" in symbol.type:
+        return 8
+    
+    if "float" in symbol.type:
+        return 4
+
+    if "long" in symbol.type:
+        # long int is 8 bytes in linux but 4 bytes in windows
+        return 8
+
+    if "short" in symbol.type:
+        return 2
+    
+    if "char" in symbol.type:
+        return 1
+
+    if "struct" in symbol.type or "union" in symbol.type:
+        return compute_container(symbol, symtab)
+
+    return 4    
+
 def dominating_type(type1, type2):
     types1 = type1.split(' ')
     types2 = type2.split(' ')

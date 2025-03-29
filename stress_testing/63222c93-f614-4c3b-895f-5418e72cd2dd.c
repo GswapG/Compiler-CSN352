@@ -1,6 +1,6 @@
 struct Node {
-    int f;
-    double d;
+    char c;
+    char d;
 };
 
 int main() {

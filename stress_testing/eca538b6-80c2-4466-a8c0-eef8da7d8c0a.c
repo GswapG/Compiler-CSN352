@@ -1,9 +1,9 @@
 struct Node {
-    int f;
-    double d;
+    char c;
+    char d;
 };
 
 int main() {
     int x = 5;
-    struct Node n;
+    // struct Node n;
 }
