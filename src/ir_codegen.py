@@ -54,7 +54,12 @@ class IRGenerator:
         """
         filepath = os.path.join(self.output_directory,self.outfile)
         with open(filepath, "w") as f:
-            f.write(ir.code)
+            for line in ir.code.split('\n'):
+                if line[-1] == ':':
+                    f.write(line + '\n')
+                else:
+                    line = '\t\t' + line
+                    f.write(line + '\n')
 
     def debug_print(self,ir):
         """
@@ -117,6 +122,19 @@ class IRGenerator:
 
     def blockitem(self,ir0,ir1,ir2):
         ir0.code = self.join(ir1.code,ir2.code)
+        self.debug_print(ir0)
         
     def translation_unit(self,ir0,ir1,ir2):
         ir0.code = self.join(ir1.code,ir2.code)
+        self.debug_print(ir0)
+
+    def function_definition(self,ir0,ir1,ir2,func_name):
+        gen1 = self.new_label(func_name) + ':'
+        gen2 = "BeginFunc"
+        gen3 = "EndFunc"
+        ir0.code = self.join(gen1,gen2,ir2.code,gen3)
+        self.debug_print(ir0)
+
+    def return_jump(self, ir0,ir1):
+        gen = f"return {ir1.place}"
+        ir0.code = self.join(ir1.code,gen)

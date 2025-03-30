@@ -1827,6 +1827,7 @@ def p_jump_statement(p):
         p[0] = Node("jump_statement", [p[1], p[2]])
         if p[1] == 'return':
             returns.add(p[2].return_type)
+            IrGen.return_jump(p[0].ir,p[2].ir)
 
 
 def p_jump_statement_error(p):
@@ -1847,6 +1848,7 @@ def p_function_definition(p):
         p[0] = Node("function_definition", [p[1], p[2], p[3], p[4]])
     else:
         p[0] = Node("function_definition", [p[1], p[2], p[3]])
+        IrGen.function_definition(p[0].ir, p[2].ir, p[3].ir,p[2].vars[0])
 
     ## because child scope was created earlier and attached already.
     symtab.to_add_child = False
