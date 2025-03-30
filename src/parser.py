@@ -1926,14 +1926,15 @@ def parseFile(filename, ogfilename, treedir, symtabdir,graphgen=False):
     with open(filename, 'r') as file:
         data = file.read()
     IrGen.set_out_file(ogfilename)
-    print("file==================")
-    print(data)
-    print("======================")
-    print(f"Parsing file: {filename}")
+
+    pretty_print_box(data, "File Contents")
+    print(f"Parsing file: {filename}\n")
+
     root = parser.parse(data)
-    print("Final Symbol Table:\n")
+    
+    pretty_print_header("Final Symbol Table", text_style="bold underline red")
     print(symtab)
-    print("\n")
+
     if graphgen:
         treepath = os.path.join(treedir, ogfilename[:-2])
         symtabpath = os.path.join(symtabdir, ogfilename[:-2])
@@ -1943,6 +1944,8 @@ def parseFile(filename, ogfilename, treedir, symtabdir,graphgen=False):
         graph = symtab.to_graph()
         graph.render(symtabpath, format='png', cleanup=True)
         print(f"Symbol table tree saved as renderedSymbolTables/{ogfilename[:-2]}.png")
+
+    print("\n")
 
     symtab.clear()
     typedef_names.clear()

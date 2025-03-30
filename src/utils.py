@@ -1,3 +1,11 @@
+from rich.box import DOUBLE
+from rich.console import Console
+from rich.panel import Panel
+from rich.text import Text
+from rich.rule import Rule
+
+console = Console()
+
 def pretty_type_concat(*args):
     return_type = ""
     for arg in args:
@@ -23,6 +31,13 @@ def pretty_type_concat(*args):
         raise Exception(f"wrong pretty_type for {args} parsed as {return_type}")
     
     pass
+
+def pretty_print_header(header, text_style = "white", border_style = "white"):
+    header = Panel(Text(header, style=text_style), border_style = border_style, expand = False)
+    console.print(header)
+
+def pretty_print_box(data, title):
+    console.print(Panel(data, title=title, box=DOUBLE, expand=False))
 
 def spaced(word):
     new_word = ""
@@ -335,7 +350,6 @@ def restructure_enum(symtab):
             return
 
 def get_size(symbol, symtab):
-    print(symbol.name, symbol.type, symbol.kind)
     if "*" in symbol.type:
         return 8 
     
