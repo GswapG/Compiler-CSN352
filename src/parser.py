@@ -186,6 +186,10 @@ def p_postfix_expression(p):
             d, r, clean_var = count_deref_ref(p[1].vars[0])
             p[1].return_type = get_type_from_var(clean_var, d, r, symtab)
 
+            for c in p[3].vars:
+                if not(symtab.lookup(c).type == "int" and symtab.lookup(c).kind == "constant")and not(symtab.lookup(c).type == "int" and symtab.lookup(c).kind == "variable"):
+                    raise TypeError("Array size must be an integer constant or integer variable")
+
         p[0] = Node("postfix_expression", [p[1], p[3]])
         if p[2] == '(':
             p[0].iscall = 1
@@ -195,7 +199,7 @@ def p_postfix_expression(p):
     elif len(p) == 7:
         p[0] = Node("postfix_expression", [p[2], p[5]])
         p[0].isbraces = True 
-        
+
     elif len(p) == 8:
         p[0] = Node("postfix_expression", [p[2], p[5]])
         p[0].isbraces = True

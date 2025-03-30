@@ -6,7 +6,7 @@ def pretty_type_concat(*args):
                 if return_type[-1] == " ":
                     return_type += arg
                 else:
-                    if arg == "*":
+                    if arg.startswith("*"):
                         return_type += arg 
                     else:
                         return_type += " " + arg
@@ -456,6 +456,12 @@ def get_label(type):
         
 def check_types(type1, type2, allow_int_float=False):
     ## implicit type conversion
+    if type1 is None:
+        raise Exception("lvalue is None")
+    
+    if type2 is None:
+        raise Exception("rvalue is None")
+
     if type1 == type2:
         return False
     

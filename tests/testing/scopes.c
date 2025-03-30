@@ -1,5 +1,8 @@
-struct Point { int x, y; };
+struct Node { int value; };
 
 int main() {
-	struct Point p = (struct Point) { 1, 2 };
+    struct Node n;
+    struct Node *ptr = &n;
+    ptr->value = 5;  // Valid
+    n->value = 5;  // Invalid, struct is not a pointer
 }
