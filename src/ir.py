@@ -7,3 +7,4 @@ class IR:
         self.nextlist = []
         self.begin = ""
         self.after = ""
+        self.parameters = []

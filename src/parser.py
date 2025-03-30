@@ -239,13 +239,16 @@ def p_postfix_expression(p):
             
         p[0].vars = [p[0].vars[0]]
         p[0].return_type = p[1].return_type
+        ret = symtab.lookup(p[1].vars[0]).type
+        IrGen.function_call(p[0].ir, p[1].ir, p[3].ir,ret)
 
     if len(p) == 4 and p[2] == "(":
         func_params = symtab.search_params(p[0].vars[0])
         argument_list = []
-
+        ret = symtab.lookup(p[0].vars[0]).type
         argument_param_match(argument_list, func_params)
         p[0].return_type = p[1].return_type
+        IrGen.function_call(p[0].ir, p[1].ir,None,ret)
 
 def p_postfix_expression_error_1(p):
     '''postfix_expression : LPAREN type_name error LBRACE initializer_list RBRACE
@@ -267,10 +270,12 @@ def p_argument_expression_list(p):
     if len(p) == 2:
         p[0] = Node("argument_expression_list", [p[1]])
         p[0].param_list = [p[1].return_type]
+        IrGen.parameter_init(p[0].ir, p[1].ir)
     else:
         p[0] = Node("argument_expression_list", [p[1], p[3]])
         p[0].param_list = p[1].param_list
         p[0].param_list.append(p[3].return_type)
+        IrGen.argument_expression(p[0].ir, p[1].ir, p[3].ir)
 
 # Unary expressions
 def p_unary_expression(p):
@@ -745,6 +750,8 @@ def p_declaration(p):
     # AST node creation
     if len(p) == 4:
         p[0] = Node("declaration", [p[1], p[2]])
+        # IR
+        p[0].ir = copy.deepcopy(p[2].ir)
     else:
         p[0] = Node("declaration", [p[1]])
 
@@ -1682,11 +1689,11 @@ def p_statement(p):
 
 
 def p_labeled_statement(p):
-    '''labeled_statement : IDENTIFIER COLON statement
+    '''labeled_statement : IDENTIFIER COLON
                         | CASE constant_expression COLON statement
                         | DEFAULT COLON statement'''
-    if len(p) == 4 and p[2] == ':':
-        p[0] = Node("labeled_statement", [p[1], p[3]])
+    if len(p) == 3 and p[2] == ':' and p[1] != 'default':
+        p[0] = Node("labeled_statement", [p[1]])
     elif len(p) == 5 and p[1] == 'case':
         p[0] = Node("labeled_statement", [p[1], p[2], p[4]])
     elif len(p) == 4:
@@ -1922,7 +1929,7 @@ def p_error(p):
     print(pointer)
     
 # Build parser
-parser = yacc.yacc(debug=False)
+parser = yacc.yacc(debug=True)
 
 def parseFile(filename, ogfilename, treedir, symtabdir,graphgen=False):
     with open(filename, 'r') as file:

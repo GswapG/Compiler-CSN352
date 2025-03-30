@@ -14,7 +14,7 @@ class IRGenerator:
 
     def new_temp(self):
         """Generate a new unique temporary variable."""
-        temp_var = f't{self.temp_counter}'
+        temp_var = f'_t{self.temp_counter}'
         self.temp_counter += 1
         return temp_var
 
@@ -138,3 +138,35 @@ class IRGenerator:
     def return_jump(self, ir0,ir1):
         gen = f"return {ir1.place}"
         ir0.code = self.join(ir1.code,gen)
+
+    def argument_expression(self, ir0, ir1, ir2):
+        ir0.code = self.join(ir1.code,ir2.code)
+        ir0.parameters = ir1.parameters + [ir2.place]
+    
+    def parameter_init(self, ir0, ir1):
+        ir0.parameters = [ir1.place]
+
+    def function_call(self, ir0, ir1, ir2, ret):
+        if ir2 is not None:
+            # arguments
+            if ret == 'void':
+                gen1 = ""
+                for param  in ir2.parameters:
+                    gen1 = self.join(gen1, f"param {param}")
+                gen2 = f"call {ir1.place}, {str(len(ir2.parameters))}"
+                ir0.code = self.join(ir2.code, gen1, gen2)
+            else:
+                ir0.place = self.new_temp()
+                gen1 = ""
+                print(ir2.parameters)
+                for param  in ir2.parameters:
+                    gen1 = self.join(gen1, f"param {param}")
+                gen2 = f"{ir0.place} = call {ir1.place}, {str(len(ir2.parameters))}"
+                ir0.code = self.join(ir2.code, gen1, gen2)
+        else:
+            if ret == 'void':
+                ir0.code = "call " + ir1.place
+            else:
+                ir0.place = self.new_temp()
+                gen2 = ir0.place + " = call " + ir1.place + str(len(ir2.parameters))
+                ir0.code = self.join(ir2.code, gen2)
