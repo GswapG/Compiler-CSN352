@@ -46,6 +46,7 @@ def p_translation_unit(p):
         p[0] = Node("translation_unit", [p[1]])
     else:
         p[0] = Node("translation_unit", [p[1], p[2]])
+        IrGen.translation_unit(p[0].ir,p[1].ir,p[2].ir)
 
 def p_external_declaration(p):
     '''external_declaration : function_definition
@@ -1746,6 +1747,7 @@ def p_block_item_list(p):
         p[0] = Node("block_item_list", [p[1]])
     else:
         p[0] = Node("block_item_list", [p[1], p[2]])
+        IrGen.blockitem(p[0].ir, p[1].ir, p[2].ir)
 
 
 def p_block_item(p):

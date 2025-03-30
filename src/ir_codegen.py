@@ -114,3 +114,9 @@ class IRGenerator:
         gen = f"{ir0.place} = {op} {ir1.place}"
         ir0.code = self.join(ir1.code,gen)
         self.debug_print(ir0)
+
+    def blockitem(self,ir0,ir1,ir2):
+        ir0.code = self.join(ir1.code,ir2.code)
+        
+    def translation_unit(self,ir0,ir1,ir2):
+        ir0.code = self.join(ir1.code,ir2.code)

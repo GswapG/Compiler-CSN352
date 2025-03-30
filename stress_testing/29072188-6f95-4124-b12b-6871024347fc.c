@@ -6,6 +6,4 @@ int main(){
     int x,y;
     x = x+y;
     int z = func(2);
-    goto label;
-    label:
 }
