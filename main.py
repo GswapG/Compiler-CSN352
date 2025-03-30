@@ -85,6 +85,7 @@ def process_file(filename,source_dir=testcase_dir):
     # Create a temporary file for the preprocessed output.
     with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.c') as temp_file:
         preprocess(input_path, temp_file.name)
+        pretty_print_header(f"Compilation Results for: {filename}", text_style="bold underline red", border_style="green")
         print(f"Preprocessed: {filename} -> {temp_file.name}")
 
     # Pass the temporary file to the parser.
