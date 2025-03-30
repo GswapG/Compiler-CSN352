@@ -179,7 +179,9 @@ def p_postfix_expression(p):
             if p[2] == "++" or p[2] == "--":
                 if get_label(p[1].return_type) == "float":
                     raise ValueError(f"{p[2]} operator is incompatible with floating point values")
+        p[0].return_type = p[1].return_type
         # IR
+        IrGen.inc_dec(p[0].ir,p[1].ir,p[2],True)
 
     elif len(p) == 4 and p[2] == ".":
         p[0] = Node("postfix_expression", [p[1], p[3]])
@@ -312,6 +314,11 @@ def p_unary_expression(p):
             if p[1] == "++" or p[1] == "--":
                 if get_label(p[2].return_type) == "float":
                     raise ValueError(f"{p[1]} operation cannot be used on floating point values")
+        # IR
+        if p[1] == '++' or p[1] == '--':
+            IrGen.inc_dec(p[0].ir, p[2].ir, p[1])
+        elif p[1] != "sizeof":    
+            IrGen.unary(p[0].ir, p[2].ir,p[1].operator)
 
     elif len(p) == 5:
         p[0] = Node("unary_expression", [p[1], p[3]])
@@ -461,7 +468,8 @@ def p_shift_expression(p):
             p[0].return_type = p[3].return_type
 
     p[0].return_type = p[1].return_type
-
+    if len(p) == 4:
+        IrGen.arithmetic_expression(p[0].ir, p[1].ir, p[2] ,p[3].ir)
 
 def p_relational_expression(p):
     '''relational_expression : shift_expression
@@ -525,6 +533,9 @@ def p_and_expression(p):
             p[0].return_type = p[3].return_type
 
     p[0].return_type = p[1].return_type
+
+    if len(p) == 4:
+        IrGen.arithmetic_expression(p[0].ir, p[1].ir, p[2] ,p[3].ir)
         
 
 def p_exclusive_or_expression(p):
@@ -552,6 +563,8 @@ def p_exclusive_or_expression(p):
             p[0].return_type = p[3].return_type
 
     p[0].return_type = p[1].return_type
+    if len(p) == 4:
+        IrGen.arithmetic_expression(p[0].ir, p[1].ir, p[2] ,p[3].ir)
 
 def p_inclusive_or_expression(p):
     '''inclusive_or_expression : exclusive_or_expression
@@ -578,6 +591,8 @@ def p_inclusive_or_expression(p):
             p[0].return_type = p[3].return_type
 
     p[0].return_type = p[1].return_type
+    if len(p) == 4:
+        IrGen.arithmetic_expression(p[0].ir, p[1].ir, p[2] ,p[3].ir)
 
 def p_logical_and_expression(p):
     '''logical_and_expression : inclusive_or_expression

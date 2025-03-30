@@ -80,8 +80,6 @@ class IRGenerator:
         ir0.place = str(const)
 
     def assignment(self, ir0, ir1, ir2):
-        if ir0.place is None:
-            ir0.place = self.new_temp()
         gen = f"{ir1.place} = {ir2.place}"
         ir0.code = self.join(ir2.code,gen)
         self.debug_print(ir0)
@@ -99,3 +97,20 @@ class IRGenerator:
         ir0.code = self.join(ir1.code,ir2.code,gen)
         self.debug_print(ir0)
 
+    def inc_dec(self, ir0, ir1, op, post=False):
+        gen1 = ""
+        if post:
+            ir0.place = self.new_temp()
+            gen1 = f"{ir0.place} = {ir1.place}"
+        else:
+            ir0.place = ir1.place
+        op = op[0]
+        gen2 = f"{ir1.place} = {ir1.place} {op} 1"
+        ir0.code = self.join(gen1,gen2)
+        self.debug_print(ir0)
+
+    def unary(self, ir0, ir1, op):
+        ir0.place = self.new_temp()
+        gen = f"{ir0.place} = {op} {ir1.place}"
+        ir0.code = self.join(ir1.code,gen)
+        self.debug_print(ir0)
