@@ -33,7 +33,7 @@ echo   -h, --help      Show this help message and exit
 echo   -v, --version   Show version information and exit
 echo   -g, --graph     Render the graph for all testcases
 echo   --fast          Use PyPy3 instead of Python
-echo   -c, --clear     Remove all files in renderedTrees and renderedSymbolTables folders
+echo   -c, --clear     Remove all files in output folders
 exit /b
 
 :version
@@ -48,5 +48,9 @@ if exist renderedTrees (
 if exist renderedSymbolTables (
     del /q /f renderedSymbolTables\*
     echo Cleared renderedSymbolTables folder.
+)
+if exist generatedIR (
+    del /q /f generatedIR\*
+    echo Cleared generatedIR folder.
 )
 exit /b

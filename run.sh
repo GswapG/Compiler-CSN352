@@ -67,7 +67,7 @@ if [[ " ${ARGS[*]} " =~ " -h " || " ${ARGS[*]} " =~ " --help " ]]; then
     echo "  -v, --version   Show version information and exit"
     echo "  -g, --graph     Render the graph for all testcases"
     echo "  --fast          Use PyPy3 instead of Python3"
-    echo "  -c, --clear     Remove all files in renderedTrees and renderedSymbolTables folders"
+    echo "  -c, --clear     Remove all files in output folder"
     exit 0
 fi
 
@@ -86,6 +86,10 @@ if [ "$CLEAR" = true ]; then
     if [ -d "renderedSymbolTables" ]; then
         rm -rf renderedSymbolTables/*
         echo "Cleared renderedSymbolTables folder."
+    fi
+    if [ -d "renderedSymbolTables" ]; then
+        rm -rf generatedIR/*
+        echo "Cleared generatedIR folder."
     fi
     exit 0
 fi

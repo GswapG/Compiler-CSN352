@@ -5,10 +5,13 @@ from .utils import *
 from .lexer import *
 from .tree import *
 from .symtab_new import *
+from .ir import *
+from .ir_codegen import *
 
 datatypeslhs=[]
 returns = set()
 constants = defaultdict(lambda: None)
+IrGen = IRGenerator()
 
 def table_entry(node):
     compound_dtype = ""
@@ -30,6 +33,11 @@ def table_entry(node):
         for var in node.vars:
             typedef_names.add(str(var))
 
+def p_start_symbol(p):
+    '''start_symbol : translation_unit'''
+    p[0] = Node("start_symbol",[p[1]])
+    IrGen.print_final_code(p[1].ir)
+    
 # Translation Unit
 def p_translation_unit(p):
     '''translation_unit : external_declaration
@@ -1879,6 +1887,7 @@ parser = yacc.yacc(debug=False)
 def parseFile(filename, ogfilename, treedir, symtabdir,graphgen=False):
     with open(filename, 'r') as file:
         data = file.read()
+    IrGen.set_out_file(ogfilename)
     print("file==================")
     print(data)
     print("======================")
