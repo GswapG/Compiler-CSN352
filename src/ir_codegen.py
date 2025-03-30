@@ -55,3 +55,47 @@ class IRGenerator:
         filepath = os.path.join(self.output_directory,self.outfile)
         with open(filepath, "w") as f:
             f.write(ir.code)
+
+    def debug_print(self,ir):
+        """
+        For printing intermediate values of ir.code
+        """
+        print("-=====-")
+        print(ir.code)
+        print("-=====-")
+
+    def join(self,*args):
+        ret = ""
+        for arg in args:
+            if arg == "":
+                continue
+            ret += arg
+            ret += '\n'
+        return ret[:-1]
+
+    def identifier(self, ir0, id):
+        ir0.place = str(id)
+
+    def constant(self, ir0, const):
+        ir0.place = str(const)
+
+    def assignment(self, ir0, ir1, ir2):
+        if ir0.place is None:
+            ir0.place = self.new_temp()
+        gen = f"{ir1.place} = {ir2.place}"
+        ir0.code = self.join(ir2.code,gen)
+        self.debug_print(ir0)
+
+    def op_assign(self, ir0, ir1, ir2, op):
+        if op.endswith('='):
+            op = op[:-1]
+        gen = f"{ir1.place} = {ir1.place} {op} {ir2.place}"
+        ir0.code = self.join(ir2.code,gen)
+        self.debug_print(ir0)
+
+    def arithmetic_expression(self, ir0, ir1, op, ir2):
+        ir0.place = self.new_temp()
+        gen = f"{ir0.place} = {ir1.place} {op} {ir2.place}"
+        ir0.code = self.join(ir1.code,ir2.code,gen)
+        self.debug_print(ir0)
+

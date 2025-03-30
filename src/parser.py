@@ -68,7 +68,7 @@ def p_primary_expression(p):
 def p_primary_expression_identifier(p):
     '''primary_expression : IDENTIFIER'''
 
-    p[0] = Node("primary_expression", [p[1]])
+    p[0] = Node("primary_expression_identifier", [p[1]])
     p[0].vars.append(str(p[1]))
     c1 = 0
     cpy = p[1]
@@ -81,6 +81,9 @@ def p_primary_expression_identifier(p):
     if check is not None:
         p[0].dtypes = check.type
         p[0].return_type = check.type
+    # IR
+    IrGen.identifier(p[0].ir, p[1])
+    
 
 def p_primary_expression_error(p):
     '''primary_expression : LPAREN expression error'''
@@ -94,6 +97,7 @@ def p_constant(p):
                 | enumeration_constant'''
     
     p[0] = Node("constant", [p[1]])
+    IrGen.constant(p[0].ir,p[1])
     token_type = p.slice[1].type
 
     type_map = {
@@ -175,6 +179,7 @@ def p_postfix_expression(p):
             if p[2] == "++" or p[2] == "--":
                 if get_label(p[1].return_type) == "float":
                     raise ValueError(f"{p[2]} operator is incompatible with floating point values")
+        # IR
 
     elif len(p) == 4 and p[2] == ".":
         p[0] = Node("postfix_expression", [p[1], p[3]])
@@ -392,6 +397,9 @@ def p_multiplicative_expression(p):
             p[0].return_type = p[3].return_type
 
     p[0].return_type = p[1].return_type
+    # IR
+    if len(p) == 4:
+        IrGen.arithmetic_expression(p[0].ir,p[1].ir,p[2],p[3].ir)
 
 def p_additive_expression(p):
     '''additive_expression : multiplicative_expression
@@ -420,6 +428,9 @@ def p_additive_expression(p):
             p[0].return_type = p[3].return_type
 
     p[0].return_type = p[1].return_type
+    # IR
+    if len(p) == 4:
+        IrGen.arithmetic_expression(p[0].ir,p[1].ir,p[2],p[3].ir)
     
 def p_shift_expression(p):
     '''shift_expression : additive_expression
@@ -661,7 +672,11 @@ def p_assignment_expression(p):
 
         if lhs_type.startswith("const "):
             raise TypeError(f"Cannot re-assign value to const variable")
-
+        
+        if(p[2].operator == '='):
+            IrGen.assignment(p[0].ir, p[1].ir, p[3].ir)
+        else:
+            IrGen.op_assign(p[0].ir, p[1].ir, p[3].ir,p[2].operator)
         if (p[2].operator == "<<=" or 
             p[2].operator == ">>=" or 
             p[2].operator == "%=" or
@@ -676,6 +691,7 @@ def p_assignment_expression(p):
         p[0].is_address = False
         
     p[0].return_type = p[1].return_type
+    # IR
 
 def p_assignment_operator(p):
     '''assignment_operator : ASSIGN
@@ -995,6 +1011,9 @@ def p_init_declarator(p):
             
     p[0].is_address = False
 
+    if len(p) == 4:
+        IrGen.assignment(p[0].ir, p[1].ir, p[3].ir)
+
 
 def p_init_declarator_error(p):
     '''init_declarator : declarator error initializer'''
@@ -1290,6 +1309,8 @@ def p_direct_declarator(p):
     if len(p) == 2:
         p[0] = Node("direct_declarator", [p[1]])
         p[0].vars.append(p[1])
+        # IR
+        IrGen.identifier(p[0].ir,p[1])
     elif len(p) == 3:
         #REF
         p[0] = Node("direct_declarator",[p[1],p[2]])

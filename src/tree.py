@@ -1,6 +1,7 @@
 from graphviz import Digraph
 from collections import deque
 from .ir import IR
+import copy
 # AST
 symbol_table = []
 node_name = 0
@@ -24,7 +25,7 @@ class Node:
         self.iscall = 0
         self.param_list = []
         self.operator = None
-        self.ir = IR() 
+        self.ir = IR()
         if children:
             children_conv = []
             for c in children:
@@ -38,6 +39,7 @@ class Node:
         if len(self.children) == 1 and isinstance(self.children[0], Node):
             self.return_type = self.children[0].return_type
             self.iscall = self.children[0].iscall
+            self.ir = copy.deepcopy(self.children[0].ir)
 
         for c in self.children:
             self.is_address |= c.is_address

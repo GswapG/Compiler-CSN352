@@ -1,6 +1,6 @@
 class IR:
     def __init__(self):
-        self.place = ""
+        self.place = None
         self.code = ""
         self.truelist = []
         self.falselist = []
