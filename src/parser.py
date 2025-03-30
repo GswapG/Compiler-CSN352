@@ -180,7 +180,8 @@ def p_postfix_expression(p):
 
     elif len(p) == 5:
         if p[2] == '[':
-            p[1].vars[0] = '@' + p[1].vars[0]
+            if p[1].vars[0][0] != '@':
+                p[1].vars[0] = '@' + p[1].vars[0]
 
             d, r, clean_var = count_deref_ref(p[1].vars[0])
             p[1].return_type = get_type_from_var(clean_var, d, r, symtab)
@@ -1282,7 +1283,8 @@ def p_direct_declarator(p):
     # direct_declarator LBRACKET RBRACKET case
     elif len(p) == 4 and p[2] == '[':
         p[0] = Node("array_declarator", [p[1]])
-        p[0].vars[0] += "$"
+        if p[0].vars[0][-1] != '$':
+            p[0].vars[0] += "$"
     
     # direct_declarator LBRACKET TIMES RBRACKET case
     elif len(p) == 5 and p[2] == '[' and p[3] == '*':
@@ -1296,7 +1298,8 @@ def p_direct_declarator(p):
         p[3].vars = []
         
         p[0] = Node("array_declarator", [p[1], p[3]])
-        p[0].vars[0] += "$"        
+        if p[0].vars[0][-1] != '$':
+            p[0].vars[0] += "$"
     
     # direct_declarator LPAREN RPAREN case
     elif len(p) == 4 and p[2] == '(' and p[3] == ')':

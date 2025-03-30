@@ -269,15 +269,20 @@ def compute_struct(symbol, symtab):
 
     size = 0
     for entry in entries:
-        offset = size % entry.size
-        if offset == 0:
-            offset = entry.size
+        if entry.kind != "constant":
+            offset = size % entry.size
+            if offset == 0:
+                offset = entry.size
 
-        size += (entry.size - offset)
-        entry.offset = size
-        struct_entries[table_ptr].offset = entry.offset
-        
-        size += entry.size
+            size += (entry.size - offset)
+            entry.offset = size
+            struct_entries[table_ptr].offset = entry.offset
+            
+            size += entry.size
+        else:
+            entry.offset = 0
+            struct_entries[table_ptr].offset = entry.offset
+
         table_ptr += 1
 
     offset = size % maximum_alignment
@@ -320,7 +325,7 @@ def compute_union(symbol, symtab):
 
     return maximum_alignment
 
-def restructure_enum(symbol, symtab):
+def restructure_enum(symtab):
     table_entries = symtab.table_entries
     for entry in reversed(table_entries):
         if entry.kind == "enumerator":
@@ -330,11 +335,12 @@ def restructure_enum(symbol, symtab):
             return
 
 def get_size(symbol, symtab):
+    print(symbol.name, symbol.type, symbol.kind)
     if "*" in symbol.type:
         return 8 
     
     if "enum type" in symbol.kind:
-        restructure_enum(symbol, symtab)
+        restructure_enum(symtab)
         return 4
 
     if "enum" in symbol.type:
@@ -381,7 +387,6 @@ def get_size(symbol, symtab):
     
     if "int" in symbol.type:
         return 4
-    
    
 
 def dominating_type(type1, type2):

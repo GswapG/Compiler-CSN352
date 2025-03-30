@@ -1,6 +1,5 @@
-union Node {
+struct Node {
     char name[5];
-    char what[6];
 };
 
 int main() {
