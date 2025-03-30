@@ -226,7 +226,7 @@ def argument_param_match(argument_list, func_params):
             argument_ptr += 1
             pass
         else:
-            if check_types(func_params[params_ptr].type, argument_list[argument_ptr]):
+            if check_types(func_params[params_ptr].type, argument_list[argument_ptr], True):
                 raise Exception(f"Invalid Function Parameters => {trim_value(func_params[params_ptr].type, 'const')} | {trim_value(argument_list[argument_ptr], 'const')}")
             else:
                 argument_ptr += 1 

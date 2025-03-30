@@ -194,9 +194,11 @@ def p_postfix_expression(p):
 
     elif len(p) == 7:
         p[0] = Node("postfix_expression", [p[2], p[5]])
-
+        p[0].isbraces = True 
+        
     elif len(p) == 8:
         p[0] = Node("postfix_expression", [p[2], p[5]])
+        p[0].isbraces = True
 
     if len(p) == 4 and p[2] == ".":
         field_identifier = p[3]
@@ -907,10 +909,15 @@ def p_init_declarator(p):
                 kind=str(kind)
             )
             symtab.add_symbol(var_sym)
-            
-    for var in p[0].rhs:
-        d, r, var0 = count_deref_ref(var)
-        dtype1 = get_type_from_var(var0, d, r, symtab)
+        
+        else:
+            if symtab.current_scope != symtab.lookup(variable).node:
+                var_sym = SymbolEntry(
+                    name=str(variable),
+                    type=str(base_type),
+                    kind=str(kind)
+                )
+                symtab.add_symbol(var_sym)
 
     if len(p) == 4:
         checkfunc = not p[3].iscall

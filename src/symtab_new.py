@@ -364,16 +364,12 @@ class SymbolTable:
             scope_pointer = scope_pointer.parent
     
     def search_params(self, name):
-        func_entry = None
-        for entry in self.table_entries:
-            if entry.name == name:
-                func_entry = entry.entry
-                break
-    
-        if func_entry is None:
-            raise Exception(f"identifier {name} doesnt exist.")
+        func_entry = self.lookup(name)
+        if func_entry.child is None or func_entry.kind != "function":
+            raise Exception(f"function {name} does not exist")
         
         child_scope = func_entry.child
+
         params = []
         for entry in child_scope.entries:
             if entry.kind == "parameter":
@@ -387,6 +383,14 @@ class SymbolTable:
         if symtab.lookup(field_chain[0]) is None:
             raise Exception(f"{field_chain[0]} not declared")
         
+        type = symtab.lookup(field_chain[0]).type
+
+        while symtab.lookup(type) is not None:
+            type = symtab.lookup(type).type
+
+        if "struct" not in type and "union" not in type:
+            raise Exception(f"Variable is not a struct/union")
+    
         field_chain[0] = symtab.lookup(field_chain[0]).type.split(' ')[-1]
         current_scope = self.root
 
