@@ -1694,6 +1694,8 @@ def p_labeled_statement(p):
                         | DEFAULT COLON statement'''
     if len(p) == 3 and p[2] == ':' and p[1] != 'default':
         p[0] = Node("labeled_statement", [p[1]])
+        # IR
+        IrGen.label_add(p[0].ir,p[1])
     elif len(p) == 5 and p[1] == 'case':
         p[0] = Node("labeled_statement", [p[1], p[2], p[4]])
     elif len(p) == 4:
@@ -1835,6 +1837,8 @@ def p_jump_statement(p):
         if p[1] == 'return':
             returns.add(p[2].return_type)
             IrGen.return_jump(p[0].ir,p[2].ir)
+        if p[1] == 'goto':
+            IrGen.goto_label(p[0].ir,p[2])
 
 
 def p_jump_statement_error(p):

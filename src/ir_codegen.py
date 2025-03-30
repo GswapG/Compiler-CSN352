@@ -25,10 +25,10 @@ class IRGenerator:
         """
         if func_name:
             if func_name not in self.function_labels:
-                self.function_labels[func_name] = func_name
+                self.function_labels[func_name] = f".{func_name}"
             return self.function_labels[func_name]
         
-        label = f'L{self.label_counter}'
+        label = f'_L{self.label_counter}'
         self.label_counter += 1
         return label
     
@@ -56,7 +56,11 @@ class IRGenerator:
         with open(filepath, "w") as f:
             for line in ir.code.split('\n'):
                 if line[-1] == ':':
-                    f.write(line + '\n')
+                    if line[0] == '.':
+                        f.write(line + '\n')
+                    else:
+                        line = '\t' + line
+                        f.write(line + '\n')
                 else:
                     line = '\t\t' + line
                     f.write(line + '\n')
@@ -170,3 +174,9 @@ class IRGenerator:
                 ir0.place = self.new_temp()
                 gen2 = ir0.place + " = call " + ir1.place + str(len(ir2.parameters))
                 ir0.code = self.join(ir2.code, gen2)
+
+    def label_add(self, ir0, label):
+        ir0.code = f"{label}:"
+
+    def goto_label(self, ir0, label):
+        ir0.code = f"goto {label}"
