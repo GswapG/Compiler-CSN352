@@ -193,13 +193,16 @@ def p_postfix_expression(p):
 
         if isinstance(p[2], str):
             if p[2] == "++" or p[2] == "--":
-                if get_label(p[1].return_type) == "float":
-                    raise ValueError(f"{p[2]} operator is incompatible with floating point values")
+                if get_label(p[1].return_type) != "int":
+                    raise ValueError(f"{p[2]} operator is incompatible with the operand of type {p[1].return_type}")
 
                 if p[1].lvalue is not True and p[1].rvalue is not False:
                     raise ValueError(f"Operator {p[2]} can only be applied to modifyable lvalues")
 
         p[0].return_type = p[1].return_type
+        p[0].lvalue = False
+        p[0].rvalue = True
+
         # IR
         IrGen.inc_dec(p[0].ir,p[1].ir,p[2],True)
 
