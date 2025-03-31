@@ -11,7 +11,6 @@ from .ir_codegen import *
 datatypeslhs=[]
 returns = set()
 constants = defaultdict(lambda: None)
-IrGen = IRGenerator()
 
 def table_entry(node):
     compound_dtype = ""
@@ -65,12 +64,16 @@ def p_primary_expression(p):
     elif len(p) == 4:
         p[0] = Node("primary_expression", [p[2]])
         p[0].return_type = p[2].return_type
+        p[0].lvalue = p[2].lvalue
+        p[0].rvalue = p[2].rvalue
 
 def p_primary_expression_identifier(p):
     '''primary_expression : IDENTIFIER'''
 
     p[0] = Node("primary_expression_identifier", [p[1]])
     p[0].vars.append(str(p[1]))
+    p[0].lvalue = True
+    p[0].rvalue = False
     c1 = 0
     cpy = p[1]
     
@@ -84,7 +87,6 @@ def p_primary_expression_identifier(p):
         p[0].return_type = check.type
     # IR
     IrGen.identifier(p[0].ir, p[1])
-    
 
 def p_primary_expression_error(p):
     '''primary_expression : LPAREN expression error'''
@@ -98,7 +100,9 @@ def p_constant(p):
                 | enumeration_constant'''
     
     p[0] = Node("constant", [p[1]])
-    IrGen.constant(p[0].ir,p[1])
+    p[0].lvalue = False
+    p[0].rvalue = True
+    IrGen.constant(p[0].ir, p[1])
     token_type = p.slice[1].type
 
     type_map = {
@@ -130,11 +134,13 @@ def p_enumeration_constant(p):
 def p_string(p):
     '''string : STRING_LITERAL'''
     p[0] = Node("string", [p[1]])
-    string_sym = SymbolEntry(str(p[1]), type='*char', kind='constant')
+    string_sym = SymbolEntry(str(p[1]), type='*const char', kind='constant')
     symtab.add_symbol(string_sym)
 
     p[0].vars.append(p[1])
-    p[0].return_type = "*char"
+    p[0].lvalue = False
+    p[0].rvalue = True
+    p[0].return_type = "*const char"
 
 def p_generic_selection(p):
     '''generic_selection : GENERIC LPAREN assignment_expression COMMA generic_assoc_list RPAREN '''
@@ -180,6 +186,11 @@ def p_postfix_expression(p):
             if p[2] == "++" or p[2] == "--":
                 if get_label(p[1].return_type) == "float":
                     raise ValueError(f"{p[2]} operator is incompatible with floating point values")
+
+                print(p[1].lvalue, p[1].rvalue)
+                if p[1].lvalue is not True and p[1].rvalue is not False:
+                    raise ValueError(f"Operator {p[2]} can only be applied to modifyable lvalues")
+
         p[0].return_type = p[1].return_type
         # IR
         IrGen.inc_dec(p[0].ir,p[1].ir,p[2],True)
@@ -330,7 +341,7 @@ def p_unary_expression(p):
         p[0] = Node("unary_expression", [p[1], p[3]])
         
     if p[1] == "sizeof":
-        p[0].return_type = "int"
+        p[0].return_type = "unsigned int"
 
 def p_unary_expression_error(p):
     '''unary_expression : SIZEOF LPAREN type_name error
@@ -354,10 +365,16 @@ def p_cast_expression(p):
                       | LPAREN type_name RPAREN cast_expression'''
     if len(p) == 2:
         p[0] = Node("cast_expression", [p[1]])
-        p[0].return_type = p[1].return_type
+
     else:
         p[0] = Node("cast_expression", [p[2], p[4]])
+
+        if not compatible_cast(p[2].return_type, p[4].return_type):
+            raise Exception(f"Return type of expression {p[4].return_type} cannot be casted to {p[2].return_type}")
+
         p[0].return_type = p[2].return_type
+        p[0].lvalue = False
+        p[0].rvalue = True
 
 def p_cast_expression_error(p):
     '''cast_expression : LPAREN type_name error cast_expression'''
@@ -372,26 +389,34 @@ def p_multiplicative_expression(p):
                                  | multiplicative_expression MOD cast_expression'''
     if len(p) == 2:
         p[0] = Node("multiplicative_expression", [p[1]])
+
     else:
         p[0] = Node("multiplicative_expression", [p[1], p[2], p[3]])
         p[0].iscall = p[1].iscall + p[3].iscall
 
-    # Process first operand to get expected type (dtype1)
-    dtype1 = None
-    if len(p[1].vars) > 0:
-        d, r, var0 = count_deref_ref(p[1].vars[0])
-        dtype1 = get_type_from_var(var0, d, r, symtab)
-
-    # Check that each variable in the first operand has the expected type
-    # check_vars_type(p[1].vars, dtype1, "multiplicative", symtab, True)
-
-    if len(p) == 4:
-        check_vars_type(p[3].vars, dtype1, p[2], symtab, True)
-
+        # ISO C99: 6.5.5: 2: Each of the operands shall have arithmetic type. The operands of the % operator shall have integer type.
+        if "*" in p[1].return_type or "*" in p[3].return_type:
+            raise Exception(f"Invalid Operands of type {p[1].return_type} and {p[3].return_type} to the operator *")
+        
         if isinstance(p[2], str) and p[2] == "%":
             if get_label(p[1].return_type) == "float" or get_label(p[3].return_type) == "float":
                 raise ValueError(f"Floating type expressions incompatible with mod operation")
 
+        d, r, var0 = count_deref_ref(p[1].vars[0])
+        var_type = get_type_from_var(var0, d, r, symtab)
+        check_vars_type(p[3].vars, var_type, p[2], symtab, True)
+
+        if check_types(p[1].return_type, p[3].return_type, True):
+            raise Exception(f"Invalid Operands of type {p[1].return_type} and {p[3].return_type} to the operator +")
+
+        if dominating_type(p[1].return_type, p[3].return_type):
+            p[0].return_type = p[1].return_type
+        else:
+            p[0].return_type = p[3].return_type
+
+        p[0].lvalue = False
+        p[0].rvalue = True
+        
     func_id = 0
     for v in p[0].vars:
         if symtab.lookup(v) is not None and symtab.lookup(v).kind == 'function':
@@ -400,19 +425,9 @@ def p_multiplicative_expression(p):
     if func_id != p[0].iscall:
         raise Exception("Invalid Function Call")
     
-    if len(p) == 4:
-        if "*" in p[1].return_type or "*" in p[3].return_type:
-            raise Exception(f"Invalid Operands of type {p[1].return_type} and {p[3].return_type} to the operator *")
-
-        if dominating_type(p[1].return_type, p[3].return_type):
-            p[0].return_type = p[1].return_type
-        else:
-            p[0].return_type = p[3].return_type
-
-    p[0].return_type = p[1].return_type
     # IR
     if len(p) == 4:
-        IrGen.arithmetic_expression(p[0].ir,p[1].ir,p[2],p[3].ir)
+        IrGen.arithmetic_expression(p[0].ir, p[1].ir, p[2], p[3].ir)
 
 def p_additive_expression(p):
     '''additive_expression : multiplicative_expression
@@ -420,30 +435,44 @@ def p_additive_expression(p):
                            | additive_expression MINUS multiplicative_expression'''
     if len(p) == 2:
         p[0] = Node("additive_expression", [p[1]])
+    
     else:
         p[0] = Node("additive_expression", [p[1], p[2], p[3]])
         p[0].iscall = p[1].iscall + p[3].iscall
 
-    dtype1 = None
-    if len(p[1].vars) > 0:
-        d, r, var0 = count_deref_ref(p[1].vars[0])
-        dtype1 = get_type_from_var(var0, d, r, symtab)
-
-    if len(p) == 4:
-        check_vars_type(p[3].vars, dtype1, p[2], symtab, True)
-
         if "*" in p[1].return_type or "*" in p[3].return_type:
-            raise Exception(f"Invalid Operands of type {p[1].return_type} and {p[3].return_type} to the operator +")
+            if p[2] == '+':
+                # ISO C99: 6.5.6: 2: For addition, either both operands shall have arithmetic type, or one operand shall be a pointer to an object type and the other shall have integer type. (Incrementing is equivalent to adding 1
+                if "*" in p[1].return_type and "*" in p[3].return_type:
+                    raise Exception(f"Addition Operation is not allowed for pointer type operands: {p[1].return_type} | {p[3].return_type}")
 
-        if dominating_type(p[1].return_type, p[3].return_type):
-            p[0].return_type = p[1].return_type
+                p[0].return_type = addition_compatibility(p[1].return_type, p[3].return_type)
+                
+            elif p[2] == '-':
+                # ISO C99: 6.5.6: 3: For Subtraction, both operands have arithmetic type; both operands are pointers to qualified or unqualified versions of compatible object types; or the left operand is a pointer to an object type and the right operand has integer type.
+                p[0].return_type = subtraction_compatibility(p[1].return_type, p[3].return_type)
+            
         else:
-            p[0].return_type = p[3].return_type
+            # compute the type of the first variable
+            d, r, var0 = count_deref_ref(p[1].vars[0])
+            var_type = get_type_from_var(var0, d, r, symtab)
 
-    p[0].return_type = p[1].return_type
-    # IR
-    if len(p) == 4:
-        IrGen.arithmetic_expression(p[0].ir,p[1].ir,p[2],p[3].ir)
+            # check if all the variables in p[3] are compatible
+            check_vars_type(p[3].vars, var_type, p[2], symtab, True)
+
+            if check_types(p[1].return_type, p[3].return_type, True):
+                raise Exception(f"Invalid Operands of type {p[1].return_type} and {p[3].return_type} to the operator +")
+
+            # to determine the return type
+            if dominating_type(p[1].return_type, p[3].return_type):
+                p[0].return_type = p[1].return_type
+            else:
+                p[0].return_type = p[3].return_type
+
+        IrGen.arithmetic_expression(p[0].ir, p[1].ir, p[2], p[3].ir)
+
+        p[0].lvalue = False
+        p[0].rvalue = True
     
 def p_shift_expression(p):
     '''shift_expression : additive_expression
@@ -694,10 +723,6 @@ def p_assignment_expression(p):
         if lhs_type.startswith("const "):
             raise TypeError(f"Cannot re-assign value to const variable")
         
-        if(p[2].operator == '='):
-            IrGen.assignment(p[0].ir, p[1].ir, p[3].ir)
-        else:
-            IrGen.op_assign(p[0].ir, p[1].ir, p[3].ir,p[2].operator)
         if (p[2].operator == "<<=" or 
             p[2].operator == ">>=" or 
             p[2].operator == "%=" or
@@ -708,6 +733,12 @@ def p_assignment_expression(p):
 
         # else:
         #     validate_assignment(trim_value(lhs_type, "const"), p[2].operator, p[3].vars, symtab, True, False)
+
+        if(p[2].operator == '='):
+            IrGen.assignment(p[0].ir, p[1].ir, p[3].ir)
+        else:
+            IrGen.op_assign(p[0].ir, p[1].ir, p[3].ir, p[2].operator)
+
 
         p[0].is_address = False
         
@@ -800,6 +831,9 @@ def p_init_declarator_list(p):
     '''init_declarator_list : init_declarator
                            | init_declarator_list COMMA init_declarator'''
     p[0] = Node("init_declarator_list", [p[1], p[3]] if len(p) == 4 else [p[1]])
+    
+    if len(p) == 4:
+        IrGen.multiple_assignment(p[0].ir, p[1].ir, p[3].ir)
 
 def validate_c_datatype(data_type):
     valid_type_patterns = [
@@ -1037,7 +1071,6 @@ def p_init_declarator(p):
     if len(p) == 4:
         IrGen.assignment(p[0].ir, p[1].ir, p[3].ir)
 
-
 def p_init_declarator_error(p):
     '''init_declarator : declarator error initializer'''
 
@@ -1077,6 +1110,7 @@ def p_struct_or_union_specifier(p):
                                 | struct_or_union IDENTIFIER'''
     if len(p) == 7:
         p[0] = Node("struct_or_union_specifier", [p[1], p[4]])
+
     elif len(p) == 8:
         p[0] = Node("struct_or_union_specifier", [p[1], p[2], p[5]])
         symbol_table.append((p[2], str(p[1].children[0])))
@@ -1093,10 +1127,9 @@ def p_struct_or_union_specifier(p):
 
     else:
         p[0] = Node("struct_or_union_specifier", [p[1], p[2]])
+
         p[0].dtypes.append(p[2])
-
-
-
+        p[0].return_type = p[1].return_type + " " + p[2]
 
 def p_struct_or_union(p):
     '''struct_or_union : STRUCT
@@ -1333,7 +1366,7 @@ def p_direct_declarator(p):
         p[0] = Node("direct_declarator", [p[1]])
         p[0].vars.append(p[1])
         # IR
-        IrGen.identifier(p[0].ir,p[1])
+        IrGen.identifier(p[0].ir, p[1])
     elif len(p) == 3:
         #REF
         p[0] = Node("direct_declarator",[p[1],p[2]])
@@ -1819,8 +1852,6 @@ def p_iteration_statement(p):
         else:
             p[0] = Node("iteration_statement", [p[1], p[4], p[5],p[6],p[8]])
 
-
-
 def p_jump_statement(p):
     '''jump_statement : GOTO IDENTIFIER SEMICOLON
                      | CONTINUE SEMICOLON
@@ -1935,16 +1966,20 @@ def p_error(p):
 # Build parser
 parser = yacc.yacc(debug=True)
 
-def parseFile(filename, ogfilename, treedir, symtabdir,graphgen=False):
+def parseFile(filename, ogfilename, treedir, symtabdir,graphgen=False,irgen=True):
+    global IrGen
+    print(f"irgeneration => {irgen}")
+    IrGen = IRGenerator(irgen)
+    IrGen.set_out_file(ogfilename)
+    
     with open(filename, 'r') as file:
         data = file.read()
-    IrGen.set_out_file(ogfilename)
 
     pretty_print_box(data, "File Contents")
     print(f"Parsing file: {filename}\n")
 
     root = parser.parse(data)
-    
+
     pretty_print_header("Final Symbol Table", text_style="bold underline red")
     print(symtab)
 

@@ -409,7 +409,6 @@ def dominating_type(type1, type2):
 
     if "double" in types1 and "double" in types2:
         return True
-    
     else:
         if "double" not in types1 and "double" not in types2:
             if "float" in types1 and "float" in types2:
@@ -572,3 +571,134 @@ def check_types(type1, type2, allow_int_float=False):
         return True
 
     return True
+
+def addition_compatibility(type1, type2):
+    if type1 is None:
+        raise Exception("lvalue is None")
+    
+    if type2 is None:
+        raise Exception("rvalue is None")
+    
+    save_type1 = type1
+    save_type2 = type2
+    
+    type1 = trim_value(type1, "const")
+    type1 = trim_value(type1, "unsigned")
+    type1 = trim_value(type1, "signed")
+    type1 = trim_value(type1, "static")
+
+    type2 = trim_value(type2, "const")
+    type2 = trim_value(type2, "unsigned")
+    type2 = trim_value(type2, "signed")
+    type2 = trim_value(type2, "static")
+
+    if "*" in type1:
+        type1 = type1.lstrip("*")
+
+        if type1 == type2:
+            return save_type1
+        
+        else:
+            raise TypeError(f"Incompatible types {save_type1} {save_type2} for the operation addition")
+
+    if "*" in type2:
+        type2 = type2.lstrip("*")
+
+        if type2 == type1:
+            return save_type2
+        
+        else:
+            raise TypeError(f"Incompatible types {save_type1} {save_type2} for the operation addition")
+
+    raise Exception(f"This method should only be called when either one of the types is a pointer to an object, but the types passed were: {save_type1} and {save_type2}")
+
+def subtraction_compatibility(type1, type2):
+    if type1 is None:
+        raise Exception("lvalue is None")
+    
+    if type2 is None:
+        raise Exception("rvalue is None")
+    
+    save_type1 = type1
+    save_type2 = type2
+
+    if "*" in type1 and "*" in type2:
+        # only strip the qualifiers for singled pointer and then check for compatibility and return the stripped pointers
+        # for double pointers, it should exactly match without the *
+
+        if type1.count("*") != type2.count("*"):
+            raise Exception(f"Incompatible types for subtraction operator: {save_type1} and {save_type2}")
+
+        if type1.count("*") == 1 and type2.count("*") == 1:
+            type1 = trim_value(type1, "const")
+            type1 = trim_value(type1, "static")
+
+            type2 = trim_value(type2, "const")
+            type2 = trim_value(type2, "static")
+
+        if type1 == type2:
+            return type1.lstrip("*")
+        
+        else:
+            raise Exception(f"Incompatible types for subtraction operator: {save_type1} and {save_type2}")
+ 
+    elif "*" in type2:
+        raise Exception(f"Subtraction operator is not compatible with the first operand type: '{save_type1}' being an integer type and the second operand type: '{save_type2}' being a pointer type")
+
+    elif "*" in type1: 
+        type1 = trim_value(type1, "const")
+        type1 = trim_value(type1, "unsigned")
+        type1 = trim_value(type1, "signed")
+        type1 = trim_value(type1, "static")
+
+        type2 = trim_value(type2, "const")
+        type2 = trim_value(type2, "unsigned")
+        type2 = trim_value(type2, "signed")
+        type2 = trim_value(type2, "static")
+
+        type1 = type1.lstrip("*")
+
+        if type1 == type2:
+            return save_type1
+        
+        else:
+            raise TypeError(f"Incompatible types {save_type1} {save_type2} for the operation addition")
+
+    raise Exception(f"This method should only be called when either one of the types is a pointer to an object, but the types passed were: {save_type1} and {save_type2}")    
+
+
+def compatible_cast(cast_type, expression_type):
+    if cast_type is None:
+        raise Exception(f"cast type is invalid")
+    
+    if expression_type is None:
+        raise Exception(f"expression type is invalid")
+    
+    if "struct" in cast_type and "struct" in expression_type:
+        if cast_type != expression_type:
+            return False 
+        
+        else:
+            return True
+    
+    if "struct" in cast_type and "struct" not in expression_type:
+        return False
+
+    if "struct" not in cast_type and "struct" in expression_type:
+        return False 
+    
+    if "union" in cast_type and "union" in expression_type:
+        if cast_type != expression_type:
+            return False 
+        
+        else:
+            return True
+    
+    if "union" in cast_type and "union" not in expression_type:
+        return False
+
+    if "union" not in cast_type and "union" in expression_type:
+        return False 
+    
+    # handle other casting between other types apart from struct or union here if required
+    return True    

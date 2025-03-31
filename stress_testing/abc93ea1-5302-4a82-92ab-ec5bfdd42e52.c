@@ -1,5 +1,5 @@
 struct Point { int x, y; };
 int main() {
-    int x = 5;
-    x = x++ + ++x; 
+    int* x;
+    int ptr = (int)*x;
 }

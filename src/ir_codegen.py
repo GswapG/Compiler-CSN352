@@ -3,14 +3,21 @@ import os
 DEFAULT_OUTPUT_DIRECTORY = "generatedIR"
 
 class IRGenerator:
-    def __init__(self):
+    def __init__(self, irgen):
         self.temp_counter = 0
         self.label_counter = 0
         self.function_labels = {}
         self.output_directory = DEFAULT_OUTPUT_DIRECTORY
         self.outfile = ""
+        self.generate = irgen
         if not os.path.exists(self.output_directory):
             os.mkdir(self.output_directory)
+
+    def __getattribute__(self, name):
+        attr = super().__getattribute__(name)
+        if callable(attr) and self.generate is False:
+            return lambda *args, **kwargs: None
+        return attr
 
     def new_temp(self):
         """Generate a new unique temporary variable."""
@@ -90,20 +97,24 @@ class IRGenerator:
 
     def assignment(self, ir0, ir1, ir2):
         gen = f"{ir1.place} = {ir2.place}"
-        ir0.code = self.join(ir2.code,gen)
+        ir0.code = self.join(ir2.code, gen)
+        self.debug_print(ir0)
+    
+    def multiple_assignment(self, ir0, ir1, ir2):
+        ir0.code = self.join(ir1.code, ir2.code)
         self.debug_print(ir0)
 
     def op_assign(self, ir0, ir1, ir2, op):
         if op.endswith('='):
             op = op[:-1]
         gen = f"{ir1.place} = {ir1.place} {op} {ir2.place}"
-        ir0.code = self.join(ir2.code,gen)
+        ir0.code = self.join(ir2.code, gen)
         self.debug_print(ir0)
 
     def arithmetic_expression(self, ir0, ir1, op, ir2):
         ir0.place = self.new_temp()
         gen = f"{ir0.place} = {ir1.place} {op} {ir2.place}"
-        ir0.code = self.join(ir1.code,ir2.code,gen)
+        ir0.code = self.join(ir1.code, ir2.code, gen)
         self.debug_print(ir0)
 
     def inc_dec(self, ir0, ir1, op, post=False):

@@ -25,6 +25,8 @@ class Node:
         self.iscall = 0
         self.param_list = []
         self.operator = None
+        self.lvalue = None
+        self.rvalue = None
         self.ir = IR()
         if children:
             children_conv = []
@@ -34,18 +36,19 @@ class Node:
                 else:
                     children_conv.append(c)        
             self.children = children_conv
-            
 
         if len(self.children) == 1 and isinstance(self.children[0], Node):
             self.return_type = self.children[0].return_type
             self.iscall = self.children[0].iscall
+            self.lvalue = self.children[0].lvalue
+            self.rvalue = self.children[0].rvalue
             self.ir = copy.deepcopy(self.children[0].ir)
 
         for c in self.children:
             self.is_address |= c.is_address
             self.isbraces |= c.isbraces
 
-            if isinstance(c,Node):
+            if isinstance(c, Node):
                 self.vars += c.vars
                 self.dtypes += c.dtypes
                 self.fdtypes += c.fdtypes

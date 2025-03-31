@@ -41,6 +41,10 @@ graphgen = False
 if "-g" in strargv or "--graph" in strargv:
     graphgen = True
 
+irgen = True
+if "--no-ir" in strargv:
+    irgen = False
+
 # Utils
 def strip_file(file):
     lines = file.split('\n')
@@ -89,12 +93,11 @@ def process_file(filename,source_dir=testcase_dir):
         print(f"Preprocessed: {filename} -> {temp_file.name}")
 
     # Pass the temporary file to the parser.
-    parseFile(temp_file.name,filename,TREE_PATH,SYMBOL_TABLE_PATH,graphgen)
+    parseFile(temp_file.name,filename,TREE_PATH,SYMBOL_TABLE_PATH,graphgen,irgen)
 
     add_file(input_path)
     return temp_file.name
     
-
 def process_directory(source_dir=testcase_dir):
     """
     For all .c files in source_dir, run preprocessor on them to create a temp file and pass it onto the parser.
