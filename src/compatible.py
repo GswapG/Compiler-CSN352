@@ -155,8 +155,31 @@ def get_label(type):
         label = "int"
 
     return label
-        
-def check_types(type1, type2, allow_int_float=False):
+
+def get_unqualified_type(type):
+    if type is None:
+        raise Exception("Invalid type provided")
+    
+    type = trim_value(type, "const")
+    return type
+
+
+def strict_unqualified_compatibility(type1, type2):
+    if type1 is None:
+        raise Exception("Invalid type provided")
+    
+    if type2 is None:
+        raise Exception("Invalid type provided")
+    
+    type1 = get_unqualified_type(type1)
+    type2 = get_unqualified_type(type2)
+
+    if type1 != type2:
+        return True 
+    
+    return False
+
+def implicit_type_compatibility(type1, type2, allow_int_float=False):
     ## implicit type conversion
     if type1 is None:
         raise Exception("lvalue is None")

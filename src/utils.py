@@ -35,7 +35,7 @@ def validate_relational_operands(left_vars, right_vars, symtab, allow_int_float)
         for var2 in right_vars:
             d2, r2, clean_var2 = count_deref_ref(var2)
             right_type = get_type_from_var(clean_var2, d2, r2, symtab)
-            if check_types(left_type, right_type, allow_int_float):
+            if implicit_type_compatibility(left_type, right_type, allow_int_float):
                 raise ValueError(f"Incompatible relational op with '{clean_var}' and '{clean_var2}'")
 
 def get_type_from_var(var, deref_count, ref_count, symtab, kind_check=None):
@@ -106,7 +106,7 @@ def check_vars_type(vars_list, expected_type, op_name, symtab, allow_int_float=F
         # Additionally, if the variable represents a struct field or is not a function,
         # then ensure the types are compatible.
 
-        if check_types(type_, expected_type, allow_int_float) and (
+        if implicit_type_compatibility(type_, expected_type, allow_int_float) and (
             (isinstance(clean_var, str) and ' ' in clean_var) or symtab.lookup(clean_var).kind != "function"
         ):
             raise ValueError(f"Incompatible {op_name} op with '{clean_var}'")
@@ -179,7 +179,7 @@ def validate_assignment(lhs_effective_type, operator, rhs_vars, symtab, allow_in
                     rhs_effective = "*" + rhs_effective
 
         # Compare after stripping trailing spaces.
-        if check_types(rhs_effective, lhs_effective_type, allow_int_float):
+        if implicit_type_compatibility(rhs_effective, lhs_effective_type, allow_int_float):
             raise ValueError(f"Type mismatch in assignment\n {lhs_effective_type} vs {rhs_effective}")
 
         if no_float:
@@ -195,7 +195,7 @@ def argument_param_match(argument_list, func_params):
             argument_ptr += 1
             pass
         else:
-            if check_types(func_params[params_ptr].type, argument_list[argument_ptr], True):
+            if implicit_type_compatibility(func_params[params_ptr].type, argument_list[argument_ptr], True):
                 raise Exception(f"Invalid Function Parameters => {trim_value(func_params[params_ptr].type, 'const')} | {trim_value(argument_list[argument_ptr], 'const')}")
             else:
                 argument_ptr += 1 

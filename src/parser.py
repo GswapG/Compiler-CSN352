@@ -64,6 +64,7 @@ def p_primary_expression(p):
     elif len(p) == 4:
         p[0] = Node("primary_expression", [p[2]])
         p[0].return_type = p[2].return_type
+
         p[0].lvalue = p[2].lvalue
         p[0].rvalue = p[2].rvalue
 
@@ -72,6 +73,7 @@ def p_primary_expression_identifier(p):
 
     p[0] = Node("primary_expression_identifier", [p[1]])
     p[0].vars.append(str(p[1]))
+
     p[0].lvalue = True
     p[0].rvalue = False
     
@@ -103,6 +105,7 @@ def p_constant(p):
     p[0] = Node("constant", [p[1]])
     p[0].lvalue = False
     p[0].rvalue = True
+
     IrGen.constant(p[0].ir, p[1])
     token_type = p.slice[1].type
 
@@ -277,6 +280,7 @@ def p_postfix_expression(p):
     if len(p) == 4 and p[2] == "(":
         func_params = symtab.search_params(p[0].vars[0])
         argument_list = []
+
         ret = symtab.lookup(p[0].vars[0]).type
         argument_param_match(argument_list, func_params)
         p[0].return_type = p[1].return_type
@@ -446,7 +450,7 @@ def p_multiplicative_expression(p):
         var_type = get_type_from_var(var0, d, r, symtab)
         check_vars_type(p[3].vars, var_type, p[2], symtab, True)
 
-        if check_types(p[1].return_type, p[3].return_type, True):
+        if implicit_type_compatibility(p[1].return_type, p[3].return_type, True):
             raise Exception(f"Invalid Operands of type {p[1].return_type} and {p[3].return_type} to the operator +")
 
         if dominating_type(p[1].return_type, p[3].return_type):
@@ -500,7 +504,7 @@ def p_additive_expression(p):
             # check if all the variables in p[3] are compatible
             check_vars_type(p[3].vars, var_type, p[2], symtab, True)
 
-            if check_types(p[1].return_type, p[3].return_type, True):
+            if implicit_type_compatibility(p[1].return_type, p[3].return_type, True):
                 raise Exception(f"Invalid Operands of type {p[1].return_type} and {p[3].return_type} to the operator +")
 
             # to determine the return type
@@ -718,7 +722,7 @@ def p_conditional_expression(p):
             d, r, var0 = count_deref_ref(p[1].vars[0])
             dtype1 = get_type_from_var(var0, d, r, symtab)
 
-        if check_types(p[3].return_type, p[5].return_type, True):
+        if implicit_type_compatibility(p[3].return_type, p[5].return_type, True):
             raise Exception(f"Ternary operators require both types to be compatible. Incompatible return types supplied: {p[3].return_type} | {p[5].return_type}")
 
         if dominating_type(p[3].return_type, p[5].return_type):
@@ -950,7 +954,7 @@ def p_init_declarator(p):
                     deref_count, ref_count, rhs_var = count_deref_ref(rhs_var)
                     type_ = get_type_from_var(rhs_var, deref_count, ref_count, symtab)
 
-                    if symtab.lookup(rhs_var) is not None and check_types(base_type, type_, True):
+                    if symtab.lookup(rhs_var) is not None and implicit_type_compatibility(base_type, type_, True):
                         raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs_var}\n| base_type = {base_type} |\n| rhs_type = {type_} |")
                     
                     if checkfunc and symtab.lookup(rhs_var) is not None and symtab.lookup(rhs_var).kind == 'function':
@@ -973,7 +977,7 @@ def p_init_declarator(p):
 
                     field_type = get_type_from_var(clean_list_entry, deref_count, ref_count, symtab)
         
-                    if check_types(struct_entry_type, field_type, True):
+                    if implicit_type_compatibility(struct_entry_type, field_type, True):
                         raise Exception(f"Type mismatch in {struct_entry_type} with provided {field_type}")
             else:
                 raise Exception("Non array type being initialised with braces")
@@ -993,14 +997,14 @@ def p_init_declarator(p):
                     deref_count, ref_count, rhs_var = count_deref_ref(p[0].rhs[0])
                     rhs_var_type = get_type_from_var(rhs_var, deref_count, ref_count, symtab)
 
-                    if check_types(base_type, rhs_var_type):
+                    if implicit_type_compatibility(base_type, rhs_var_type):
                         raise Exception(f"Type mismatch in {base_type} with provided {rhs_var_type}")
         
             else:
                 type_ = p[3].return_type
                         
                 if not (trim_value(base_type, "const").split(" ")[0] == "enum" and type_ == "int"):
-                    if check_types(base_type, type_, True):
+                    if implicit_type_compatibility(base_type, type_, True):
                         raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]}\n| base_type = {base_type} |\n| rhs_type = {type_} |")
             
         IrGen.assignment(p[0].ir, p[1].ir, p[3].ir,p[0].vars[0])
@@ -1834,7 +1838,7 @@ def p_function_definition(p):
     #     raise Exception("Multiple Return Types")
 
     for type in returns:
-        if check_types(b_type, type, True):
+        if implicit_type_compatibility(b_type, type, True):
             raise Exception("Invalid Type of Value returned")
     returns = set()
     # Enter FUNCTION SCOPE (for parameters/local vars)

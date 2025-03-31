@@ -247,7 +247,7 @@ class SymbolTable:
                 if entry.kind == "parameter":
                     def_entry.append(entry)
 
-            if definitionSymbol.type != symbol.type:
+            if strict_unqualified_compatibility(definitionSymbol.type, symbol.type):
                 raise ValueError(f"function redefinition return type mismatches\nfunction definition = {definitionSymbol.type}\nfunction redefinition = {symbol.type}")
 
             if len(def_entry) != len(self.parameters):
@@ -259,7 +259,7 @@ class SymbolTable:
                 if table_entry.name == symbol.name:
                     for entry, old_entry in zip(self.parameters, def_entry):
                         param_entry = next(table_entry_iterator)
-                        if entry.type != old_entry.type:
+                        if strict_unqualified_compatibility(entry.type, old_entry.type):
                             raise TypeError(f"function redefinition parameter type mismatches => {entry.type} | {old_entry.type}")
                         else:
                             if entry.name != old_entry.name:
