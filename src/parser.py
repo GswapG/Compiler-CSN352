@@ -857,6 +857,8 @@ def p_init_declarator_list(p):
                            | init_declarator_list COMMA init_declarator'''
     p[0] = Node("init_declarator_list", [p[1], p[3]] if len(p) == 4 else [p[1]])
     
+    if len(datatypeslhs)>0:
+        datatypeslhs[0]=datatypeslhs[0].lstrip('*')
     if len(p) == 4:
         IrGen.multiple_assignment(p[0].ir, p[1].ir, p[3].ir)
 
