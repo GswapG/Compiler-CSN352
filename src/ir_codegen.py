@@ -60,6 +60,8 @@ class IRGenerator:
         Pushes final IR to outfile
         """
         filepath = os.path.join(self.output_directory,self.outfile)
+        if ir.code == "":
+            return
         with open(filepath, "w") as f:
             for line in ir.code.split('\n'):
                 if line[-1] == ':':
