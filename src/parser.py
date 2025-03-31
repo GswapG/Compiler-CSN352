@@ -188,7 +188,6 @@ def p_postfix_expression(p):
                 if get_label(p[1].return_type) == "float":
                     raise ValueError(f"{p[2]} operator is incompatible with floating point values")
 
-                print(p[1].lvalue, p[1].rvalue)
                 if p[1].lvalue is not True and p[1].rvalue is not False:
                     raise ValueError(f"Operator {p[2]} can only be applied to modifyable lvalues")
 
@@ -321,14 +320,12 @@ def p_unary_expression(p):
             else:
                 braces_count = var.count("]")
                 new_var = var[:-2 * braces_count]
-                print("hi")
+
                 if symtab.lookup(new_var) is not None:
                     kind = symtab.lookup(new_var).kind
                     if "D-array" in kind:
                         if str(braces_count) != str(kind[0]):
                             raise Exception("Invalid array access")
-
-        print(f"unary => {p[0].return_type}")
 
     elif len(p) == 3:
         p[0] = Node("unary_expression", [p[1], p[2]])
@@ -1097,7 +1094,6 @@ def p_init_declarator(p):
             if len(p) == 4:
                 if base_var[-1] != ']':
                     type_ = p[3].return_type
-                    print(base_type, type_)
                     
                     if not (trim_value(base_type, "const").split(" ")[0] == "enum" and type_ == "int"):
                         if check_types(base_type, type_, True):
@@ -2007,7 +2003,6 @@ parser = yacc.yacc(debug=True)
 
 def parseFile(filename, ogfilename, treedir, symtabdir,graphgen=False,irgen=True):
     global IrGen
-    print(f"irgeneration => {irgen}")
     IrGen = IRGenerator(irgen)
     IrGen.set_out_file(ogfilename)
     
