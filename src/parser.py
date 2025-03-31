@@ -354,7 +354,7 @@ def p_unary_expression(p):
         if len(p[1].vars):
             var = p[1].vars[0]
             if var[-1] != ']':
-                if symtab.lookup(var) is not None and "D-array" in symtab.lookup(var).kind:
+                if symtab.lookup(var) is not None and "1D-array" in symtab.lookup(var).kind:
                     p[0].return_type = "*" + p[1].return_type 
             else:
                 braces_count = var.count("]")
