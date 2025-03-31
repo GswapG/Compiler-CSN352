@@ -766,7 +766,7 @@ def p_assignment_expression(p):
             validate_assignment(trim_value(lhs_type, "const"), p[2].operator, p[3].vars, symtab, True, False)
 
         if(p[2].operator == '='):
-            IrGen.assignment(p[0].ir, p[1].ir, p[3].ir)
+            IrGen.assignment(p[0].ir, p[1].ir, p[3].ir,p[0].vars[0])
         else:
             IrGen.op_assign(p[0].ir, p[1].ir, p[3].ir, p[2].operator)
 
@@ -1093,7 +1093,7 @@ def p_init_declarator(p):
                     if check_types(base_type, type_, True):
                         raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]}\n| base_type = {base_type} |\n| rhs_type = {type_} |")
             
-        IrGen.assignment(p[0].ir, p[1].ir, p[3].ir)
+        IrGen.assignment(p[0].ir, p[1].ir, p[3].ir,p[0].vars[0])
 
     p[0].is_address = False
 

@@ -93,6 +93,12 @@ class IRGenerator:
             ret += arg
             ret += '\n'
         return ret[:-1]
+    
+    def remove_lastline(self,ir):
+        index = ir.code.rfind("\n")  # Find the last occurrence of "/n"
+        if index != -1:
+            ir.code = ir.code[:index]  # Slice up to the last "/n"
+        return ir.code
 
     # Functions for actual IR rules
     def identifier(self, ir0, id):
@@ -101,9 +107,13 @@ class IRGenerator:
     def constant(self, ir0, const):
         ir0.place = str(const)
 
-    def assignment(self, ir0, ir1, ir2):
-        gen = f"{ir1.place} = {ir2.place}"
-        ir0.code = self.join(ir2.code, gen)
+    def assignment(self, ir0, ir1, ir2,var):
+        if '[' in var:
+            var = var.split('[')[0]
+            var = f"{var}[{ir1.place}]"
+            ir1.code = self.remove_lastline(ir1)
+        gen = f"{var} = {ir2.place}"
+        ir0.code = self.join(ir1.code,ir2.code, gen)
         self.debug_print(ir0)
     
     def multiple_assignment(self, ir0, ir1, ir2):
@@ -213,9 +223,6 @@ class IRGenerator:
         self.debug_print(ir0)
 
     def unary_array(self, ir0, ir1, var):
-        gen = f"{ir1.place} = {var} + {ir1.place}"
-        ir0.place = self.new_temp()
-        gen2 = f"{ir0.place} = * {ir1.place}"
-        ir0.code = self.join(ir1.code,gen,gen2)
+        gen = f"{ir1.place} = {var}[{ir1.place}]"
+        ir0.code = self.join(ir1.code,gen)
         self.debug_print(ir0)
-        print("AAAA                                                                                                     AAAAAA")
