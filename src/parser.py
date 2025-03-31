@@ -961,6 +961,7 @@ def p_init_declarator(p):
     else:  # Case: declarator
         p[0] = Node("init_declarator", [p[1]])
 
+
     global datatypeslhs
     base_type = ''
     if len(p) == 4: 
@@ -972,7 +973,7 @@ def p_init_declarator(p):
             abcd += 1
         base_type = base_type[:-1]
 
-    else:  # Case: declarator
+    else:
         p[0] = Node("init_declarator", [p[1]])
         abcd = 0
         for dtype in datatypeslhs:
@@ -983,6 +984,8 @@ def p_init_declarator(p):
 
     validate_c_datatype(base_type)
     base_var = p[0].vars[0]
+
+    
 
     for variable in p[0].vars:
         kind="variable"
@@ -1031,6 +1034,8 @@ def p_init_declarator(p):
                     kind=str(kind)
                 )
                 symtab.add_symbol(var_sym)
+
+        break
 
     if len(p) == 4:
         checkfunc = not p[3].iscall
