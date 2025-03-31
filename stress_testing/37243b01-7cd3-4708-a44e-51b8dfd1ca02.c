@@ -31,17 +31,17 @@ void test_invalid_casts() {
     struct B b;
     
     // Struct to Struct Cast (Invalid)
-    // b = (struct B)a;  // ❌ ERROR: Structs are incompatible
+    // b = (struct B)a;  //   ERROR: Structs are incompatible
     
     // Struct to Arithmetic Type Cast (Invalid)
-    // int num = (int)a;  // ❌ ERROR: Struct to int not allowed
+    // int num = (int)a;  //   ERROR: Struct to int not allowed
     
     // Arithmetic Type to Struct Cast (Invalid)
-    // a = (struct A)42;  // ❌ ERROR: Cannot cast int to struct
+    // a = (struct A)42;  //   ERROR: Cannot cast int to struct
     
     // Function Pointer to Data Pointer Cast (Implementation-Defined, Typically Invalid)
     // void (*func_ptr)() = test_valid_casts;
-    // int *invalid_ptr = (int*)func_ptr;  // ❌ ERROR: Function pointer to data pointer
+    // int *invalid_ptr = (int*)func_ptr;  //   ERROR: Function pointer to data pointer
     
     printf("Invalid cast cases commented out to prevent compiler errors.\n");
 }
@@ -54,7 +54,7 @@ void test_pointer_casts() {
     struct A a;
     struct A *ap = &a;
     struct B *bp;
-    // bp = (struct B*)ap;  // ❌ ERROR: Struct A* to Struct B* (Strictly Invalid)
+    // bp = (struct B*)ap;  //   ERROR: Struct A* to Struct B* (Strictly Invalid)
     
     printf("Pointer casting tested. Some cases commented out due to errors.\n");
 }

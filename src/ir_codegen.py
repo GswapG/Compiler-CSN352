@@ -81,6 +81,9 @@ class IRGenerator:
         print("-=====-")
 
     def join(self,*args):
+        """
+        Joins strings with newlines in between
+        """
         ret = ""
         for arg in args:
             if arg == "":
@@ -89,6 +92,7 @@ class IRGenerator:
             ret += '\n'
         return ret[:-1]
 
+    # Functions for actual IR rules
     def identifier(self, ir0, id):
         ir0.place = str(id)
 
@@ -183,11 +187,13 @@ class IRGenerator:
                 ir0.code = "call " + ir1.place
             else:
                 ir0.place = self.new_temp()
-                gen2 = ir0.place + " = call " + ir1.place + str(len(ir2.parameters))
-                ir0.code = self.join(ir2.code, gen2)
+                gen2 = ir0.place + " = call " + ir1.place + str(0)
+                ir0.code = self.join(gen2)
 
     def label_add(self, ir0, label):
         ir0.code = f"{label}:"
 
     def goto_label(self, ir0, label):
         ir0.code = f"goto {label}"
+
+    # def call_array_position(self)

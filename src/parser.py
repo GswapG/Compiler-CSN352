@@ -230,6 +230,9 @@ def p_postfix_expression(p):
             p[0].vars = p[1].vars
             p[0].vars[0] += "[]"
 
+            #postfix_expression : postfix_expression LBRACKET expression RBRACKET
+            # IrGen.call_array_position(p[0].ir,p[1].ir,p[3].ir,)
+
         if p[2] == '(':
             p[0].iscall = 1
 

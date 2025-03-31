@@ -1,4 +1,4 @@
-int fucn(float x){
+int fucn(int x){
     return 1;
 }
 int main() {
