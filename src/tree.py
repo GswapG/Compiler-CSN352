@@ -28,6 +28,7 @@ class Node:
         self.lvalue = None
         self.rvalue = None
         self.ir = IR()
+        
         if children:
             children_conv = []
             for c in children:

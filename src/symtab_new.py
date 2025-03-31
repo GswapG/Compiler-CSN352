@@ -377,6 +377,33 @@ class SymbolTable:
 
         return params
     
+    def func_params_size(self, name):
+        func_entry = self.lookup(name)
+        if func_entry.child is None or func_entry.kind != "function":
+            raise Exception(f"function {name} does not exist")
+        
+        child_scope = func_entry.child
+
+        size = 0
+        for entry in child_scope.entries:
+            if entry.kind == "parameter":
+                size += entry.size
+
+        return size
+
+    def func_scope_size(self, name):
+        func_entry = self.lookup(name)
+        if func_entry.child is None or func_entry.kind != "function":
+            raise Exception(f"function {name} does not exist")
+        
+        child_scope = func_entry.child
+
+        size = 0
+        for entry in child_scope.entries:
+            size += entry.size
+
+        return size
+
     def search_struct(self, struct_object, identifier):
         field_chain = struct_object.split('.')
 
