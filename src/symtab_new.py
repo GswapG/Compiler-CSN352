@@ -25,6 +25,7 @@ class SymbolEntry:
         self.isFunctionDefinition = False
         self.size = size 
         self.offset = offset
+        self.value = None
 
 class SymbolEntryNode:
     def __init__(self, scope_level, scope_name, parent=None):
@@ -186,13 +187,6 @@ class SymbolTable:
         if not isinstance(symbol, SymbolEntry):
             raise ValueError("Incorrect type of object")
         
-        if isinstance(symbol.name, str) and symbol.name[-1] == '$':
-            c = 0
-            while symbol.name[-1] == '$':
-                c+=1
-                symbol.name = symbol.name[:-1]
-            symbol.type = c*'*' + symbol.type
-        
         if symbol.kind != "function":
             if "void" in (symbol.type).split(" "):
                 raise ValueError("void type is not allowed for variables")
@@ -226,11 +220,11 @@ class SymbolTable:
 
         if not isDefinition:
             c = 0
-            if not isinstance(symbol.name,str) or  symbol.name[-1] != '$':
+            if not isinstance(symbol.name,str) or  symbol.name[-1] != '?':
                 entry = SymbolTableEntry(symbol.name, symbol.type, symbol.kind, symbol, symbol.node, self.current_scope_level, self.current_scope_name)
                 self.table_entries.append(entry)
             else:
-                while symbol.name[-1] == '$':
+                while symbol.name[-1] == '?':
                     symbol.name = symbol.name[:-1]
                     c += 1
                 entry = SymbolTableEntry(symbol.name, c * '*' + symbol.type, symbol.kind, symbol, symbol.node, self.current_scope_level, self.current_scope_name,symbol.refsto)
@@ -276,9 +270,6 @@ class SymbolTable:
 
         self.parameters = []
 
-        # Correctly update parent's entries by filtering out forwarded entries
-        # self.current_scope.entries = [entry for entry in child_scope.parent.entries if entry not in forward_entries]
-
         if not isDefinition:
             self.current_scope.children.append(child_scope)
             self.current_scope.entries.append(symbol)
@@ -299,12 +290,27 @@ class SymbolTable:
         if not isinstance(symbol, SymbolEntry):
             raise ValueError("Incorrect type of object")
         
-        if isinstance(symbol.name,str) and symbol.name[-1] == '$':
-            c = 0
-            while symbol.name[-1] == '$':
-                c += 1
+        dimension = 0
+        size = 0
+        size_list = ""
+        if isinstance(symbol.name, str) and symbol.name[-1] == ']':
+            while symbol.name[-1] == ']':
+                dimension += 1
                 symbol.name = symbol.name[:-1]
-            symbol.type = c * '*' + symbol.type
+
+                compile_time_expression = ""
+                while symbol.name[-1] != '[':
+                    compile_time_expression = symbol.name[-1] + compile_time_expression
+                    symbol.name = symbol.name[:-1]
+                
+                symbol.name = symbol.name[:-1]
+                if compile_time_expression != "":
+                    if size == 0:
+                        size = eval(compile_time_expression)
+                        size_list = f"[{size}]"
+                    else:
+                        size_list = f"[{eval(compile_time_expression)}]" + size_list
+                        size *= eval(compile_time_expression)
         
         if symbol.kind != "function":
             if "void" in (symbol.type).split(" "):
@@ -327,11 +333,17 @@ class SymbolTable:
             symbol.child = self.the_child
             self.the_child = None 
 
-        symbol.node = self.current_scope
-        symbol.size = get_size(symbol, self)
+        if dimension > 0:
+            symbol.kind = f"{dimension}D-array{size_list}"
+            symbol.node = self.current_scope
+            symbol.size = get_size(symbol, self) * size
+        else:
+            symbol.node = self.current_scope
+            symbol.size = get_size(symbol, self)
 
         if not symbol.isForwardable:
-            self.current_scope.add_entry(symbol)
+            # if symbol.kind != "constant":
+                self.current_scope.add_entry(symbol)
         else:
             for entry in self.parameters:
                 if strict_equal(entry.name, symbol.name):
@@ -343,17 +355,19 @@ class SymbolTable:
 
         if not symbol.isForwardable:
             c = 0
-            if not isinstance(symbol.name,str) or symbol.name[-1] != '$':
+            if not isinstance(symbol.name,str) or symbol.name[-1] != '?':
                 
-                entry = SymbolTableEntry(symbol.name, symbol.type, symbol.kind, symbol, symbol.node, self.current_scope_level, self.current_scope_name, size=symbol.size, offset=symbol.offset)
-                self.table_entries.append(entry)
+                if symbol.kind != "constant":
+                    entry = SymbolTableEntry(symbol.name, symbol.type, symbol.kind, symbol, symbol.node, self.current_scope_level, self.current_scope_name, size=symbol.size, offset=symbol.offset)
+                    self.table_entries.append(entry)
             else:
-                while symbol.name[-1] == '$':
+                while symbol.name[-1] == '?':
                     symbol.name = symbol.name[:-1]
                     c += 1
                 
-                entry = SymbolTableEntry(symbol.name, c* '*' + symbol.type, symbol.kind, symbol, symbol.node, self.current_scope_level, self.current_scope_name,symbol.refsto, size=symbol.size, offset=symbol.offset)
-                self.table_entries.append(entry)
+                if symbol.kind != "constant":
+                    entry = SymbolTableEntry(symbol.name, c* '*' + symbol.type, symbol.kind, symbol, symbol.node, self.current_scope_level, self.current_scope_name,symbol.refsto, size=symbol.size, offset=symbol.offset)
+                    self.table_entries.append(entry)
         
     def lookup(self, name):
         scope_pointer = self.current_scope

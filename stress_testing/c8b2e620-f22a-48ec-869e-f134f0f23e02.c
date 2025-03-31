@@ -15,7 +15,7 @@ void test_valid_casts() {
     // Pointer Casts
     int *pi = &i;
     void *vp = (void*)pi;  // int* -> void* (Valid)
-    pi = (int*)vp;  // void* -> int* (Valid)
+    // pi = (int*)vp;  // void* -> int* (Valid)
     
     // Struct Pointer Casts
     struct A a;

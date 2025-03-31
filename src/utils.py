@@ -3,6 +3,8 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
 from rich.rule import Rule
+import fnmatch
+import re
 
 console = Console()
 
@@ -123,13 +125,28 @@ def validate_relational_operands(left_vars, right_vars, symtab, allow_int_float)
                 raise ValueError(f"Incompatible relational op with '{clean_var}' and '{clean_var2}'")
 
 def get_type_from_var(var, deref_count, ref_count, symtab, kind_check=None):
+    braces_count = 0
+    decay = False
+    if var[-1] == ']':
+        braces_count = var.count("]")
+        var = var[:-2 * braces_count]
+
+    if symtab.lookup(var) is not None:
+        kind = symtab.lookup(var).kind
+        if "D-array" in kind:
+            if braces_count > 0:
+                if str(kind[0]) != str(braces_count):
+                    raise Exception("Invalid array access")
+            else:
+                decay = True
+
     if isinstance(var, str) and '.' in var:
         # struct member: "structName identifier"
         if symtab.lookup(var) is not None:
             var_ = symtab.lookup(var)
             type_ = var_.type
 
-            if kind_check is not None and var_.kind not in kind_check:
+            if kind_check is not None and not any(fnmatch.fnmatch(var_.kind, pattern) for pattern in kind_check):
                 raise TypeError("Value can only be assigned to variable/param types!")
         
         else:
@@ -146,7 +163,7 @@ def get_type_from_var(var, deref_count, ref_count, symtab, kind_check=None):
         var_ = symtab.lookup(var)
         type_ = var_.type
 
-        if kind_check is not None and var_.kind not in kind_check:
+        if kind_check is not None and not any(fnmatch.fnmatch(var_.kind, pattern) for pattern in kind_check):
             raise TypeError("Value can only be assigned to variable/param types!")
 
     # Process dereference operations: remove leading '*' for each '@'
@@ -160,6 +177,10 @@ def get_type_from_var(var, deref_count, ref_count, symtab, kind_check=None):
     for _ in range(ref_count):
         if isinstance(type_, str):
             type_ = "*" + type_
+    
+    if decay:
+        type_ = "*" + type_
+
     return type_
 
 def check_vars_type(vars_list, expected_type, op_name, symtab, allow_int_float=False):
@@ -223,6 +244,25 @@ def validate_assignment(lhs_effective_type, operator, rhs_vars, symtab, allow_in
         # For struct members in RHS, handle separately.
         d, r, clean_rhs = count_deref_ref(rhs_var)
         rhs_effective = get_type_from_var(clean_rhs, d, r, symtab)
+
+        if clean_rhs[-1] == ']':
+            brace_count = clean_rhs.count("]")
+            clean_rhs = clean_rhs[:-2 * brace_count]
+
+            if symtab.lookup(clean_rhs) is None:
+                raise Exception(f"identifier {clean_rhs} does not exist in the scope")
+            
+            else:
+                kind = symtab.lookup(clean_rhs).kind
+                if "D-array" in kind:
+                    if str(brace_count) != str(kind[0]):
+                        raise Exception(f"Invalid array access")
+        else:
+            if symtab.lookup(clean_rhs) is None:
+                raise Exception(f"identifier {clean_rhs} does not exist in the scope")
+            else:
+                if "D-array" in symtab.lookup(clean_rhs).kind:
+                    rhs_effective = "*" + rhs_effective
 
         # Compare after stripping trailing spaces.
         if check_types(rhs_effective, lhs_effective_type, allow_int_float):
@@ -666,7 +706,6 @@ def subtraction_compatibility(type1, type2):
 
     raise Exception(f"This method should only be called when either one of the types is a pointer to an object, but the types passed were: {save_type1} and {save_type2}")    
 
-
 def compatible_cast(cast_type, expression_type):
     if cast_type is None:
         raise Exception(f"cast type is invalid")
@@ -701,4 +740,4 @@ def compatible_cast(cast_type, expression_type):
         return False 
     
     # handle other casting between other types apart from struct or union here if required
-    return True    
+    return True   

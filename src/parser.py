@@ -21,7 +21,7 @@ def table_entry(node):
     for var in node.vars:
         stars = ""
         consts = ""
-        while isinstance(var, str) and var[-1] == '$':
+        while isinstance(var, str) and var[-1] == '?':
             stars += "*"
             var = var[:-1]
         while isinstance(var, str) and var[0] == '#':
@@ -85,6 +85,7 @@ def p_primary_expression_identifier(p):
     if check is not None:
         p[0].dtypes = check.type
         p[0].return_type = check.type
+
     # IR
     IrGen.identifier(p[0].ir, p[1])
 
@@ -206,18 +207,30 @@ def p_postfix_expression(p):
         p[0].iscall = 1
 
     elif len(p) == 5:
-        if p[2] == '[':
-            if p[1].vars[0][0] != '@':
-                p[1].vars[0] = '@' + p[1].vars[0]
+        p[0] = Node("postfix_expression", [p[1], p[3]])
 
-            d, r, clean_var = count_deref_ref(p[1].vars[0])
+        if p[2] == '[':
+            first_var = p[1].vars[0]
+            if first_var[-1] == ']':
+                braces_count = first_var.count("]")
+                first_var = first_var[:-2 * braces_count]
+            
+            if symtab.lookup(first_var) is not None:
+                kind = symtab.lookup(first_var).kind
+                if "D-array" in kind:
+                    first_var += "[]" * int(kind[0])
+
+            d, r, clean_var = count_deref_ref(first_var)
             p[1].return_type = get_type_from_var(clean_var, d, r, symtab)
 
             for c in p[3].vars:
                 if not(symtab.lookup(c).type == "int" and symtab.lookup(c).kind == "constant")and not(symtab.lookup(c).type == "int" and symtab.lookup(c).kind == "variable"):
                     raise TypeError("Array size must be an integer constant or integer variable")
 
-        p[0] = Node("postfix_expression", [p[1], p[3]])
+            p[0].expression = p[1].expression + "[" + p[3].expression + "]"
+            p[0].vars = p[1].vars
+            p[0].vars[0] += "[]"
+
         if p[2] == '(':
             p[0].iscall = 1
 
@@ -299,7 +312,23 @@ def p_unary_expression(p):
                        | ALIGNOF LPAREN type_name RPAREN '''
     if len(p) == 2:
         p[0] = Node("unary_expression", [p[1]])
-        p[0].return_type = p[1].return_type
+
+        if len(p[1].vars):
+            var = p[1].vars[0]
+            if var[-1] != ']':
+                if symtab.lookup(var) is not None and "D-array" in symtab.lookup(var).kind:
+                    p[0].return_type = "*" + p[1].return_type 
+            else:
+                braces_count = var.count("]")
+                new_var = var[:-2 * braces_count]
+                print("hi")
+                if symtab.lookup(new_var) is not None:
+                    kind = symtab.lookup(new_var).kind
+                    if "D-array" in kind:
+                        if str(braces_count) != str(kind[0]):
+                            raise Exception("Invalid array access")
+
+        print(f"unary => {p[0].return_type}")
 
     elif len(p) == 3:
         p[0] = Node("unary_expression", [p[1], p[2]])
@@ -483,12 +512,11 @@ def p_shift_expression(p):
     else:
         p[0] = Node("shift_expression", [p[1], p[2], p[3]])
 
-    dtype1 = None
-    if len(p[1].vars) > 0:
-        d, r, var0 = count_deref_ref(p[1].vars[0])
-        dtype1 = get_type_from_var(var0, d, r, symtab)
+        dtype1 = None
+        if len(p[1].vars) > 0:
+            d, r, var0 = count_deref_ref(p[1].vars[0])
+            dtype1 = get_type_from_var(var0, d, r, symtab)
 
-    if len(p) == 4:
         check_vars_type(p[3].vars, dtype1, p[2], symtab, False)
 
         if "*" in p[1].return_type or "*" in p[3].return_type:
@@ -502,8 +530,6 @@ def p_shift_expression(p):
         else:
             p[0].return_type = p[3].return_type
 
-    p[0].return_type = p[1].return_type
-    if len(p) == 4:
         IrGen.arithmetic_expression(p[0].ir, p[1].ir, p[2] ,p[3].ir)
 
 def p_relational_expression(p):
@@ -533,12 +559,11 @@ def p_equality_expression(p):
             if symtab.lookup(var) == None:
                 raise ValueError(f"No symbol '{var}' in the symbol table")
             
-    dtype1 = None
-    if len(p[1].vars) > 0:
-        d, r, var0 = count_deref_ref(p[1].vars[0])
-        dtype1 = get_type_from_var(var0, d, r, symtab)
+        dtype1 = None
+        if len(p[1].vars) > 0:
+            d, r, var0 = count_deref_ref(p[1].vars[0])
+            dtype1 = get_type_from_var(var0, d, r, symtab)
 
-    if len(p) == 4:
         check_vars_type(p[3].vars, dtype1, p[2], symtab, True)
 
         p[0].return_type = "int"
@@ -551,12 +576,11 @@ def p_and_expression(p):
     else:
         p[0] = Node("and_expression", [p[1], p[2], p[3]])
 
-    dtype1 = None
-    if len(p[1].vars) > 0:
-        d, r, var0 = count_deref_ref(p[1].vars[0])
-        dtype1 = get_type_from_var(var0, d, r, symtab)
+        dtype1 = None
+        if len(p[1].vars) > 0:
+            d, r, var0 = count_deref_ref(p[1].vars[0])
+            dtype1 = get_type_from_var(var0, d, r, symtab)
 
-    if len(p) == 4:
         check_vars_type(p[3].vars, dtype1, p[2], symtab, False)
 
         if get_label(p[1].return_type) == "float" or get_label(p[3].return_type) == "float":
@@ -567,7 +591,6 @@ def p_and_expression(p):
         else:
             p[0].return_type = p[3].return_type
 
-    p[0].return_type = p[1].return_type
 
     if len(p) == 4:
         IrGen.arithmetic_expression(p[0].ir, p[1].ir, p[2] ,p[3].ir)
@@ -581,12 +604,11 @@ def p_exclusive_or_expression(p):
     else:
         p[0] = Node("exclusive_or_expression", [p[1], p[2], p[3]])
 
-    dtype1 = None
-    if len(p[1].vars) > 0:
-        d, r, var0 = count_deref_ref(p[1].vars[0])
-        dtype1 = get_type_from_var(var0, d, r, symtab)
+        dtype1 = None
+        if len(p[1].vars) > 0:
+            d, r, var0 = count_deref_ref(p[1].vars[0])
+            dtype1 = get_type_from_var(var0, d, r, symtab)
 
-    if len(p) == 4:
         check_vars_type(p[3].vars, dtype1, p[2], symtab, False)
 
         if get_label(p[1].return_type) == "float" or get_label(p[3].return_type) == "float":
@@ -597,8 +619,6 @@ def p_exclusive_or_expression(p):
         else:
             p[0].return_type = p[3].return_type
 
-    p[0].return_type = p[1].return_type
-    if len(p) == 4:
         IrGen.arithmetic_expression(p[0].ir, p[1].ir, p[2] ,p[3].ir)
 
 def p_inclusive_or_expression(p):
@@ -609,12 +629,11 @@ def p_inclusive_or_expression(p):
     else:
         p[0] = Node("inclusive_or_expression", [p[1], p[2], p[3]])
 
-    dtype1 = None
-    if len(p[1].vars) > 0:
-        d, r, var0 = count_deref_ref(p[1].vars[0])
-        dtype1 = get_type_from_var(var0, d, r, symtab)
+        dtype1 = None
+        if len(p[1].vars) > 0:
+            d, r, var0 = count_deref_ref(p[1].vars[0])
+            dtype1 = get_type_from_var(var0, d, r, symtab)
 
-    if len(p) == 4:
         check_vars_type(p[3].vars, dtype1, p[2], symtab, False)
 
         if get_label(p[1].return_type) == "float" or get_label(p[3].return_type) == "float":
@@ -625,8 +644,6 @@ def p_inclusive_or_expression(p):
         else:
             p[0].return_type = p[3].return_type
 
-    p[0].return_type = p[1].return_type
-    if len(p) == 4:
         IrGen.arithmetic_expression(p[0].ir, p[1].ir, p[2] ,p[3].ir)
 
 def p_logical_and_expression(p):
@@ -637,12 +654,11 @@ def p_logical_and_expression(p):
     else:
         p[0] = Node("logical_and_expression", [p[1], p[2], p[3]])
 
-    dtype1 = None
-    if len(p[1].vars) > 0:
-        d, r, var0 = count_deref_ref(p[1].vars[0])
-        dtype1 = get_type_from_var(var0, d, r, symtab)
+        dtype1 = None
+        if len(p[1].vars) > 0:
+            d, r, var0 = count_deref_ref(p[1].vars[0])
+            dtype1 = get_type_from_var(var0, d, r, symtab)
 
-    if len(p) == 4:
         check_vars_type(p[3].vars, dtype1, p[2], symtab, False)
 
         if get_label(p[1].return_type) == "float" or get_label(p[3].return_type) == "float":
@@ -653,7 +669,6 @@ def p_logical_and_expression(p):
         else:
             p[0].return_type = p[3].return_type
 
-    p[0].return_type = p[1].return_type
 
 def p_logical_or_expression(p):
     '''logical_or_expression : logical_and_expression
@@ -663,12 +678,11 @@ def p_logical_or_expression(p):
     else:
         p[0] = Node("logical_or_expression", [p[1], p[2], p[3]])
 
-    dtype1 = None
-    if len(p[1].vars) > 0:
-        d, r, var0 = count_deref_ref(p[1].vars[0])
-        dtype1 = get_type_from_var(var0, d, r, symtab)
+        dtype1 = None
+        if len(p[1].vars) > 0:
+            d, r, var0 = count_deref_ref(p[1].vars[0])
+            dtype1 = get_type_from_var(var0, d, r, symtab)
 
-    if len(p) == 4:
         check_vars_type(p[3].vars, dtype1, p[2], symtab, False)
 
         if get_label(p[1].return_type) == "float" or get_label(p[3].return_type) == "float":
@@ -679,7 +693,6 @@ def p_logical_or_expression(p):
         else:
             p[0].return_type = p[3].return_type
 
-    p[0].return_type = p[1].return_type
 
 def p_conditional_expression(p):
     '''conditional_expression : logical_or_expression
@@ -689,12 +702,11 @@ def p_conditional_expression(p):
     else:
         p[0] = Node("conditional_expression", [p[1], p[3], p[5]])
 
-    dtype1 = None
-    if len(p[1].vars) > 0:
-        d, r, var0 = count_deref_ref(p[1].vars[0])
-        dtype1 = get_type_from_var(var0, d, r, symtab)
+        dtype1 = None
+        if len(p[1].vars) > 0:
+            d, r, var0 = count_deref_ref(p[1].vars[0])
+            dtype1 = get_type_from_var(var0, d, r, symtab)
 
-    if len(p) == 6:
         if check_types(p[3].return_type, p[5].return_type, True):
             raise Exception(f"Ternary operators require both types to be compatible. Incompatible return types supplied: {p[3].return_type} | {p[5].return_type}")
 
@@ -703,8 +715,6 @@ def p_conditional_expression(p):
         else:
             p[0].return_type = p[5].return_type
 
-    else:
-        p[0].return_type = p[1].return_type
 
 def p_assignment_expression(p):
     '''assignment_expression : conditional_expression
@@ -716,9 +726,19 @@ def p_assignment_expression(p):
         p[0] = Node("assignment_expression", [p[1], p[2], p[3]])
         
         lhs = p[0].vars[0]
+        brace_count = 0
+        if lhs[-1] == ']':
+            brace_count = lhs.count("]")
+            lhs = lhs[:-2 * brace_count]
 
-        d, r, clean_lhs = count_deref_ref(lhs)
-        lhs_type = get_type_from_var(clean_lhs, d, r, symtab, kind_check=['variable', 'parameter', 'reference'])
+        if symtab.lookup(lhs) is not None:
+            kind = symtab.lookup(lhs).kind
+            if "D-array" in kind:
+                if str(brace_count) != str(kind[0]):
+                    raise Exception(f"Invalid array access")
+
+        d, r, clean_lhs = count_deref_ref(p[0].vars[0])
+        lhs_type = get_type_from_var(clean_lhs, d, r, symtab, kind_check=['variable', 'parameter', 'reference', '*D-array*'])
 
         if lhs_type.startswith("const "):
             raise TypeError(f"Cannot re-assign value to const variable")
@@ -731,14 +751,13 @@ def p_assignment_expression(p):
             p[2].operator == "|="):
             validate_assignment(trim_value(lhs_type, "const"), p[2].operator, p[3].vars, symtab, False, True)
 
-        # else:
-        #     validate_assignment(trim_value(lhs_type, "const"), p[2].operator, p[3].vars, symtab, True, False)
+        else:
+            validate_assignment(trim_value(lhs_type, "const"), p[2].operator, p[3].vars, symtab, True, False)
 
         if(p[2].operator == '='):
             IrGen.assignment(p[0].ir, p[1].ir, p[3].ir)
         else:
             IrGen.op_assign(p[0].ir, p[1].ir, p[3].ir, p[2].operator)
-
 
         p[0].is_address = False
         
@@ -955,6 +974,7 @@ def p_init_declarator(p):
         base_type = base_type[:-1]
 
     validate_c_datatype(base_type)
+    base_var = p[0].vars[0]
 
     for variable in p[0].vars:
         kind="variable"
@@ -1007,33 +1027,45 @@ def p_init_declarator(p):
     if len(p) == 4:
         checkfunc = not p[3].iscall
 
-    if p[0].vars[0][-1] == "$":
-        base_type = "*" + base_type
-
     if ((("struct" in base_type or "union" in base_type) or
             (symtab.lookup(base_type.split(' ')[-1]) is not None and 
             ("struct" in symtab.lookup(base_type.split(' ')[-1]).type or 
-             "union" in symtab.lookup(base_type.split(' ')[-1]).type))) and
-        not base_type.startswith("*")):
-        if p[0].isbraces:
-            struct_name = base_type.split(' ')[-1]
-            struct_scope = symtab.lookup(struct_name).child
-            struct_entries = struct_scope.entries
-
-            if len(struct_entries) < len(p[0].rhs):
-                raise Exception("Number of identifiers in struct doesnt match with initialiser list length")
-
-            for struct_entry, list_entry in zip(struct_entries, p[0].rhs):
-                deref_count, ref_count, clean_list_entry = count_deref_ref(list_entry)
-                struct_entry_type = struct_entry.type
-
-                field_type = get_type_from_var(clean_list_entry, deref_count, ref_count, symtab)
-    
-                if check_types(struct_entry_type, field_type, True):
-                    raise Exception(f"Type mismatch in {struct_entry_type} with provided {field_type}")
+             "union" in symtab.lookup(base_type.split(' ')[-1]).type)))):
         
+        if p[0].isbraces:
+            if base_var[-1] == ']':
+                for rhs_var in p[0].rhs:
+                    deref_count, ref_count, rhs_var = count_deref_ref(rhs_var)
+                    type_ = get_type_from_var(rhs_var, deref_count, ref_count, symtab)
+
+                    if symtab.lookup(rhs_var) is not None and check_types(base_type, type_, True):
+                        raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs_var}\n| base_type = {base_type} |\n| rhs_type = {type_} |")
+                    
+                    if checkfunc and symtab.lookup(rhs_var) is not None and symtab.lookup(rhs_var).kind == 'function':
+                        raise Exception("Can't assign value of function")
+
+            else:
+                struct_name = base_type.split(' ')[-1]
+                struct_scope = symtab.lookup(struct_name).child
+                struct_entries = struct_scope.entries
+
+                if len(struct_entries) < len(p[0].rhs):
+                    raise Exception("Number of identifiers in struct doesnt match with initialiser list length")
+
+                for struct_entry, list_entry in zip(struct_entries, p[0].rhs):
+                    deref_count, ref_count, clean_list_entry = count_deref_ref(list_entry)
+                    struct_entry_type = struct_entry.type
+
+                    field_type = get_type_from_var(clean_list_entry, deref_count, ref_count, symtab)
+        
+                    if check_types(struct_entry_type, field_type, True):
+                        raise Exception(f"Type mismatch in {struct_entry_type} with provided {field_type}")
+            
         else:  
-            if len(p) > 2:
+            if len(p) == 4:
+                if base_var[-1] == ']':
+                    raise Exception("Array is being initialised without braces")
+            
                 if len(p[0].rhs) > 1:
                     raise Exception("more than one variables in the rhs")
                 
@@ -1046,26 +1078,33 @@ def p_init_declarator(p):
         
     else: 
         if p[0].isbraces:
-            for rhs_var in p[0].rhs:
-                deref_count, ref_count, rhs_var = count_deref_ref(rhs_var)
-                type_ = get_type_from_var(rhs_var, deref_count, ref_count, symtab)
+            if base_var[-1] == ']':
+                for rhs_var in p[0].rhs:
+                    deref_count, ref_count, rhs_var = count_deref_ref(rhs_var)
+                    type_ = get_type_from_var(rhs_var, deref_count, ref_count, symtab)
 
-                array_check = base_type.lstrip('*')
-                if symtab.lookup(rhs_var) is not None and check_types(array_check, type_, True):
-                    raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs_var}\n| base_type = {array_check} |\n| rhs_type = {type_} |")
-                
-                if checkfunc and symtab.lookup(rhs_var) is not None and symtab.lookup(rhs_var).kind == 'function':
-                    raise Exception("Can't assign value of function")
-                
+                    array_check = base_type.lstrip('*')
+                    if symtab.lookup(rhs_var) is not None and check_types(array_check, type_, True):
+                        raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs_var}\n| base_type = {array_check} |\n| rhs_type = {type_} |")
+                    
+                    if checkfunc and symtab.lookup(rhs_var) is not None and symtab.lookup(rhs_var).kind == 'function':
+                        raise Exception("Can't assign value of function")
+            else:
+                if len(p) == 4:
+                    raise Exception("Non array type being initialised with braces")
+        
         else:
             if len(p) == 4:
-                type_ = p[3].return_type
-                print(base_type, type_)
-                
-                if not (trim_value(base_type, "const").split(" ")[0] == "enum" and type_ == "int"):
-                    if check_types(base_type, type_, True):
-                        raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]}\n| base_type = {base_type} |\n| rhs_type = {type_} |")
-            
+                if base_var[-1] != ']':
+                    type_ = p[3].return_type
+                    print(base_type, type_)
+                    
+                    if not (trim_value(base_type, "const").split(" ")[0] == "enum" and type_ == "int"):
+                        if check_types(base_type, type_, True):
+                            raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]}\n| base_type = {base_type} |\n| rhs_type = {type_} |")
+                else:
+                    raise Exception("Array being initialised without braces")
+
     p[0].is_address = False
 
     if len(p) == 4:
@@ -1336,7 +1375,7 @@ def p_declarator(p):
                 else:
                     break
 
-        p[0].vars[0] = '#'*p[0].is_const + p[0].vars[0] + '$'*c
+        p[0].vars[0] = '#'*p[0].is_const + p[0].vars[0] + '?'*c
         p[0].is_const = 0
     else:
         p[0] = Node("declarator", [p[1]])
@@ -1379,8 +1418,7 @@ def p_direct_declarator(p):
     # direct_declarator LBRACKET RBRACKET case
     elif len(p) == 4 and p[2] == '[':
         p[0] = Node("array_declarator", [p[1]])
-        if p[0].vars[0][-1] != '$':
-            p[0].vars[0] += "$"
+        p[0].vars[0] += "[" + "]"
     
     # direct_declarator LBRACKET TIMES RBRACKET case
     elif len(p) == 5 and p[2] == '[' and p[3] == '*':
@@ -1394,8 +1432,7 @@ def p_direct_declarator(p):
         p[3].vars = []
         
         p[0] = Node("array_declarator", [p[1], p[3]])
-        if p[0].vars[0][-1] != '$':
-            p[0].vars[0] += "$"
+        p[0].vars[0] += "[" + p[3].expression + "]"
     
     # direct_declarator LPAREN RPAREN case
     elif len(p) == 4 and p[2] == '(' and p[3] == ')':
@@ -1637,12 +1674,13 @@ def p_initializer(p):
     else:  
         p[0] = Node("initializer", [p[1]])  
     
-    for c in p[0].vars:
-        deref_count, ref_count, clean_var = count_deref_ref(c)
-        type_ = get_type_from_var(clean_var, deref_count, ref_count, symtab)
+    # for c in p[0].vars:
+    #     deref_count, ref_count, clean_var = count_deref_ref(c)
+    #     type_ = get_type_from_var(clean_var, deref_count, ref_count, symtab)
 
-        if type_ is None:
-            raise Exception(f"Error: variable {clean_var} not declared")
+    #     if type_ is None:
+    #         raise Exception(f"Error: variable {clean_var} not declared")
+        
     p[0].rhs += p[0].vars
     p[0].vars = []
 
@@ -1908,7 +1946,7 @@ def p_function_definition(p):
 
 
     global returns
-    while len(func_name) > 0 and func_name[-1] == '$':
+    while len(func_name) > 0 and func_name[-1] == '?':
         func_name = func_name[:-1]
     b_type = symtab.lookup(func_name).type
 
@@ -1962,6 +2000,7 @@ def p_error(p):
 
     pointer = " " * (col - 1) + "^"
     print(pointer)
+    exit(0)
     
 # Build parser
 parser = yacc.yacc(debug=True)

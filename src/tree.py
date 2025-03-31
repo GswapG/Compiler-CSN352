@@ -12,7 +12,6 @@ class Node:
         self.type = type
         self.name = str(node_name)
         node_name += 1
-        # print(node_name)
         self.children = []
         self.vars = []
         self.dtypes = []
@@ -28,8 +27,11 @@ class Node:
         self.lvalue = None
         self.rvalue = None
         self.ir = IR()
-        
-        if children:
+        self.expression = ""
+
+        if children is None:    
+            self.expression += type
+        else:
             children_conv = []
             for c in children:
                 if not isinstance(c,Node):
@@ -50,6 +52,7 @@ class Node:
             self.isbraces |= c.isbraces
 
             if isinstance(c, Node):
+                self.expression += c.expression
                 self.vars += c.vars
                 self.dtypes += c.dtypes
                 self.fdtypes += c.fdtypes
