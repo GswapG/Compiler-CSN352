@@ -208,6 +208,35 @@ def p_postfix_expression(p):
 
     elif len(p) == 4 and p[2] == ".":
         p[0] = Node("postfix_expression", [p[1], p[3]])
+        field_identifier = p[3]
+        struct_object = p[0].vars[0]
+
+        if symtab.search_struct(struct_object, field_identifier) is None:
+            print(f"The identifier '{field_identifier}' does not exist in the struct {struct_object}")
+
+        p[0].vars = [f"{struct_object}.{field_identifier}"]
+        p[0].return_type = symtab.search_struct(struct_object, field_identifier)
+
+        p[0].lvalue = True
+        p[0].rvalue = False
+
+    elif len(p) == 4 and p[2] == '->':
+        p[0] = Node("postfix_expression", [p[1], p[3]])
+        field_identifier = p[3]
+        struct_object = p[0].vars[0]
+
+        if symtab.search_struct(struct_object, field_identifier) is None:
+            print(f"The identifier '{field_identifier}' does not exist in the struct {struct_object}")
+
+        type = symtab.lookup(struct_object).type
+        if "*" not in type or not ("struct" in type or "union" in type):
+            raise TypeError(f"Arrow Operators are used on pointers to object of types structs or unions")
+
+        p[0].vars = [f"{struct_object}.{field_identifier}"]
+        p[0].return_type = symtab.search_struct(struct_object, field_identifier)
+
+        p[0].lvalue = True
+        p[0].rvalue = False
 
     elif len(p) == 4 and p[3] != ")":
         p[0] = Node("postfix_expression", [p[1], p[2], p[3]])
@@ -250,49 +279,12 @@ def p_postfix_expression(p):
 
         p[0].return_type = p[1].return_type
 
-    elif len(p) == 7:
-        p[0] = Node("postfix_expression", [p[2], p[5]])
-        p[0].isbraces = True 
-
-        # compound literals
-        p[0].return_type = p[2].return_type
-
-    elif len(p) == 8:
+    elif len(p) == 7 or len(p) == 8:
         p[0] = Node("postfix_expression", [p[2], p[5]])
         p[0].isbraces = True
 
         # compound literals 
         p[0].return_type = p[2].return_type
-
-    if len(p) == 4 and p[2] == ".":
-        field_identifier = p[3]
-        struct_object = p[0].vars[0]
-
-        if symtab.search_struct(struct_object, field_identifier) is None:
-            print(f"The identifier '{field_identifier}' does not exist in the struct {struct_object}")
-
-        p[0].vars = [f"{struct_object}.{field_identifier}"]
-        p[0].return_type = symtab.search_struct(struct_object, field_identifier)
-
-        p[0].lvalue = True
-        p[0].rvalue = False
-
-    if len(p) == 4 and p[2] == '->':
-        field_identifier = p[3]
-        struct_object = p[0].vars[0]
-
-        if symtab.search_struct(struct_object, field_identifier) is None:
-            print(f"The identifier '{field_identifier}' does not exist in the struct {struct_object}")
-
-        type = symtab.lookup(struct_object).type
-        if "*" not in type or not ("struct" in type or "union" in type):
-            raise TypeError(f"Arrow Operators are used on pointers to object of types structs or unions")
-
-        p[0].vars = [f"{struct_object}.{field_identifier}"]
-        p[0].return_type = symtab.search_struct(struct_object, field_identifier)
-
-        p[0].lvalue = True
-        p[0].rvalue = False
 
     if len(p) == 5 and p[2] == "(" and len(p[0].vars) > 0:
 
@@ -378,39 +370,64 @@ def p_unary_expression(p):
         if(len(p[0].vars)>0 and '[' in p[0].vars[0] and symtab.lookup(p[0].vars[0].split('[')[0]) is not None and "array" in symtab.lookup(p[0].vars[0].split('[')[0]).kind):
             IrGen.unary_array(p[0].ir,p[1].ir,p[0].vars[0].split('[')[0])
 
+        p[0].lvalue = True
+        p[0].rvalue = False
 
     elif len(p) == 3:
         p[0] = Node("unary_expression", [p[1], p[2]])
         p[0].return_type = p[2].return_type
 
-        if isinstance(p[1], Node) and p[1].children[0].type == '&':
+        if isinstance(p[1], Node) and p[1].operator == '&':
+            if p[2].lvalue is not True and p[2].rvalue is not False:
+                raise TypeError("Operand for & operator should be an lvalue")
+            
             p[0].is_address = True
             for i in range(0,len(p[0].vars)):
                 p[0].vars[i] = '!' + p[0].vars[i]
             p[0].return_type = '*' + p[0].return_type
+
             if symtab.lookup(p[2].vars[0]):
                 if symtab.lookup(p[2].vars[0]).kind in ('constant','enumerator') :
                     raise Exception("Cant bind addr to constant/enum type")
+
+            p[0].lvalue = False                
+            p[0].rvalue = True
  
-        if isinstance(p[1], Node) and p[1].children[0].type == '*':
+        if isinstance(p[1], Node) and p[1].operator == '*':
+            if p[2].lvalue is not True and p[2].rvalue is not False:
+                raise TypeError("Operand for * operator should be an lvalue")
+            
             for i in range(0,len(p[0].vars)):
                 p[0].vars[i] = '@' + p[0].vars[i]
+
             if p[0].return_type is not None:
                 if p[0].return_type[0] == '*':
                     p[0].return_type = p[0].return_type[1:]
                 else:
                     raise Exception("invalid deref")
+                
+            p[0].lvalue = True
+            p[0].rvalue = False
         
         if isinstance(p[1], Node) and p[1].operator == "~": 
-            if get_label(p[2].return_type) == "float":
-                raise ValueError("~ operation cannot be used on floating point values")
+            if get_label(p[2].return_type) != "int":
+                raise ValueError(f"~ operation cannot be used on {p[2].return_type}")
+            
+        if isinstance(p[1], Node) and p[1].operator == '!':
+            if get_label(p[2].return_type) != "int":
+                raise ValueError(f"~ operation cannot be used on {p[2].return_type}")
+            
+            pass
             
         if isinstance(p[1], str):
             if p[1] == "++" or p[1] == "--":
-                if get_label(p[2].return_type) == "float":
-                    raise ValueError(f"{p[1]} operation cannot be used on floating point values")
+                if get_label(p[2].return_type) != "int":
+                    raise ValueError(f"{p[1]} operation cannot be used on {p[2].return_type}")
         # IR
         if p[1] == '++' or p[1] == '--':
+            p[0].lvalue = False
+            p[0].rvalue = True
+
             IrGen.inc_dec(p[0].ir, p[2].ir, p[1])
         elif p[1] != "sizeof":    
             IrGen.unary(p[0].ir, p[2].ir,p[1].operator)
