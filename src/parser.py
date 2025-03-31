@@ -265,6 +265,26 @@ def p_postfix_expression(p):
         p[0].vars = [f"{struct_object}.{field_identifier}"]
         p[0].return_type = symtab.search_struct(struct_object, field_identifier)
 
+        p[0].lvalue = True
+        p[0].rvalue = False
+
+    if len(p) == 4 and p[2] == '->':
+        field_identifier = p[3]
+        struct_object = p[0].vars[0]
+
+        if symtab.search_struct(struct_object, field_identifier) is None:
+            print(f"The identifier '{field_identifier}' does not exist in the struct {struct_object}")
+
+        type = symtab.lookup(struct_object).type
+        if "*" not in type or not ("struct" in type or "union" in type):
+            raise TypeError(f"Arrow Operators are used on pointers to object of types structs or unions")
+
+        p[0].vars = [f"{struct_object}.{field_identifier}"]
+        p[0].return_type = symtab.search_struct(struct_object, field_identifier)
+
+        p[0].lvalue = True
+        p[0].rvalue = False
+
     if len(p) == 5 and p[2] == "(" and len(p[0].vars) > 0:
 
         func_params = symtab.search_params(p[0].vars[0])
@@ -274,6 +294,9 @@ def p_postfix_expression(p):
             
         p[0].vars = [p[0].vars[0]]
         p[0].return_type = p[1].return_type
+        p[0].lvalue = False
+        p[0].rvalue = True
+
         ret = symtab.lookup(p[1].vars[0]).type
         IrGen.function_call(p[0].ir, p[1].ir, p[3].ir,ret)
 
@@ -284,6 +307,9 @@ def p_postfix_expression(p):
         ret = symtab.lookup(p[0].vars[0]).type
         argument_param_match(argument_list, func_params)
         p[0].return_type = p[1].return_type
+        p[0].lvalue = False
+        p[0].rvalue = True
+
         IrGen.function_call(p[0].ir, p[1].ir,None,ret)
 
 def p_postfix_expression_error_1(p):

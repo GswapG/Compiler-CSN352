@@ -160,9 +160,9 @@ def get_unqualified_type(type):
     if type is None:
         raise Exception("Invalid type provided")
     
+    # add type qualifiers to trim here
     type = trim_value(type, "const")
     return type
-
 
 def strict_unqualified_compatibility(type1, type2):
     if type1 is None:
