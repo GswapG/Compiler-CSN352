@@ -196,4 +196,16 @@ class IRGenerator:
     def goto_label(self, ir0, label):
         ir0.code = f"goto {label}"
 
-    # def call_array_position(self)
+    def call_array_position(self, ir0, ir1, ir2, dimensions):
+        gen2=""
+        print(ir0.place,ir1.place,ir2.place)
+        ir0.place = self.new_temp()
+        if ir1.place[0]!="_":
+            gen1 = f"{ir0.place} = {ir2.place}"
+        else:
+            gen1 = f"{ir0.place} = {ir1.place} + {ir2.place}"
+            
+        if(len(dimensions)>0):
+            gen2 = f"{ir0.place} = {ir0.place} * {dimensions[0]}"
+        ir0.code = self.join(ir1.code,ir2.code,gen1,gen2) 
+        self.debug_print(ir0)

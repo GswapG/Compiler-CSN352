@@ -26,6 +26,7 @@ class Node:
         self.operator = None
         self.lvalue = None
         self.rvalue = None
+        self.listup = []
         self.ir = IR()
         self.expression = ""
 

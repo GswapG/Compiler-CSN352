@@ -179,6 +179,11 @@ def p_postfix_expression(p):
                          | LPAREN type_name RPAREN LBRACE initializer_list COMMA RBRACE '''
     if len(p) == 2:
         p[0] = Node("postfix_expression", [p[1]])
+        #IR
+        if(len(p[0].vars)>0 and symtab.lookup(p[0].vars[0]) is not None):
+            s=symtab.lookup(p[0].vars[0]).kind
+            p[0].listup = list(map(int, re.findall(r'\d+', s)))
+            p[0].listup=p[0].listup[1:]
 
     if len(p) == 3:
         p[0] = Node("postfix_expression", [p[1],p[2]])
@@ -231,7 +236,8 @@ def p_postfix_expression(p):
             p[0].vars[0] += "[]"
 
             #postfix_expression : postfix_expression LBRACKET expression RBRACKET
-            # IrGen.call_array_position(p[0].ir,p[1].ir,p[3].ir,)
+            p[0].listup=p[1].listup[1:]
+            IrGen.call_array_position(p[0].ir,p[1].ir,p[3].ir,p[0].listup)
 
         if p[2] == '(':
             p[0].iscall = 1
