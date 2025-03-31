@@ -7,5 +7,5 @@ struct Point {
 int main() {
     int arr[2] = {2, 3};
     struct Point p = {arr[0]};
-    int* q = (unsigned int*)&p;
+    int* q = (int*)&p;
 }

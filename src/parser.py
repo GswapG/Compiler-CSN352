@@ -417,7 +417,9 @@ def p_unary_expression(p):
             if get_label(p[2].return_type) != "int":
                 raise ValueError(f"~ operation cannot be used on {p[2].return_type}")
             
-            pass
+        if isinstance(p[1], Node) and (p[1].operator == '+' or p[1].operator == '-'):
+            if get_label(p[2].return_type) is None:
+                raise ValueError(f"Operator {p[1].operator} cannot be applied to type {p[2].return_type}")
             
         if isinstance(p[1], str):
             if p[1] == "++" or p[1] == "--":
@@ -466,6 +468,35 @@ def p_cast_expression(p):
 
         if not compatible_cast(p[2].return_type, p[4].return_type):
             raise Exception(f"Return type of expression {p[4].return_type} cannot be casted to {p[2].return_type}")
+
+        if "struct" in p[2].return_type:
+            struct_name = p[2].return_type.split(' ')[-1]
+            if symtab.lookup(struct_name) is None:
+                raise Exception(f"{struct_name} not defined in the current scope")
+            if symtab.lookup(struct_name).kind != "struct":
+                raise Exception(f"{struct_name} not defined in the current scope")
+            
+        if "union" in p[2].return_type:
+            union_name = p[2].return_type.split(' ')[-1]
+            if symtab.lookup(union_name) is None:
+                raise Exception(f"{union_name} not defined in the current scope")
+            if symtab.lookup(union_name).kind != "union":
+                raise Exception(f"{union_name} not defined in the current scope")
+            
+        if "struct" in p[4].return_type:
+            struct_name = p[4].return_type.split(' ')[-1]
+            if symtab.lookup(struct_name) is None:
+                raise Exception(f"{struct_name} not defined in the current scope")
+            if symtab.lookup(struct_name).kind != "struct":
+                raise Exception(f"{struct_name} not defined in the current scope")
+            
+        if "union" in p[4].return_type:
+            union_name = p[4].return_type.split(' ')[-1]
+            if symtab.lookup(union_name) is None:
+                raise Exception(f"{union_name} not defined in the current scope")
+            if symtab.lookup(union_name).kind != "union":
+                raise Exception(f"{union_name} not defined in the current scope")
+            
 
         p[0].return_type = p[2].return_type
         p[0].lvalue = False
@@ -1042,6 +1073,7 @@ def p_init_declarator(p):
                     ## check all implicit type compatibility for rhs var
 
                     for rhs_var in p[0].rhs:
+                        print(rhs_var)
                         deref_count, ref_count, rhs_var = count_deref_ref(rhs_var)
                         type_ = get_type_from_var(rhs_var, deref_count, ref_count, symtab)
 

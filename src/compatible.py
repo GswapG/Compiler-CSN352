@@ -48,11 +48,20 @@ def validate_c_datatype(data_type, symtab):
         if tokens[0]=="const":
             tokens=tokens[1:]
 
-    if tokens[0]=="struct" or tokens[0] == "union" or tokens[0] == "enum":
+    if tokens[0] == "struct" or tokens[0] == "union" or tokens[0] == "enum":
+        identifier = tokens[0]
         tokens = tokens[1:]
         for c in tokens:
             if c in allowed_keywords:
                 raise ValueError(f"Invalid data type structure '{data_type}'.")
+            
+            elif identifier != "enum":
+                if symtab.lookup(c) is None:
+                    raise Exception(f"Identifier {c} does not exist in the current scope")
+
+                if symtab.lookup(c).kind != identifier:
+                    raise Exception(f"Identifier {c} does not exist in the current scope")
+                
         return True
 
     abcd = symtab.lookup(tokens[0])
@@ -266,8 +275,13 @@ def implicit_type_compatibility(type1, type2, allow_int_float=False):
         clean_ptr2 = trim_value(clean_ptr2, "signed")
         clean_ptr2 = trim_value(clean_ptr2, "static")
 
-        if clean_ptr1 != clean_ptr2:
+        
+        if clean_ptr1 == "void" or clean_ptr2 == "void":
+            return False
+
+        elif clean_ptr1 != clean_ptr2:
             return True 
+
         else:
             return False
         
@@ -421,19 +435,16 @@ def compatible_cast(cast_type, expression_type):
     if expression_type is None:
         raise Exception(f"expression type is invalid")
     
+    if "*void" == cast_type or "*void" == expression_type:
+        return True
+    
     if "struct" in cast_type and "struct" in expression_type:
         if cast_type != expression_type:
             return False 
         
         else:
             return True
-    
-    if "struct" in cast_type and "struct" not in expression_type:
-        return False
-
-    if "struct" not in cast_type and "struct" in expression_type:
-        return False 
-    
+        
     if "union" in cast_type and "union" in expression_type:
         if cast_type != expression_type:
             return False 
@@ -441,11 +452,17 @@ def compatible_cast(cast_type, expression_type):
         else:
             return True
     
-    if "union" in cast_type and "union" not in expression_type:
+    if "struct" in cast_type and "union" not in expression_type:
+        return False
+    
+    if "union" in cast_type and "struct" not in expression_type:
         return False
 
-    if "union" not in cast_type and "union" in expression_type:
-        return False 
+    if "*" in cast_type and get_label(expression_type) == "float":
+        return False
     
+    if "*" in expression_type and get_label(cast_type) == "float":
+        return False
+
     # handle other casting between other types apart from struct or union here if required
     return True   
