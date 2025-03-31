@@ -2,6 +2,96 @@ from .helpers import *
 
 # helper functions for type compatibility checks
 
+def validate_c_datatype(data_type, symtab):
+    valid_type_patterns = [
+        ['char'],
+        ['short'],
+        ['short', 'int'],
+        ['int'],
+        ['long'],
+        ['long', 'int'],
+        ['long', 'long'],
+        ['long', 'long', 'int'],
+        ['long', 'double'],
+        ['float'],
+        ['double'],
+        ['void']
+    ]
+
+    allowed_with_sign = [
+        ['char'],
+        ['short'],
+        ['short', 'int'],
+        ['int'],
+        ['long'],
+        ['long', 'int'],
+        ['long', 'long'],
+        ['long', 'long', 'int']
+    ]
+
+    allowed_keywords = {'signed', 'unsigned', 'short', 'long', 'int', 'char', 'float', 'double', 'void'}
+
+    
+    data_type = data_type.lstrip('*')
+    tokens = data_type.strip().split()
+
+    if(tokens[0]=="typedef"):
+        tokens = tokens[1:]
+    
+    if tokens[0]=="const":
+        tokens=tokens[1:]
+        if tokens[0]=="static":
+            tokens=tokens[1:]
+
+    elif tokens[0]=="static":
+        tokens=tokens[1:]
+        if tokens[0]=="const":
+            tokens=tokens[1:]
+
+    if tokens[0]=="struct" or tokens[0] == "union" or tokens[0] == "enum":
+        tokens = tokens[1:]
+        for c in tokens:
+            if c in allowed_keywords:
+                raise ValueError(f"Invalid data type structure '{data_type}'.")
+        return True
+
+    abcd = symtab.lookup(tokens[0])
+    if abcd is not None and abcd.type == "struct":
+        return True
+    
+    # Check for invalid tokens
+    for token in tokens:
+        if token not in allowed_keywords:
+            raise ValueError(f"Invalid token '{token}' in data type '{data_type}'.")
+    
+    has_sign = False
+    sign = None
+    if tokens and tokens[0] in ('signed', 'unsigned'):
+        sign = tokens[0]
+        has_sign = True
+        type_tokens = tokens[1:]
+        # Handle case where sign is present but no other tokens (e.g., 'unsigned')
+        if not type_tokens:
+            type_tokens = ['int']
+    else:
+        type_tokens = tokens
+    
+    # Check if the type structure is valid
+    valid_type = False
+    for pattern in valid_type_patterns:
+        if type_tokens == pattern:
+            valid_type = True
+            break
+    if not valid_type:
+        raise ValueError(f"Invalid data type structure '{data_type}'.")
+    
+    # Check if sign is allowed for the given type
+    if has_sign:
+        if type_tokens not in allowed_with_sign:
+            raise ValueError(f"Sign specifier '{sign}' not allowed for data type '{data_type}'.")
+    
+    return True
+
 def dominating_type(type1, type2):
     types1 = type1.split(' ')
     types2 = type2.split(' ')

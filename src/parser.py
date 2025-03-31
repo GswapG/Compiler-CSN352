@@ -74,6 +74,7 @@ def p_primary_expression_identifier(p):
     p[0].vars.append(str(p[1]))
     p[0].lvalue = True
     p[0].rvalue = False
+    
     c1 = 0
     cpy = p[1]
     
@@ -86,7 +87,6 @@ def p_primary_expression_identifier(p):
         p[0].dtypes = check.type
         p[0].return_type = check.type
 
-    # IR
     IrGen.identifier(p[0].ir, p[1])
 
 def p_primary_expression_error(p):
@@ -867,96 +867,6 @@ def p_init_declarator_list(p):
     if len(p) == 4:
         IrGen.multiple_assignment(p[0].ir, p[1].ir, p[3].ir)
 
-def validate_c_datatype(data_type):
-    valid_type_patterns = [
-        ['char'],
-        ['short'],
-        ['short', 'int'],
-        ['int'],
-        ['long'],
-        ['long', 'int'],
-        ['long', 'long'],
-        ['long', 'long', 'int'],
-        ['long', 'double'],
-        ['float'],
-        ['double'],
-        ['void']
-    ]
-
-    allowed_with_sign = [
-        ['char'],
-        ['short'],
-        ['short', 'int'],
-        ['int'],
-        ['long'],
-        ['long', 'int'],
-        ['long', 'long'],
-        ['long', 'long', 'int']
-    ]
-
-    allowed_keywords = {'signed', 'unsigned', 'short', 'long', 'int', 'char', 'float', 'double', 'void'}
-
-    
-    data_type = data_type.lstrip('*')
-    tokens = data_type.strip().split()
-
-    if(tokens[0]=="typedef"):
-        tokens = tokens[1:]
-    
-    if tokens[0]=="const":
-        tokens=tokens[1:]
-        if tokens[0]=="static":
-            tokens=tokens[1:]
-
-    elif tokens[0]=="static":
-        tokens=tokens[1:]
-        if tokens[0]=="const":
-            tokens=tokens[1:]
-
-    if tokens[0]=="struct" or tokens[0] == "union" or tokens[0] == "enum":
-        tokens = tokens[1:]
-        for c in tokens:
-            if c in allowed_keywords:
-                raise ValueError(f"Invalid data type structure '{data_type}'.")
-        return True
-
-    abcd = symtab.lookup(tokens[0])
-    if abcd is not None and abcd.type == "struct":
-        return True
-    
-    # Check for invalid tokens
-    for token in tokens:
-        if token not in allowed_keywords:
-            raise ValueError(f"Invalid token '{token}' in data type '{data_type}'.")
-    
-    has_sign = False
-    sign = None
-    if tokens and tokens[0] in ('signed', 'unsigned'):
-        sign = tokens[0]
-        has_sign = True
-        type_tokens = tokens[1:]
-        # Handle case where sign is present but no other tokens (e.g., 'unsigned')
-        if not type_tokens:
-            type_tokens = ['int']
-    else:
-        type_tokens = tokens
-    
-    # Check if the type structure is valid
-    valid_type = False
-    for pattern in valid_type_patterns:
-        if type_tokens == pattern:
-            valid_type = True
-            break
-    if not valid_type:
-        raise ValueError(f"Invalid data type structure '{data_type}'.")
-    
-    # Check if sign is allowed for the given type
-    if has_sign:
-        if type_tokens not in allowed_with_sign:
-            raise ValueError(f"Sign specifier '{sign}' not allowed for data type '{data_type}'.")
-    
-    return True
-
 def p_init_declarator(p):
     '''init_declarator : declarator ASSIGN initializer
                        | declarator'''
@@ -982,7 +892,7 @@ def p_init_declarator(p):
             abcd += 1
         base_type = base_type[:-1]
 
-    validate_c_datatype(base_type)
+    validate_c_datatype(base_type, symtab)
     base_var = p[0].vars[0]
 
     kind="variable"
@@ -1128,8 +1038,7 @@ def p_type_specifier(p):
         p[0].return_type = p[1].return_type
     if not isinstance(p[1],Node):
         p[0].dtypes.append(p[1])
-    pass
-
+    
 # Structures and Unions
 def p_struct_or_union_specifier(p):
     '''struct_or_union_specifier : struct_or_union LBRACE enter_scope struct_declaration_list exit_scope RBRACE
@@ -1164,8 +1073,7 @@ def p_struct_or_union(p):
     p[0] = Node("struct_or_union", [p[1]])
     p[0].return_type = p[1]
     p[0].dtypes.append(p[1])
-    pass
-
+    
 def p_struct_declaration_list(p):
     '''struct_declaration_list : struct_declaration
                               | struct_declaration_list struct_declaration'''
@@ -1176,8 +1084,7 @@ def p_struct_declaration_list(p):
 
     p[0].dtypes = []
     p[0].vars = []
-    pass
-
+    
 def p_struct_declaration(p):
     '''struct_declaration : specifier_qualifier_list SEMICOLON
                          | specifier_qualifier_list struct_declarator_list SEMICOLON
@@ -1220,11 +1127,11 @@ def p_specifier_qualifier_list(p):
     else:
         p[0] = Node("specifier_qualifier_list", [p[1], p[2]])
         p[0].return_type = pretty_type_concat(p[1].return_type, p[2].return_type)
-    #neelkumar
+    
     global datatypeslhs
     datatypeslhs=p[0].dtypes
-    pass
 
+    
 def p_struct_declarator_list(p):
     '''struct_declarator_list : struct_declarator
 	                          | struct_declarator_list COMMA struct_declarator'''
@@ -1232,8 +1139,7 @@ def p_struct_declarator_list(p):
         p[0] = Node("struct_declarator_list", [p[1]])
     else:
         p[0] = Node("struct_declarator_list", [p[1], p[3]])
-    pass
-
+    
 def p_struct_declarator(p):
     '''struct_declarator : COLON constant_expression
 	                     | declarator COLON constant_expression
@@ -1242,8 +1148,7 @@ def p_struct_declarator(p):
         p[0] = Node("struct_declarator", [p[1]])
     elif len(p) == 4:
         p[0] = Node("struct_declarator", [p[1], p[3]])
-    pass
-
+    
 def p_enum_specifier(p):
     '''enum_specifier : ENUM LBRACE enumerator_list RBRACE
                      | ENUM LBRACE enumerator_list COMMA RBRACE
@@ -1273,8 +1178,7 @@ def p_enum_specifier(p):
         symtab.add_symbol(var_sym)
     
     # symbol_table.append((p[2],p[1])) idk old intention toh hataaya
-    pass
-
+    
 def p_enum_specifier_error(p):
     '''enum_specifier : ENUM LBRACE enumerator_list error
                      | ENUM LBRACE enumerator_list COMMA error
@@ -1290,8 +1194,7 @@ def p_enumerator_list(p):
         p[0] = Node("enumerator_list", [p[1]])
     else:
         p[0] = Node("enumerator_list", [p[1], p[3]])
-    pass
-
+    
 def p_enumerator(p):
     '''enumerator : enumeration_constant ASSIGN constant_expression
                  | enumeration_constant'''
@@ -1299,14 +1202,12 @@ def p_enumerator(p):
         p[0] = Node("enumerator", [p[1], p[3]])
     else:
         p[0] = Node("enumerator", [p[1]])
-    pass
-
+    
 # Atomic types
 def p_atomic_type_specifier(p):
     '''atomic_type_specifier : ATOMIC LPAREN type_name RPAREN '''
     p[0] = Node("atomic_type_specifier", [p[2]])
-    pass
-
+    
 def p_atomic_type_specifier_error(p):
     '''atomic_type_specifier : ATOMIC LPAREN type_name error '''
 
@@ -1322,15 +1223,13 @@ def p_type_qualifier(p):
     p[0].return_type = p[1]
     p[0].dtypes.append("const")
     p[0].is_const = 1
-    pass
-
+    
 # Function specifiers
 def p_function_specifier(p):
     '''function_specifier : INLINE
                          | NORETURN'''
     p[0] = Node("function_specifier", [p[1]])
-    pass
-
+    
 # Alignment specifiers
 def p_alignment_specifier(p):
     '''alignment_specifier : ALIGNAS LPAREN type_name RPAREN
@@ -1339,8 +1238,7 @@ def p_alignment_specifier(p):
         p[0] = Node("alignment_specifier", [p[2], p[3]])
     else:
         p[0] = Node("alignment_specifier", [p[2]])
-    pass
-
+    
 def p_alignment_specifier_error(p):
     '''alignment_specifier : ALIGNAS LPAREN type_name error
                           | ALIGNAS LPAREN constant_expression error '''
@@ -1461,7 +1359,7 @@ def p_direct_declarator(p):
             base_type += " "
         base_type = base_type[:-1]
         p[0].fdtypes=datatypeslhs
-        validate_c_datatype(base_type)
+        validate_c_datatype(base_type, symtab)
 
     if len(p) > 2 and p[2] == '(':
         func_name = p[1].vars[0] #check gang
@@ -1516,8 +1414,7 @@ def p_type_qualifier_list(p):
     else:
         p[0] = Node("type_qualifier_list", [p[1], p[2]])
         p[0].return_type = pretty_type_concat(p[1].return_type, p[2].return_type)
-    pass
-
+    
 # Parameters
 def p_parameter_type_list(p):
     '''parameter_type_list : parameter_list COMMA ELLIPSIS
@@ -1533,8 +1430,7 @@ def p_parameter_type_list(p):
             isForwardable=True
         )
         symtab.add_symbol(param_sym)
-    pass
-
+    
 def p_parameter_list(p):
     '''parameter_list : parameter_declaration
                      | parameter_list COMMA parameter_declaration'''
@@ -1542,8 +1438,7 @@ def p_parameter_list(p):
         p[0] = Node("parameter_list", [p[1]])
     else:
         p[0] = Node("parameter_list", [p[1], p[3]])
-    pass
-
+    
 def p_parameter_declaration(p):
     '''parameter_declaration : declaration_specifiers declarator
                             | declaration_specifiers abstract_declarator
@@ -1581,8 +1476,7 @@ def p_identifier_list(p):
         p[0] = Node("identifier_list", [p[1]])
     else:
         p[0] = Node("identifier_list", [p[1], p[3]])
-    pass
-
+    
 # Type names
 def p_type_name(p):
     '''type_name : specifier_qualifier_list abstract_declarator
@@ -1594,8 +1488,7 @@ def p_type_name(p):
         p[0] = Node("type_name", [p[1], p[2]])
         p[0].return_type = pretty_type_concat(p[1].return_type, p[2].return_type)
     p[0].dtypes = []
-    pass
-
+    
 # Abstract declarators
 def p_abstract_declarator(p):
     '''abstract_declarator : pointer direct_abstract_declarator
@@ -1607,8 +1500,7 @@ def p_abstract_declarator(p):
     else:
         p[0] = Node("abstract_declarator", [p[1], p[2]])
         p[0].return_type = pretty_type_concat(p[1].return_type, p[2].return_type)
-    pass
-
+    
 def p_direct_abstract_declarator(p):
     '''direct_abstract_declarator : LPAREN abstract_declarator RPAREN
                                  | LBRACKET RBRACKET
