@@ -3,5 +3,5 @@ struct Point {
 };
 
 int main() {
-    struct Point p = {4};
+    struct Point p = (struct Point) {5};
 }
