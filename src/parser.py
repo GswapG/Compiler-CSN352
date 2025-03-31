@@ -254,9 +254,15 @@ def p_postfix_expression(p):
         p[0] = Node("postfix_expression", [p[2], p[5]])
         p[0].isbraces = True 
 
+        # compound literals
+        p[0].return_type = p[2].return_type
+
     elif len(p) == 8:
         p[0] = Node("postfix_expression", [p[2], p[5]])
         p[0].isbraces = True
+
+        # compound literals 
+        p[0].return_type = p[2].return_type
 
     if len(p) == 4 and p[2] == ".":
         field_identifier = p[3]
@@ -998,6 +1004,9 @@ def p_init_declarator(p):
 
                 if len(struct_entries) < len(p[0].rhs):
                     raise Exception("Number of identifiers in struct doesnt match with initialiser list length")
+                
+                if p[3].return_type is not None and strict_compatibility(base_type, p[3].return_type):
+                    raise Exception(f"Cannot case the compound literal of type {p[3].return_type} to {base_type}")
 
                 for struct_entry, list_entry in zip(struct_entries, p[0].rhs):
                     deref_count, ref_count, clean_list_entry = count_deref_ref(list_entry)
@@ -1615,6 +1624,8 @@ def p_initializer_list(p):
         p[0] = Node("initializer_list", [p[1], p[3]])
     else:
         p[0] = Node("initializer_list", [p[1], p[3]])
+    
+    p[0].return_type = None
 
 
 def p_designation(p):

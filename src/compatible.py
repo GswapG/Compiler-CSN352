@@ -179,6 +179,19 @@ def strict_unqualified_compatibility(type1, type2):
     
     return False
 
+def strict_compatibility(type1, type2):
+    if type1 is None:
+        raise Exception("Invalid type provided")
+    
+    if type2 is None:
+        raise Exception("Invalid type provided")
+
+    if type1 != type2:
+        return True 
+    
+    return False
+
+
 def implicit_type_compatibility(type1, type2, allow_int_float=False):
     ## implicit type conversion
     if type1 is None:
