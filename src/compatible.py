@@ -191,6 +191,29 @@ def strict_compatibility(type1, type2):
     
     return False
 
+def array_type_decay(type):
+    if type is None:
+        return type
+    
+    if type.count("[") > 1:
+        raise Exception(f"Invalid type {type}")
+    
+    if type.count("[") == 1:
+        type = type.replace("[", "")
+        type = type.replace("]", "")
+        type = type.strip(' ')
+        type = "*" + type
+
+    return type
+
+def array_base_type(type):
+    if type is None:
+        raise Exception("Invalid Type received")
+
+    type = type.replace("[", "")
+    type = type.replace("]", "")
+    type = type.strip(' ')
+    return type
 
 def implicit_type_compatibility(type1, type2, allow_int_float=False):
     ## implicit type conversion

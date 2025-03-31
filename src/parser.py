@@ -1017,7 +1017,35 @@ def p_init_declarator(p):
                     if implicit_type_compatibility(struct_entry_type, field_type, True):
                         raise Exception(f"Type mismatch in {struct_entry_type} with provided {field_type}")
             else:
-                raise Exception("Non array type being initialised with braces")
+                notarray = (p[3].return_type == array_type_decay(p[3].return_type))
+                            
+                if notarray:
+                    if implicit_type_compatibility(base_type, p[3].return_type, True):
+                        raise Exception(f"Incompatible types {base_type} and {p[3].return_type}")
+                    ## check all implicit type compatibility for rhs var
+
+                    for rhs_var in p[0].rhs:
+                        deref_count, ref_count, rhs_var = count_deref_ref(rhs_var)
+                        type_ = get_type_from_var(rhs_var, deref_count, ref_count, symtab)
+
+                        if implicit_type_compatibility(p[3].return_type, type_, True):
+                            raise Exception(f"Type mismatch in {p[3].return_type} with provided {type_}")
+
+                else:
+                    if p[3].return_type is None:
+                        p[3].return_type = base_type
+                    if implicit_type_compatibility(base_type, array_type_decay(p[3].return_type), True):
+                        raise Exception(f"Incompatible types {base_type} and {p[3].return_type}")
+
+                    ## check all implicit type compatibility for rhs var
+
+                    for rhs_var in p[0].rhs:
+                        deref_count, ref_count, rhs_var = count_deref_ref(rhs_var)
+                        type_ = get_type_from_var(rhs_var, deref_count, ref_count, symtab)
+
+                        if implicit_type_compatibility(array_base_type(p[3].return_type), type_, True):
+                            raise Exception(f"Type mismatch in {array_base_type(p[3].return_type)} with provided {type_}")
+
 
         else:
             if base_var[-1] == "]":
@@ -1567,8 +1595,9 @@ def p_direct_abstract_declarator(p):
     
     if len(p) == 4 and p[1] == '(' and p[3] == ')':
         p[0] = Node("direct_abstract_declarator", [p[2]])
-    elif len(p) == 2 and p[0] == '[' and p[1] == ']':
+    elif len(p) == 3 and p[1] == '[' and p[2] == ']':
         p[0] = Node("direct_abstract_declarator", [])
+        p[0].return_type = "[]"
     elif len(p) == 3 and p[1] == '[' and p[2] == 'static':
         p[0] = Node("direct_abstract_declarator", [p[1], p[2], p[3]])
     else:
