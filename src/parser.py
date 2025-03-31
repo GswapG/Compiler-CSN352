@@ -1764,9 +1764,14 @@ def p_iteration_statement(p):
     # While loop vale
     if p[1] == "while":
         p[0] = Node("iteration_statement", [p[1], p[3],p[5]])
+        IrGen.while_loop(p[0].ir, p[3].ir, p[5].ir)
     # Do while loop vale
     elif p[1] == 'do':
         p[0] = Node("iteration_statement", [p[1],p[2],p[3],p[5]])
+        if p[3] == 'while':
+            IrGen.do_while_loop(p[0].ir, p[5].ir, p[2].ir)
+        elif p[3] == 'until':
+            IrGen.do_until_loop(p[0].ir, p[5].ir, p[2].ir)
     # For loop vale
     elif p[1] == 'for':
         if len(p) == 9:

@@ -21,7 +21,7 @@ class IRGenerator:
 
     def new_temp(self):
         """Generate a new unique temporary variable."""
-        temp_var = f'_t{self.temp_counter}'
+        temp_var = f'@t{self.temp_counter}'
         self.temp_counter += 1
         return temp_var
 
@@ -35,7 +35,7 @@ class IRGenerator:
                 self.function_labels[func_name] = f".{func_name}"
             return self.function_labels[func_name]
         
-        label = f'_L{self.label_counter}'
+        label = f'$L{self.label_counter}'
         self.label_counter += 1
         return label
     
@@ -225,4 +225,34 @@ class IRGenerator:
     def unary_array(self, ir0, ir1, var):
         gen = f"{ir1.place} = {var}[{ir1.place}]"
         ir0.code = self.join(ir1.code,gen)
+        self.debug_print(ir0)
+    
+    def while_loop(self, ir0, ir1, ir2):
+        ir0.begin = self.new_label()
+        ir0.after = self.new_label()
+        gen1 = f"{ir0.begin}:"
+        gen2 = f"if {ir1.place} == 0 goto {ir0.after}"
+        gen3 = f"goto {ir0.begin}"
+        gen4 = f"{ir0.after}:"
+        ir0.code = self.join(gen1,ir1.code,gen2,ir2.code,gen3,gen4)
+        self.debug_print(ir0)
+    
+    def do_while_loop(self, ir0, ir1, ir2):
+        ir0.begin = self.new_label()
+        ir0.after = self.new_label()
+        gen1 = f"{ir0.begin}:"
+        gen2 = f"if {ir1.place} == 0 goto {ir0.after}"
+        gen3 = f"goto {ir0.begin}"
+        gen4 = f"{ir0.after}:"
+        ir0.code = self.join(gen1,ir2.code,gen3,ir1.code,gen2,gen4)
+        self.debug_print(ir0)
+    
+    def do_until_loop(self, ir0, ir1, ir2):
+        ir0.begin = self.new_label()
+        ir0.after = self.new_label()
+        gen1 = f"{ir0.begin}:"
+        gen2 = f"if {ir1.place} != 0 goto {ir0.after}"
+        gen3 = f"goto {ir0.begin}"
+        gen4 = f"{ir0.after}:"
+        ir0.code = self.join(gen1,ir2.code,gen3,ir1.code,gen2,gen4)
         self.debug_print(ir0)

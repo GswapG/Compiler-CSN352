@@ -9,8 +9,4 @@ int main() {
         int z = 1;
         z++;
     }while(y<2);
-    do{
-        int k = 1;
-        k++;
-    }until(x<2);
 }
