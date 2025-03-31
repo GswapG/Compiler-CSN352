@@ -97,7 +97,7 @@ def get_type_from_var(var, deref_count, ref_count, symtab, kind_check=None):
 
     return type_
 
-def check_vars_type(vars_list, expected_type, op_name, symtab, allow_int_float=False):
+def implicit_type_check_list(vars_list, expected_type, op_name, symtab, allow_int_float=False):
 
     for var in vars_list:
         d, r, clean_var = count_deref_ref(var)

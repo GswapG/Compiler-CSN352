@@ -530,7 +530,7 @@ def p_multiplicative_expression(p):
 
         d, r, var0 = count_deref_ref(p[1].vars[0])
         var_type = get_type_from_var(var0, d, r, symtab)
-        check_vars_type(p[3].vars, var_type, p[2], symtab, True)
+        implicit_type_check_list(p[3].vars, var_type, p[2], symtab, True)
 
         if implicit_type_compatibility(p[1].return_type, p[3].return_type, True):
             raise Exception(f"Invalid Operands of type {p[1].return_type} and {p[3].return_type} to the operator +")
@@ -584,7 +584,7 @@ def p_additive_expression(p):
             var_type = get_type_from_var(var0, d, r, symtab)
 
             # check if all the variables in p[3] are compatible
-            check_vars_type(p[3].vars, var_type, p[2], symtab, True)
+            implicit_type_check_list(p[3].vars, var_type, p[2], symtab, True)
 
             if implicit_type_compatibility(p[1].return_type, p[3].return_type, True):
                 raise Exception(f"Invalid Operands of type {p[1].return_type} and {p[3].return_type} to the operator +")
@@ -614,18 +614,21 @@ def p_shift_expression(p):
             d, r, var0 = count_deref_ref(p[1].vars[0])
             dtype1 = get_type_from_var(var0, d, r, symtab)
 
-        check_vars_type(p[3].vars, dtype1, p[2], symtab, False)
+        implicit_type_check_list(p[3].vars, dtype1, p[2], symtab, False)
 
         if "*" in p[1].return_type or "*" in p[3].return_type:
-            raise Exception(f"Invalid Operands of type {p[1].return_type} and {p[3].return_type} to the operator +")
+            raise Exception(f"Invalid Operands of type {p[1].return_type} and {p[3].return_type} to the operator {p[2]}")
 
-        if get_label(p[1].return_type) == "float" or get_label(p[3].return_type) == "float":
-            raise ValueError(f"Floating type expressions incompatible with shift operations")
+        if get_label(p[1].return_type) != "int" or get_label(p[3].return_type) != "int":
+            raise ValueError(f"Incompatible types {p[1].return_type} and {p[3].return_type} with shift operations")
 
         if dominating_type(p[1].return_type, p[3].return_type):
             p[0].return_type = p[1].return_type
         else:
             p[0].return_type = p[3].return_type
+
+        p[0].lvalue = False
+        p[0].rvalue = True
 
         IrGen.arithmetic_expression(p[0].ir, p[1].ir, p[2] ,p[3].ir)
 
@@ -641,6 +644,9 @@ def p_relational_expression(p):
         p[0] = Node("relational_expression", [p[1], p[2], p[3]])
         # Validate that the symbols in the left and right operands have compatible types.
         validate_relational_operands(p[1].vars, p[3].vars, symtab, True)
+
+        p[0].lvalue = False
+        p[0].rvalue = True
 
         p[0].return_type = "int"
 
@@ -661,7 +667,10 @@ def p_equality_expression(p):
             d, r, var0 = count_deref_ref(p[1].vars[0])
             dtype1 = get_type_from_var(var0, d, r, symtab)
 
-        check_vars_type(p[3].vars, dtype1, p[2], symtab, True)
+        implicit_type_check_list(p[3].vars, dtype1, p[2], symtab, True)
+
+        p[0].lvalue = False
+        p[0].rvalue = True
 
         p[0].return_type = "int"
 
@@ -678,18 +687,16 @@ def p_and_expression(p):
             d, r, var0 = count_deref_ref(p[1].vars[0])
             dtype1 = get_type_from_var(var0, d, r, symtab)
 
-        check_vars_type(p[3].vars, dtype1, p[2], symtab, False)
+        implicit_type_check_list(p[3].vars, dtype1, p[2], symtab, False)
 
-        if get_label(p[1].return_type) == "float" or get_label(p[3].return_type) == "float":
-            raise ValueError(f"Floating type expressions incompatible with {p[2].operator} operator")
+        if get_label(p[1].return_type) != "int" or get_label(p[3].return_type) != "int":
+            raise ValueError(f"Incompatible types {p[1].return_type} and {p[3].return_type} with {p[2]} operator")
+        
+        p[0].lvalue = False
+        p[0].rvalue = True
 
-        if dominating_type(p[1].return_type, p[3].return_type):
-            p[0].return_type = p[1].return_type
-        else:
-            p[0].return_type = p[3].return_type
+        p[0].return_type = "int"
 
-
-    if len(p) == 4:
         IrGen.arithmetic_expression(p[0].ir, p[1].ir, p[2] ,p[3].ir)
         
 
@@ -706,15 +713,15 @@ def p_exclusive_or_expression(p):
             d, r, var0 = count_deref_ref(p[1].vars[0])
             dtype1 = get_type_from_var(var0, d, r, symtab)
 
-        check_vars_type(p[3].vars, dtype1, p[2], symtab, False)
+        implicit_type_check_list(p[3].vars, dtype1, p[2], symtab, False)
 
-        if get_label(p[1].return_type) == "float" or get_label(p[3].return_type) == "float":
-            raise ValueError(f"Floating type expressions incompatible with {p[2].operator} operator")
+        if get_label(p[1].return_type) != "int" or get_label(p[3].return_type) != "int":
+            raise ValueError(f"Incompatible types {p[1].return_type} and {p[3].return_type} with {p[2]} operator")
 
-        if dominating_type(p[1].return_type, p[3].return_type):
-            p[0].return_type = p[1].return_type
-        else:
-            p[0].return_type = p[3].return_type
+        p[0].lvalue = False
+        p[0].rvalue = True
+
+        p[0].return_type = "int"
 
         IrGen.arithmetic_expression(p[0].ir, p[1].ir, p[2] ,p[3].ir)
 
@@ -731,15 +738,15 @@ def p_inclusive_or_expression(p):
             d, r, var0 = count_deref_ref(p[1].vars[0])
             dtype1 = get_type_from_var(var0, d, r, symtab)
 
-        check_vars_type(p[3].vars, dtype1, p[2], symtab, False)
+        implicit_type_check_list(p[3].vars, dtype1, p[2], symtab, False)
 
-        if get_label(p[1].return_type) == "float" or get_label(p[3].return_type) == "float":
-            raise ValueError(f"Floating type expressions incompatible with {p[2].operator} operator")
+        if get_label(p[1].return_type) != "int" or get_label(p[3].return_type) != "int":
+            raise ValueError(f"Incompatible types {p[1].return_type} and {p[3].return_type} with {p[2]} operator")
 
-        if dominating_type(p[1].return_type, p[3].return_type):
-            p[0].return_type = p[1].return_type
-        else:
-            p[0].return_type = p[3].return_type
+        p[0].lvalue = False
+        p[0].rvalue = True
+
+        p[0].return_type = "int"
 
         IrGen.arithmetic_expression(p[0].ir, p[1].ir, p[2] ,p[3].ir)
 
@@ -756,15 +763,15 @@ def p_logical_and_expression(p):
             d, r, var0 = count_deref_ref(p[1].vars[0])
             dtype1 = get_type_from_var(var0, d, r, symtab)
 
-        check_vars_type(p[3].vars, dtype1, p[2], symtab, False)
+        implicit_type_check_list(p[3].vars, dtype1, p[2], symtab, False)
 
-        if get_label(p[1].return_type) == "float" or get_label(p[3].return_type) == "float":
-            raise ValueError(f"Floating type expressions incompatible with {p[2].operator} operator")
+        if get_label(p[1].return_type) != "int" or get_label(p[3].return_type) != "int":
+            raise ValueError(f"Incompatible types {p[1].return_type} and {p[3].return_type} with {p[2]} operator")
 
-        if dominating_type(p[1].return_type, p[3].return_type):
-            p[0].return_type = p[1].return_type
-        else:
-            p[0].return_type = p[3].return_type
+        p[0].lvalue = False
+        p[0].rvalue = True
+
+        p[0].return_type = "int"
 
 
 def p_logical_or_expression(p):
@@ -780,15 +787,15 @@ def p_logical_or_expression(p):
             d, r, var0 = count_deref_ref(p[1].vars[0])
             dtype1 = get_type_from_var(var0, d, r, symtab)
 
-        check_vars_type(p[3].vars, dtype1, p[2], symtab, False)
+        implicit_type_check_list(p[3].vars, dtype1, p[2], symtab, False)
 
-        if get_label(p[1].return_type) == "float" or get_label(p[3].return_type) == "float":
-            raise ValueError(f"Floating type expressions incompatible with {p[2].operator} operator")
+        if get_label(p[1].return_type) != "int" or get_label(p[3].return_type) != "int":
+            raise ValueError(f"Incompatible types {p[1].return_type} and {p[3].return_type} with {p[2]} operator")
 
-        if dominating_type(p[1].return_type, p[3].return_type):
-            p[0].return_type = p[1].return_type
-        else:
-            p[0].return_type = p[3].return_type
+        p[0].lvalue = False
+        p[0].rvalue = True
+
+        p[0].return_type = "int"
 
 
 def p_conditional_expression(p):
@@ -804,11 +811,12 @@ def p_conditional_expression(p):
             d, r, var0 = count_deref_ref(p[1].vars[0])
             dtype1 = get_type_from_var(var0, d, r, symtab)
 
-        if implicit_type_compatibility(p[3].return_type, p[5].return_type, True):
-            raise Exception(f"Ternary operators require both types to be compatible. Incompatible return types supplied: {p[3].return_type} | {p[5].return_type}")
-
+        if ternary_type_compatibility(p[1].return_type, p[3].return_type, p[5].return_type):
+            raise ValueError(f"Incompatible types {p[3].return_type} and {p[5].return_type} in ternary operator")
+        
         if dominating_type(p[3].return_type, p[5].return_type):
             p[0].return_type = p[3].return_type
+
         else:
             p[0].return_type = p[5].return_type
 

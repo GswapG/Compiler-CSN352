@@ -10,5 +10,5 @@ int main() {
     int a = 10;
     float b = 10.5;
     int *q = &a;
-    int max = (p) ? a : b;
+    int max = (q) ? a : b;
 }

@@ -466,3 +466,10 @@ def compatible_cast(cast_type, expression_type):
 
     # handle other casting between other types apart from struct or union here if required
     return True   
+
+def ternary_type_compatibility(type1, type2, type3):
+    if get_label(type1.replace("*", "")) is None:
+        raise Exception("First type in ternary operators should be a scalar type")
+
+    return implicit_type_compatibility(type2, type3, True)
+
