@@ -369,8 +369,7 @@ def p_unary_expression(p):
                         if str(braces_count) != str(kind[0]):
                             raise Exception("Invalid array access")
                         
-        if(len(p[0].vars)>0 and symtab.lookup(p[0].vars[0].split('[')[0]) is not None and "array" in symtab.lookup(p[0].vars[0].split('[')[0]).kind):
-            # print("                                                                                 ok ",p[0].vars)
+        if(len(p[0].vars)>0 and '[' in p[0].vars[0] and symtab.lookup(p[0].vars[0].split('[')[0]) is not None and "array" in symtab.lookup(p[0].vars[0].split('[')[0]).kind):
             IrGen.unary_array(p[0].ir,p[1].ir,p[0].vars[0].split('[')[0])
 
 

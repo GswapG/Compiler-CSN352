@@ -108,11 +108,7 @@ class IRGenerator:
         ir0.place = str(const)
 
     def assignment(self, ir0, ir1, ir2,var):
-        if '[' in var:
-            var = var.split('[')[0]
-            var = f"{var}[{ir1.place}]"
-            ir1.code = self.remove_lastline(ir1)
-        gen = f"{var} = {ir2.place}"
+        gen = f"{ir1.place} = {ir2.place}"
         ir0.code = self.join(ir1.code,ir2.code, gen)
         self.debug_print(ir0)
     
@@ -223,8 +219,7 @@ class IRGenerator:
         self.debug_print(ir0)
 
     def unary_array(self, ir0, ir1, var):
-        gen = f"{ir1.place} = {var}[{ir1.place}]"
-        ir0.code = self.join(ir1.code,gen)
+        ir0.place = f"{var}[{ir1.place}]"
         self.debug_print(ir0)
     
     def while_loop(self, ir0, ir1, ir2):
