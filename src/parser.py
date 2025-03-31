@@ -955,15 +955,10 @@ def validate_c_datatype(data_type):
 def p_init_declarator(p):
     '''init_declarator : declarator ASSIGN initializer
                        | declarator'''
-    if len(p) == 4: 
-        p[0] = Node("init_declarator", [p[1], p[2], p[3]])
-
-    else:  # Case: declarator
-        p[0] = Node("init_declarator", [p[1]])
-
-
+    
     global datatypeslhs
     base_type = ''
+
     if len(p) == 4: 
         p[0] = Node("init_declarator", [p[1], p[2], p[3]])
         abcd = 0
@@ -985,66 +980,55 @@ def p_init_declarator(p):
     validate_c_datatype(base_type)
     base_var = p[0].vars[0]
 
+    kind="variable"
+    if base_type.split(" ")[0] == "typedef" and len(base_type.split(" ")) >= 1:
+        name = base_type.split(" ")[-1]
+        kind=f"{name}"
+        base_type=f"{name}"
+
+    if isinstance(base_var, str) and base_var[0] == '%':
+        if len(p[0].rhs) != 1:
+            raise Exception("invalid reference created") 
+        
+        if symtab.lookup(p[0].rhs[0]).kind == 'constant':
+            raise Exception("references can't be bound to constants")
+        
+        var_sym = SymbolEntry(
+            name=str(base_var[1:]),
+            type=str(base_type),
+            kind="reference",
+            refsto= p[0].rhs[0]
+        )
+        symtab.add_symbol(var_sym)
+
+    elif symtab.lookup(base_var) is None:
+        var_sym = SymbolEntry(
+            name=str(base_var),
+            type=str(base_type),
+            kind=str(kind)
+        )
+        symtab.add_symbol(var_sym)
     
-
-    for variable in p[0].vars:
-        kind="variable"
-
-        if base_type.split(" ")[0] == "typedef" and len(base_type.split(" ")) >= 1:
-            name = base_type.split(" ")[-1]
-            kind=f"{name}"
-            base_type=f"{name}"
-
-        if isinstance(variable, str) and variable[0] == '%':
-            if len(p[0].rhs) != 1:
-                raise Exception("invalid reference created") 
-            
-            if symtab.lookup(p[0].rhs[0]).kind == 'constant':
-                raise Exception("references can't be bound to constants")
-            
+    elif symtab.lookup(base_var).kind != "function":
+        var_sym = SymbolEntry(
+            name=str(base_var),
+            type=str(base_type),
+            kind=str(kind)
+        )
+        symtab.add_symbol(var_sym)
+    
+    else:
+        if symtab.current_scope != symtab.lookup(base_var).node:
             var_sym = SymbolEntry(
-                name=str(variable[1:]),
-                type=str(base_type),
-                kind="reference",
-                refsto= p[0].rhs[0]
-            )
-            symtab.add_symbol(var_sym)
-
-        elif symtab.lookup(variable) is None:
-            var_sym = SymbolEntry(
-                name=str(variable),
+                name=str(base_var),
                 type=str(base_type),
                 kind=str(kind)
             )
             symtab.add_symbol(var_sym)
-        
-        elif symtab.lookup(variable).kind != "function":
-            var_sym = SymbolEntry(
-                name=str(variable),
-                type=str(base_type),
-                kind=str(kind)
-            )
-            symtab.add_symbol(var_sym)
-        
-        else:
-            if symtab.current_scope != symtab.lookup(variable).node:
-                var_sym = SymbolEntry(
-                    name=str(variable),
-                    type=str(base_type),
-                    kind=str(kind)
-                )
-                symtab.add_symbol(var_sym)
-
-        break
 
     if len(p) == 4:
         checkfunc = not p[3].iscall
 
-    if ((("struct" in base_type or "union" in base_type) or
-            (symtab.lookup(base_type.split(' ')[-1]) is not None and 
-            ("struct" in symtab.lookup(base_type.split(' ')[-1]).type or 
-             "union" in symtab.lookup(base_type.split(' ')[-1]).type)))):
-        
         if p[0].isbraces:
             if base_var[-1] == ']':
                 for rhs_var in p[0].rhs:
@@ -1057,7 +1041,10 @@ def p_init_declarator(p):
                     if checkfunc and symtab.lookup(rhs_var) is not None and symtab.lookup(rhs_var).kind == 'function':
                         raise Exception("Can't assign value of function")
 
-            else:
+            elif ((("struct" in base_type or "union" in base_type) or
+            (symtab.lookup(base_type.split(' ')[-1]) is not None and 
+            ("struct" in symtab.lookup(base_type.split(' ')[-1]).type or 
+             "union" in symtab.lookup(base_type.split(' ')[-1]).type)))):
                 struct_name = base_type.split(' ')[-1]
                 struct_scope = symtab.lookup(struct_name).child
                 struct_entries = struct_scope.entries
@@ -1073,12 +1060,17 @@ def p_init_declarator(p):
         
                     if check_types(struct_entry_type, field_type, True):
                         raise Exception(f"Type mismatch in {struct_entry_type} with provided {field_type}")
-            
-        else:  
-            if len(p) == 4:
-                if base_var[-1] == ']':
-                    raise Exception("Array is being initialised without braces")
-            
+            else:
+                raise Exception("Non array type being initialised with braces")
+
+        else:
+            if base_var[-1] == "]":
+                raise Exception("Array being initialised without braces")
+        
+            elif ((("struct" in base_type or "union" in base_type) or
+            (symtab.lookup(base_type.split(' ')[-1]) is not None and 
+            ("struct" in symtab.lookup(base_type.split(' ')[-1]).type or 
+             "union" in symtab.lookup(base_type.split(' ')[-1]).type)))):
                 if len(p[0].rhs) > 1:
                     raise Exception("more than one variables in the rhs")
                 
@@ -1089,38 +1081,17 @@ def p_init_declarator(p):
                     if check_types(base_type, rhs_var_type):
                         raise Exception(f"Type mismatch in {base_type} with provided {rhs_var_type}")
         
-    else: 
-        if p[0].isbraces:
-            if base_var[-1] == ']':
-                for rhs_var in p[0].rhs:
-                    deref_count, ref_count, rhs_var = count_deref_ref(rhs_var)
-                    type_ = get_type_from_var(rhs_var, deref_count, ref_count, symtab)
-
-                    array_check = base_type.lstrip('*')
-                    if symtab.lookup(rhs_var) is not None and check_types(array_check, type_, True):
-                        raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs_var}\n| base_type = {array_check} |\n| rhs_type = {type_} |")
-                    
-                    if checkfunc and symtab.lookup(rhs_var) is not None and symtab.lookup(rhs_var).kind == 'function':
-                        raise Exception("Can't assign value of function")
             else:
-                if len(p) == 4:
-                    raise Exception("Non array type being initialised with braces")
-        
-        else:
-            if len(p) == 4:
-                if base_var[-1] != ']':
-                    type_ = p[3].return_type
-                    
-                    if not (trim_value(base_type, "const").split(" ")[0] == "enum" and type_ == "int"):
-                        if check_types(base_type, type_, True):
-                            raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]}\n| base_type = {base_type} |\n| rhs_type = {type_} |")
-                else:
-                    raise Exception("Array being initialised without braces")
+                type_ = p[3].return_type
+                        
+                if not (trim_value(base_type, "const").split(" ")[0] == "enum" and type_ == "int"):
+                    if check_types(base_type, type_, True):
+                        raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]}\n| base_type = {base_type} |\n| rhs_type = {type_} |")
+            
+        IrGen.assignment(p[0].ir, p[1].ir, p[3].ir)
 
     p[0].is_address = False
 
-    if len(p) == 4:
-        IrGen.assignment(p[0].ir, p[1].ir, p[3].ir)
 
 def p_init_declarator_error(p):
     '''init_declarator : declarator error initializer'''
