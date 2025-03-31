@@ -211,3 +211,11 @@ class IRGenerator:
             gen2 = f"{ir0.place} = {ir0.place} * {dimensions[0]}"
         ir0.code = self.join(ir1.code,ir2.code,gen1,gen2) 
         self.debug_print(ir0)
+
+    def unary_array(self, ir0, ir1, var):
+        gen = f"{ir1.place} = {var} + {ir1.place}"
+        ir0.place = self.new_temp()
+        gen2 = f"{ir0.place} = * {ir1.place}"
+        ir0.code = self.join(ir1.code,gen,gen2)
+        self.debug_print(ir0)
+        print("AAAA                                                                                                     AAAAAA")
