@@ -28,6 +28,9 @@ class Node:
         self.listup = []
         self.ir = IR()
         self.expression = ""
+        self.break_count = False
+        self.continue_count = False
+        self.default_count = 0
 
         if children is None:    
             self.expression += type
@@ -37,7 +40,7 @@ class Node:
                 if not isinstance(c,Node):
                     children_conv.append(Node(str(c)))
                 else:
-                    children_conv.append(c)        
+                    children_conv.append(c)
             self.children = children_conv
 
         if len(self.children) == 1 and isinstance(self.children[0], Node):
@@ -51,6 +54,9 @@ class Node:
         for c in self.children:
             self.is_address |= c.is_address
             self.isbraces |= c.isbraces
+            self.break_count |= c.break_count
+            self.continue_count |= c.continue_count
+            self.default_count += c.default_count
 
             if isinstance(c, Node):
                 self.expression += c.expression
