@@ -144,4 +144,5 @@ def get_size(symbol, symtab):
     
     if "int" in symbol.type:
         return 4
+
    

@@ -178,6 +178,10 @@ class SymbolTable:
         self.current_scope = parent 
 
     def function_exit_scope(self):
+        for entry in self.current_scope.entries:
+            if entry.kind == "label" and entry.type == "label_defined":
+                raise Exception(f"Label {entry.name} does not exist in the current function scope")
+
         parent = self.current_scope.parent 
         self.current_scope_name = parent.scope_name
         self.current_scope_level = parent.scope_level 
@@ -369,6 +373,38 @@ class SymbolTable:
                     entry = SymbolTableEntry(symbol.name, c* '*' + symbol.type, symbol.kind, symbol, symbol.node, self.current_scope_level, self.current_scope_name,symbol.refsto, size=symbol.size, offset=symbol.offset)
                     self.table_entries.append(entry)
         
+    def add_goto_symbol(self, name, type):
+        entry = self.search_function_scope(name, "label")
+        if entry is not None:
+            if type == "identifier" and entry.type == "label_exist":
+                raise Exception(f"Goto label {name} already exists in the current function scope")
+            elif type == "identifier" and entry.type == "label_defined":
+                entry.type = "label_exist"
+                new_entry = SymbolTableEntry(entry.name, entry.type, entry.kind, entry, entry.node, entry.node.scope_level, entry.node.scope_name, size=entry.size, offset=entry.offset)
+                self.table_entries.append(new_entry)
+
+                return 
+            else:
+                return 
+
+        scope_pointer = self.current_scope
+        if self.current_scope_level == 0:
+            raise Exception("Cannot define goto labels in global scope")
+        
+        while scope_pointer.scope_level != 1:
+            scope_pointer = scope_pointer.parent
+
+        if type == "identifier":
+            print(f"{name} when identifier:")
+            symbol = SymbolEntry(name, "label_exist", "label", node = scope_pointer)
+        else:
+            symbol = SymbolEntry(name, "label_defined", "label", node = scope_pointer)
+        scope_pointer.add_entry(symbol)
+
+        if type == "identifier":
+            entry = SymbolTableEntry(symbol.name, symbol.type, symbol.kind, symbol, symbol.node, symbol.node.scope_level, symbol.node.scope_name, size=symbol.size, offset=symbol.offset)
+            self.table_entries.append(entry)
+
     def lookup(self, name):
         scope_pointer = self.current_scope
         while scope_pointer:
@@ -376,7 +412,18 @@ class SymbolTable:
                 if strict_equal(entry.name, name):
                     return entry
             scope_pointer = scope_pointer.parent
-    
+
+    def search_function_scope(self, name, type):
+        if self.current_scope_level == 0:
+            raise Exception("Cannot define in global scope")
+
+        scope_pointer = self.current_scope
+        while scope_pointer and scope_pointer.scope_level != 0:
+            for entry in scope_pointer.entries:
+                if strict_equal(entry.name, name) and entry.kind == type:
+                    return entry
+            scope_pointer = scope_pointer.parent
+
     def search_params(self, name):
         func_entry = self.lookup(name)
         if func_entry.child is None or func_entry.kind != "function":

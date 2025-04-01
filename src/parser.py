@@ -2020,7 +2020,8 @@ def p_labeled_statement(p):
                         | DEFAULT COLON statement'''
     if len(p) == 3 and p[2] == ':' and p[1] != 'default':
         p[0] = Node("labeled_statement", [p[1]])
-        # IR
+
+        symtab.add_goto_symbol(p[1], "identifier")
         IrGen.label_add(p[0].ir,p[1])
     elif len(p) == 5 and p[1] == 'case':
         p[0] = Node("labeled_statement", [p[1], p[2], p[4]])
@@ -2176,6 +2177,8 @@ def p_jump_statement(p):
             returns.add(p[2].return_type)
             IrGen.return_jump(p[0].ir,p[2].ir)
         if p[1] == 'goto':
+            symtab.add_goto_symbol(p[2], "goto")
+
             IrGen.goto_label(p[0].ir,p[2])
 
 
