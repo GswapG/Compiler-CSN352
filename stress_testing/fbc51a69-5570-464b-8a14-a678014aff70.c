@@ -15,9 +15,9 @@ int main() {
     else if(y < (x++)){
         func(x,y);
     }
-    else if(z > 2){
-        func(2,3);
-    }
+    // else if(z > 2){
+    //     func(2,3);
+    // }
     else{
         hello();
     }

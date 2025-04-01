@@ -8,3 +8,4 @@ class IR:
         self.begin = ""
         self.after = ""
         self.parameters = []
+        self.else_ = ""

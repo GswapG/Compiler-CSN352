@@ -2110,9 +2110,16 @@ def p_selection_statement(p):
     '''selection_statement : IF LPAREN expression RPAREN statement ELSE statement
                           | IF LPAREN expression RPAREN statement
                           | SWITCH LPAREN expression RPAREN statement'''
-    if len(p) == 8:
-        p[0] = Node("selection_statement", [p[1], p[3], p[5], p[6], p[7]])
-    elif len(p) == 6:
+    if p[1] == 'if':
+        if len(p) == 8:
+            # with else
+            p[0] = Node("selection_statement", [p[1], p[3], p[5], p[6], p[7]])
+            IrGen.if_with_else(p[0].ir, p[3].ir, p[5].ir, p[7].ir)
+        elif len(p) == 6:
+            # no else
+            p[0] = Node("selection_statement", [p[1], p[3], p[5]])
+            IrGen.if_no_else(p[0].ir, p[3].ir, p[5].ir)
+    elif p[1] == 'switch':
         p[0] = Node("selection_statement", [p[1], p[3], p[5]])
 
 def p_selection_statement_error(p):

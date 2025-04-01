@@ -140,7 +140,7 @@ class IRGenerator:
         gen = f"{ir0.place} = {ir1.place} {op} {ir2.place}"
         ir0.code = self.join(ir1.code, ir2.code, gen)
         self.debug_print(ir0)
-        
+
     def inc_dec(self, ir0, ir1, op, post=False):
         gen1 = ""
         if post:
@@ -220,7 +220,7 @@ class IRGenerator:
         gen2=""
         print(ir0.place,ir1.place,ir2.place)
         ir0.place = self.new_temp()
-        if ir1.place[0]!="_":
+        if ir1.place[0]!="@":
             gen1 = f"{ir0.place} = {ir2.place}"
         else:
             gen1 = f"{ir0.place} = {ir1.place} + {ir2.place}"
@@ -279,3 +279,23 @@ class IRGenerator:
             ir0.code = self.join(ir1.code,gen1,gen2,ir4.code,ir3.code,gen3,gen4)
         else:
             ir0.code = self.join(ir1.code,gen1,gen2,ir4.code,gen3,gen4)
+        
+    def if_with_else(self, ir0, ir1, ir2,ir3):
+        ir0.after = ir3.after
+        gen4 = ""
+        if ir0.after == "":
+            ir0.after = self.new_label()
+            gen4 = f"{ir0.after}:"
+        ir0.else_ = self.new_label()
+        gen1 = f"if {ir1.place} == 0 goto {ir0.else_}"
+        gen2 = f"goto {ir0.after}"
+        gen3 = f"{ir0.else_}:"
+        ir0.code = self.join(ir1.code,gen1,ir2.code,gen2,gen3,ir3.code,gen4)
+    
+    def if_no_else(self, ir0, ir1, ir2):
+        ir0.after = self.new_label()
+        ir0.else_ = ir0.after
+        gen1 = f"if {ir1.place} == 0 goto {ir0.after_}"
+        gen2 = f"goto {ir0.after}"
+        gen4 = f"{ir0.after}:"
+        ir0.code = self.join(ir1.code,gen1,ir2.code,gen2,gen4)
