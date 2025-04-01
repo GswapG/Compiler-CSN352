@@ -551,8 +551,11 @@ def p_unary_expression(p):
 
             IrGen.inc_dec(p[0].ir, p[2].ir, p[1])
 
-        elif p[1] != "sizeof":    
-            IrGen.unary(p[0].ir, p[2].ir,p[1].operator)
+        elif p[1] != "sizeof":
+            if(p[1].operator)=='!':
+                IrGen.unary_not(p[0].ir, p[2].ir,p[1].operator)    
+            else:
+                IrGen.unary(p[0].ir, p[2].ir,p[1].operator)
 
     elif len(p) == 5:
         p[0] = Node("unary_expression", [p[1], p[3]])

@@ -322,6 +322,7 @@ class IRGenerator:
         false = self.new_label()
         start = self.new_label()
         var = self.new_temp()
+        gen0 = "=======extra logic for logical handling========"
         gen1 = f"if {ir1.place} == 0 goto {false}"
         gen2 = f"{true}:"
         gen3 = f"{var} = 1"
@@ -329,17 +330,18 @@ class IRGenerator:
         gen5 = f"{false}:"
         gen6 = f"{var} = 0"
         gen7 = f"{start}:"
+        gen8 = "==============================================="
         ir1.place = var
         for c in ir1.truelist:
             self.backpatch(ir1,c,true)
         for c in ir1.falselist:
             self.backpatch(ir1,c,false)
-        ir1.code = self.join(ir1.code,gen1,gen2,gen3,gen4,gen5,gen6,gen7)
+        ir1.code = self.join(ir1.code,gen0,gen1,gen2,gen3,gen4,gen5,gen6,gen7,gen8)
     
     def logical_and(self,ir0,ir1,op,ir2):
         falsego = self.bp_label() #go outside if, forloop
         mid = self.new_label() #where && ka lhs should jump if true
-        gen = f"if234 {ir1.place} == 0 goto {falsego}" #lhs false go out
+        gen = f"if {ir1.place} == 0 goto {falsego}" #lhs false go out
         ir0.falselist += [falsego] #lhs false then go out , will be backpatced in IF
         for c in ir1.truelist: #lhs ka true jumpshere
             self.backpatch(ir1,c,mid)
@@ -356,7 +358,7 @@ class IRGenerator:
     def logical_or(self,ir0,ir1,op,ir2): # when true then we jump to the inside scope , using truelist
         truego = self.bp_label()
         mid = self.new_label()
-        gen = f"if345 {ir1.place} == 1 goto {truego}" #first statement true so go inside scope
+        gen = f"if {ir1.place} == 1 goto {truego}" #first statement true so go inside scope
         gen2 = f"{mid}:"
         for c in ir1.falselist: #lhs ka true jumpshere
             self.backpatch(ir1,c,mid)
@@ -369,3 +371,11 @@ class IRGenerator:
 
     def backpatch(self,ir1,find,target):
         ir1.code = ir1.code.replace(find, target)
+
+    def unary_not(self, ir0, ir1, op):
+        ir0.place = ir1.place
+        gen = f"{ir0.place} = {op} {ir1.place}"
+        ir0.truelist = ir1.falselist
+        ir0.falselist = ir1.truelist
+        ir0.code = self.join(ir1.code,gen)
+        # self.debug_print(ir0)
