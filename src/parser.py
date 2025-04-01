@@ -239,6 +239,9 @@ def p_postfix_expression(p):
                 if p[1].name == "function" or p[1].name == "struct" or p[1].name == "union" or p[1].name == "array" or p[1].name == "constant":
                     raise ValueError(f"Operator {p[2]} can only be applied to modifyable lvalues")
 
+                if symtab.lookup(p[1].vars[0]) is not None and "const" in symtab.lookup(p[1].vars[0]).type:
+                    raise ValueError("Cannot modify constant values")
+
                 p[0].name = "expression"
 
         p[0].return_type = p[1].return_type
@@ -252,13 +255,11 @@ def p_postfix_expression(p):
         field_identifier = p[3]
         struct_object = p[0].vars[0]
 
-        print(p[1].name)
-
         if (p[1].name != "struct" and p[1].name != "struct_member") and (p[1].name != "union" and p[1].name != "union_member"):
             raise Exception("Dot operators are only allowed on structs or struct members")
 
         if symtab.search_struct(struct_object, field_identifier) is None:
-            print(f"The identifier '{field_identifier}' does not exist in the struct {struct_object}")
+            raise Exception(f"The identifier '{field_identifier}' does not exist in the struct {struct_object}")
 
         p[0].vars = [f"{struct_object}.{field_identifier}"]
         p[0].return_type = symtab.search_struct(struct_object, field_identifier)
@@ -280,7 +281,7 @@ def p_postfix_expression(p):
             raise Exception("Arrow operators are only allowed on pointer")
 
         if symtab.search_struct(struct_object, field_identifier) is None:
-            print(f"The identifier '{field_identifier}' does not exist in the struct {struct_object}")
+            raise Exception(f"The identifier '{field_identifier}' does not exist in the struct {struct_object}")
 
         type = symtab.lookup(struct_object).type
         if "*" not in type or not ("struct" in type or "union" in type):
@@ -350,7 +351,6 @@ def p_postfix_expression(p):
 
         if p[2] == '(':
             p[0].iscall = 1
-            print(p[1].name)
             if p[1].name != "function":
                 raise Exception("() can be only applied to functions")
             
@@ -531,9 +531,18 @@ def p_unary_expression(p):
 
         if isinstance(p[1], str):
             if p[1] == "++" or p[1] == "--":
+                if p[2].lvalue is not True and p[2].rvalue is not False:
+                    raise ValueError(f"Operator {p[1]} can only be applied to modifyable lvalues")
+
                 if get_label(p[2].return_type) != "int":
                     raise ValueError(f"{p[1]} operation cannot be used on {p[2].return_type}")
-            
+
+                if symtab.lookup(p[2].vars[0]) is not None and "const" in symtab.lookup(p[2].vars[0]).type:
+                    raise ValueError("Cannot modify constant values")
+
+                if p[2].name == "function" or p[2].name == "struct" or p[2].name == "union" or p[2].name == "array" or p[2].name == "constant":
+                    raise ValueError(f"Operator {p[1]} can only be applied to modifyable lvalues")
+
             p[0].name = "expression"
 
         if p[1] == '++' or p[1] == '--':
@@ -632,6 +641,12 @@ def p_multiplicative_expression(p):
         p[0] = Node("multiplicative_expression", [p[1], p[2], p[3]])
         p[0].iscall = p[1].iscall + p[3].iscall
 
+        if "struct" == p[1].name or "union" == p[1].name or "function" == p[1].name:
+            raise TypeError(f"Invalid Operator {p[2]} for {p[1].name}")
+
+        if "struct" == p[3].name or "union" == p[3].name or "function" == p[3].name:
+            raise TypeError(f"Invalid Operator {p[2]} for {p[3].name}")
+
         # ISO C99: 6.5.5: 2: Each of the operands shall have arithmetic type. The operands of the % operator shall have integer type.
         if "*" in p[1].return_type or "*" in p[3].return_type:
             raise Exception(f"Invalid Operands of type {p[1].return_type} and {p[3].return_type} to the operator *")
@@ -679,6 +694,12 @@ def p_additive_expression(p):
         p[0] = Node("additive_expression", [p[1], p[2], p[3]])
         p[0].iscall = p[1].iscall + p[3].iscall
 
+        if "struct" == p[1].name or "union" == p[1].name or "function" == p[1].name:
+            raise TypeError(f"Invalid Operator {p[2]} for {p[1].name}")
+
+        if "struct" == p[3].name or "union" == p[3].name or "function" == p[3].name:
+            raise TypeError(f"Invalid Operator {p[2]} for {p[3].name}")
+
         if "*" in p[1].return_type or "*" in p[3].return_type:
             if p[2] == '+':
                 # ISO C99: 6.5.6: 2: For addition, either both operands shall have arithmetic type, or one operand shall be a pointer to an object type and the other shall have integer type. (Incrementing is equivalent to adding 1
@@ -723,6 +744,12 @@ def p_shift_expression(p):
     else:
         p[0] = Node("shift_expression", [p[1], p[2], p[3]])
 
+        if "struct" == p[1].name or "union" == p[1].name or "function" == p[1].name or "string_literal" == p[1].name:
+            raise TypeError(f"Invalid Operator {p[2]} for {p[1].name}")
+
+        if "struct" == p[3].name or "union" == p[3].name or "function" == p[3].name or "string_literal" == p[3].name:
+            raise TypeError(f"Invalid Operator {p[2]} for {p[3].name}")
+
         dtype1 = None
         if len(p[1].vars) > 0:
             d, r, var0 = count_deref_ref(p[1].vars[0])
@@ -757,6 +784,13 @@ def p_relational_expression(p):
         p[0] = Node("relational_expression", [p[1]])
     else:
         p[0] = Node("relational_expression", [p[1], p[2], p[3]])
+
+        if "struct" == p[1].name or "union" == p[1].name or "function" == p[1].name or "string_literal" == p[1].name:
+            raise TypeError(f"Invalid Operator {p[2]} for {p[1].name}")
+
+        if "struct" == p[3].name or "union" == p[3].name or "function" == p[3].name or "string_literal" == p[3].name:
+            raise TypeError(f"Invalid Operator {p[2]} for {p[3].name}")
+
         # Validate that the symbols in the left and right operands have compatible types.
         validate_relational_operands(p[1].vars, p[3].vars, symtab, True)
 
@@ -799,6 +833,12 @@ def p_and_expression(p):
     else:
         p[0] = Node("and_expression", [p[1], p[2], p[3]])
 
+        if "struct" == p[1].name or "union" == p[1].name or "function" == p[1].name or "string_literal" == p[1].name:
+            raise TypeError(f"Invalid Operator {p[2]} for {p[1].name}")
+
+        if "struct" == p[3].name or "union" == p[3].name or "function" == p[3].name or "string_literal" == p[3].name:
+            raise TypeError(f"Invalid Operator {p[2]} for {p[3].name}")
+
         dtype1 = None
         if len(p[1].vars) > 0:
             d, r, var0 = count_deref_ref(p[1].vars[0])
@@ -826,6 +866,12 @@ def p_exclusive_or_expression(p):
     else:
         p[0] = Node("exclusive_or_expression", [p[1], p[2], p[3]])
 
+        if "struct" == p[1].name or "union" == p[1].name or "function" == p[1].name or "string_literal" == p[1].name:
+            raise TypeError(f"Invalid Operator {p[2]} for {p[1].name}")
+
+        if "struct" == p[3].name or "union" == p[3].name or "function" == p[3].name or "string_literal" == p[3].name:
+            raise TypeError(f"Invalid Operator {p[2]} for {p[3].name}")
+
         dtype1 = None
         if len(p[1].vars) > 0:
             d, r, var0 = count_deref_ref(p[1].vars[0])
@@ -851,6 +897,12 @@ def p_inclusive_or_expression(p):
         p[0] = Node("inclusive_or_expression", [p[1]])
     else:
         p[0] = Node("inclusive_or_expression", [p[1], p[2], p[3]])
+
+        if "struct" == p[1].name or "union" == p[1].name or "function" == p[1].name or "string_literal" == p[1].name:
+            raise TypeError(f"Invalid Operator {p[2]} for {p[1].name}")
+
+        if "struct" == p[3].name or "union" == p[3].name or "function" == p[3].name or "string_literal" == p[3].name:
+            raise TypeError(f"Invalid Operator {p[2]} for {p[3].name}")
 
         dtype1 = None
         if len(p[1].vars) > 0:
@@ -878,6 +930,12 @@ def p_logical_and_expression(p):
     else:
         p[0] = Node("logical_and_expression", [p[1], p[2], p[3]])
 
+        if "struct" == p[1].name or "union" == p[1].name or "function" == p[1].name or "string_literal" == p[1].name:
+            raise TypeError(f"Invalid Operator {p[2]} for {p[1].name}")
+
+        if "struct" == p[3].name or "union" == p[3].name or "function" == p[3].name or "string_literal" == p[3].name:
+            raise TypeError(f"Invalid Operator {p[2]} for {p[3].name}")
+
         dtype1 = None
         if len(p[1].vars) > 0:
             d, r, var0 = count_deref_ref(p[1].vars[0])
@@ -902,6 +960,12 @@ def p_logical_or_expression(p):
         p[0] = Node("logical_or_expression", [p[1]])
     else:
         p[0] = Node("logical_or_expression", [p[1], p[2], p[3]])
+
+        if "struct" == p[1].name or "union" == p[1].name or "function" == p[1].name or "string_literal" == p[1].name:
+            raise TypeError(f"Invalid Operator {p[2]} for {p[1].name}")
+
+        if "struct" == p[3].name or "union" == p[3].name or "function" == p[3].name or "string_literal" == p[3].name:
+            raise TypeError(f"Invalid Operator {p[2]} for {p[3].name}")
 
         dtype1 = None
         if len(p[1].vars) > 0:
@@ -1001,7 +1065,6 @@ def p_assignment_expression(p):
                     ## check all implicit type compatibility for rhs var
 
                     for rhs_var in p[3].vars:
-                        print(rhs_var)
                         deref_count, ref_count, rhs_var = count_deref_ref(rhs_var)
                         type_ = get_type_from_var(rhs_var, deref_count, ref_count, symtab)
 
@@ -1067,7 +1130,6 @@ def p_expression(p):
                  | expression COMMA assignment_expression'''
     if len(p) == 2:
         p[0] = Node("expression", [p[1]])
-        print(f"primary expression => {p[0].return_type}")
     else:
         p[0] = Node("expression", [p[1], p[3]])
 
@@ -1260,7 +1322,6 @@ def p_init_declarator(p):
                     ## check all implicit type compatibility for rhs var
 
                     for rhs_var in p[0].rhs:
-                        print(rhs_var)
                         deref_count, ref_count, rhs_var = count_deref_ref(rhs_var)
                         type_ = get_type_from_var(rhs_var, deref_count, ref_count, symtab)
 
