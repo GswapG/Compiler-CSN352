@@ -18,8 +18,7 @@ int main() {
 
         case 5:
             result = 50;  // Case 5
-        default:
-            result = 50;
+
         default:
             result = 60;  // Default case
     }

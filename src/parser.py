@@ -2050,21 +2050,10 @@ def p_labeled_statement(p):
     elif len(p) == 5:
         p[0] = Node("labeled_statement", [p[1], p[2], p[4]])
 
-        if p[4].break_count is not False:
-            raise Exception("Break statement missing in case statements")
-    
-        if p[4].continue_count is not False:
-            raise Exception("Continue statement missing in case statements")
-
     elif len(p) == 4:
-        p[1].default_count = 1
         p[0] = Node("labeled_statement", [p[1], p[3]])
 
-        if p[3].break_count is not False:
-            raise Exception("Break statement missing in case statements")
-    
-        if p[3].continue_count is not False:
-            raise Exception("Continue statement missing in case statements")
+        p[0].default_count += 1
         
 def p_compound_statement(p):
     '''compound_statement : LBRACE RBRACE
