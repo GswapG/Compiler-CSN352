@@ -28,7 +28,8 @@ class Node:
         self.listup = []
         self.ir = IR()
         self.expression = ""
-        self.iteration_keyword = False
+        self.break_count = False
+        self.continue_count = False
         self.default_count = 0
 
         if children is None:    
@@ -53,7 +54,8 @@ class Node:
         for c in self.children:
             self.is_address |= c.is_address
             self.isbraces |= c.isbraces
-            self.iteration_keyword |= c.iteration_keyword
+            self.break_count |= c.break_count
+            self.continue_count |= c.continue_count
             self.default_count += c.default_count
 
             if isinstance(c, Node):

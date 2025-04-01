@@ -13,7 +13,7 @@ int main() {
             break;
         }
     }
-    break;
+    continue;
 
     do {
         int a = 1;

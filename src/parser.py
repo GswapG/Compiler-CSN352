@@ -38,8 +38,11 @@ def p_start_symbol(p):
     if p[0].default_count != 0:
         raise Exception("Unexpected use of default keywords")
 
-    if p[0].iteration_keyword != 0:
+    if p[0].break_count != 0:
         raise Exception("Unexpected use of break keyword")
+    
+    if p[0].continue_count != 0:
+        raise Exception("Unexpected use of continue keyword")
 
     IrGen.print_final_code(p[1].ir)
     
@@ -2038,15 +2041,21 @@ def p_labeled_statement(p):
     elif len(p) == 5:
         p[0] = Node("labeled_statement", [p[1], p[2], p[4]])
 
-        if p[4].iteration_keyword is not False:
+        if p[4].break_count is not False:
             raise Exception("Break statement missing in case statements")
+    
+        if p[4].continue_count is not False:
+            raise Exception("Continue statement missing in case statements")
 
     elif len(p) == 4:
         p[1].default_count = 1
         p[0] = Node("labeled_statement", [p[1], p[3]])
 
-        if p[3].iteration_keyword is not False:
+        if p[3].break_count is not False:
             raise Exception("Break statement missing in case statements")
+    
+        if p[3].continue_count is not False:
+            raise Exception("Continue statement missing in case statements")
         
 def p_compound_statement(p):
     '''compound_statement : LBRACE RBRACE
@@ -2142,7 +2151,8 @@ def p_selection_statement(p):
 
     elif p[1] == 'switch':
         p[0] = Node("selection_statement", [p[1], p[3], p[5]])
-        p[0].iteration_keyword = False
+        p[0].break_count = False
+        p[0].continue_count = False
 
         if p[0].default_count != 1:
             raise Exception("Switch statements expect 1 default case")
@@ -2185,7 +2195,8 @@ def p_iteration_statement(p):
             p[0] = Node("iteration_statement", [p[1], p[4], p[5],p[6],p[8]])
             IrGen.for_loop(p[0].ir, p[4].ir, p[5].ir,p[6].ir, p[8].ir)
     
-    p[0].iteration_keyword = False
+    p[0].break_count = False
+    p[0].continue_count = False
 
 def p_jump_statement(p):
     '''jump_statement : GOTO IDENTIFIER SEMICOLON
@@ -2198,8 +2209,10 @@ def p_jump_statement(p):
         p[0] = Node("jump_statement", [p[1]])
         if p[1] =='return':
             returns.add('void')
-        if p[1] == 'break' or p[1] == 'continue':
-            p[0].iteration_keyword = True
+        if p[1] == 'break':
+            p[0].break_count = True
+        if p[1] == 'continue':
+            p[0].continue_count = True
     elif len(p) == 4:
         p[0] = Node("jump_statement", [p[1], p[2]])
         if p[1] == 'return':
