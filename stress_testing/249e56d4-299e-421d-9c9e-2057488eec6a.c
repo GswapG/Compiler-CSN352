@@ -1,5 +1,4 @@
 int main() {
-
     for (int i = 1; i < 100; i++) {
         if (1) {
             break;
@@ -13,20 +12,4 @@ int main() {
             break;
         }
     }
-    break;
-
-    do {
-        int a = 1;
-        
-        {
-            break;
-        }
-    } until (1 == 1);
-
-    do {
-        int a = 1;
-        float f = 10.5;
-
-        break;
-    } while (2 == 3);
 }

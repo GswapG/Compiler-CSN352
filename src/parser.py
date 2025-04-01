@@ -35,6 +35,12 @@ def table_entry(node):
 def p_start_symbol(p):
     '''start_symbol : translation_unit'''
     p[0] = Node("start_symbol",[p[1]])
+    if p[0].default_count != 0:
+        raise Exception("Unexpected use of default keywords")
+
+    if p[0].iteration_keyword != 0:
+        raise Exception("Unexpected use of break keyword")
+
     IrGen.print_final_code(p[1].ir)
     
 # Translation Unit
@@ -2028,12 +2034,20 @@ def p_labeled_statement(p):
 
         symtab.add_goto_symbol(p[1], "identifier")
         IrGen.label_add(p[0].ir,p[1])
-    elif len(p) == 5 and p[1] == 'case':
+
+    elif len(p) == 5:
         p[0] = Node("labeled_statement", [p[1], p[2], p[4]])
+
+        if p[4].iteration_keyword is not False:
+            raise Exception("Break statement missing in case statements")
+
     elif len(p) == 4:
+        p[1].default_count = 1
         p[0] = Node("labeled_statement", [p[1], p[3]])
 
-
+        if p[3].iteration_keyword is not False:
+            raise Exception("Break statement missing in case statements")
+        
 def p_compound_statement(p):
     '''compound_statement : LBRACE RBRACE
                           | LBRACE enter_scope block_item_list exit_scope RBRACE'''
@@ -2125,8 +2139,15 @@ def p_selection_statement(p):
             # no else
             p[0] = Node("selection_statement", [p[1], p[3], p[5]])
             IrGen.if_no_else(p[0].ir, p[3].ir, p[5].ir)
+
     elif p[1] == 'switch':
         p[0] = Node("selection_statement", [p[1], p[3], p[5]])
+        p[0].iteration_keyword = False
+
+        if p[0].default_count != 1:
+            raise Exception("Switch statements expect 1 default case")
+    
+        p[0].default_count = 0
 
 def p_selection_statement_error(p):
     '''selection_statement : IF LPAREN expression error statement ELSE statement
@@ -2144,8 +2165,7 @@ def p_iteration_statement(p):
                           | FOR LPAREN enter_scope expression_statement expression_statement expression RPAREN statement exit_scope
                           | FOR LPAREN enter_scope declaration expression_statement RPAREN statement exit_scope
                           | FOR LPAREN enter_scope declaration expression_statement expression RPAREN statement exit_scope'''
-    # p[0] = Node("iteration_statement", [p[2], p[4]])
-    # While loop vale
+    
     if p[1] == "while":
         p[0] = Node("iteration_statement", [p[1], p[3],p[5]])
         IrGen.while_loop(p[0].ir, p[3].ir, p[5].ir)
@@ -2164,6 +2184,8 @@ def p_iteration_statement(p):
         else:
             p[0] = Node("iteration_statement", [p[1], p[4], p[5],p[6],p[8]])
             IrGen.for_loop(p[0].ir, p[4].ir, p[5].ir,p[6].ir, p[8].ir)
+    
+    p[0].iteration_keyword = False
 
 def p_jump_statement(p):
     '''jump_statement : GOTO IDENTIFIER SEMICOLON
@@ -2176,6 +2198,8 @@ def p_jump_statement(p):
         p[0] = Node("jump_statement", [p[1]])
         if p[1] =='return':
             returns.add('void')
+        if p[1] == 'break' or p[1] == 'continue':
+            p[0].iteration_keyword = True
     elif len(p) == 4:
         p[0] = Node("jump_statement", [p[1], p[2]])
         if p[1] == 'return':
