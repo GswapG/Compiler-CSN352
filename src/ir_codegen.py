@@ -129,6 +129,18 @@ class IRGenerator:
         ir0.code = self.join(ir1.code, ir2.code, gen)
         self.debug_print(ir0)
 
+    def bitwise_expression(self, ir0, ir1, op, ir2):
+        ir0.place = self.new_temp()
+        gen = f"{ir0.place} = {ir1.place} {op} {ir2.place}"
+        ir0.code = self.join(ir1.code, ir2.code, gen)
+        self.debug_print(ir0)
+    
+    def relational_expression(self, ir0, ir1, op, ir2):
+        ir0.place = self.new_temp()
+        gen = f"{ir0.place} = {ir1.place} {op} {ir2.place}"
+        ir0.code = self.join(ir1.code, ir2.code, gen)
+        self.debug_print(ir0)
+        
     def inc_dec(self, ir0, ir1, op, post=False):
         gen1 = ""
         if post:

@@ -772,7 +772,7 @@ def p_shift_expression(p):
         p[0].lvalue = False
         p[0].rvalue = True
 
-        IrGen.arithmetic_expression(p[0].ir, p[1].ir, p[2] ,p[3].ir)
+        IrGen.bitwise_expression(p[0].ir, p[1].ir, p[2] ,p[3].ir)
 
 def p_relational_expression(p):
     '''relational_expression : shift_expression
@@ -800,6 +800,9 @@ def p_relational_expression(p):
         p[0].name = "expression"
         p[0].return_type = "int"
 
+        # IR
+        IrGen.relational_expression(p[0].ir, p[1].ir, p[2], p[3].ir)
+
 def p_equality_expression(p):
     '''equality_expression : relational_expression
                           | equality_expression EQ_OP relational_expression
@@ -824,6 +827,9 @@ def p_equality_expression(p):
 
         p[0].name = "expression"
         p[0].return_type = "int"
+
+        # IR
+        IrGen.relational_expression(p[0].ir, p[1].ir, p[2], p[3].ir)
 
 def p_and_expression(p):
     '''and_expression : equality_expression
@@ -855,7 +861,7 @@ def p_and_expression(p):
         p[0].name = "expression"
         p[0].return_type = "int"
 
-        IrGen.arithmetic_expression(p[0].ir, p[1].ir, p[2] ,p[3].ir)
+        IrGen.bitwise_expression(p[0].ir, p[1].ir, p[2] ,p[3].ir)
         
 
 def p_exclusive_or_expression(p):
@@ -888,7 +894,7 @@ def p_exclusive_or_expression(p):
         p[0].name = "expression"
         p[0].return_type = "int"
 
-        IrGen.arithmetic_expression(p[0].ir, p[1].ir, p[2] ,p[3].ir)
+        IrGen.bitwise_expression(p[0].ir, p[1].ir, p[2] ,p[3].ir)
 
 def p_inclusive_or_expression(p):
     '''inclusive_or_expression : exclusive_or_expression
@@ -920,7 +926,7 @@ def p_inclusive_or_expression(p):
         p[0].name = "expression"
         p[0].return_type = "int"
 
-        IrGen.arithmetic_expression(p[0].ir, p[1].ir, p[2] ,p[3].ir)
+        IrGen.bitwise_expression(p[0].ir, p[1].ir, p[2] ,p[3].ir)
 
 def p_logical_and_expression(p):
     '''logical_and_expression : inclusive_or_expression
