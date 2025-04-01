@@ -119,6 +119,9 @@ class IRGenerator:
     def identifier(self, ir0, id):
         ir0.place = str(id)
 
+    def declarator_pointer(self, ir0, id):
+        ir0.place = str(id)
+
     def constant(self, ir0, const):
         ir0.place = str(const)
 
@@ -383,3 +386,13 @@ class IRGenerator:
         ir0.falselist = ir1.truelist
         ir0.code = self.join(ir1.code,gen)
         # self.debug_print(ir0)
+
+    def unary_ptr(self, ir0, ir1, op):
+        gen1=""
+        if ir1.place[0] == '*':
+            temp1 = self.new_temp()
+            gen1 = f"{temp1} = {ir1.place}"
+            ir0.place=f"*{temp1}"
+        else:
+            ir0.place=f"*{ir1.place}"
+        ir0.code = self.join(ir1.code,gen1)

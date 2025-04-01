@@ -566,6 +566,8 @@ def p_unary_expression(p):
         elif p[1] != "sizeof":
             if(p[1].operator)=='!':
                 IrGen.unary_not(p[0].ir, p[2].ir,p[1].operator)    
+            elif(p[1].operator)=='*':
+                IrGen.unary_ptr(p[0].ir, p[2].ir,p[1].operator)
             else:
                 IrGen.unary(p[0].ir, p[2].ir,p[1].operator)
 
@@ -1654,6 +1656,8 @@ def p_declarator(p):
 
         p[0].vars[0] = '#'*p[0].is_const + p[0].vars[0] + '?'*c
         p[0].is_const = 0
+        if(len(p[2].children)==1):
+            IrGen.declarator_pointer(p[0].ir,p[0].vars[0])
     else:
         p[0] = Node("declarator", [p[1]])
 
