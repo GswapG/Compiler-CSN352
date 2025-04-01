@@ -295,7 +295,7 @@ class IRGenerator:
     def if_no_else(self, ir0, ir1, ir2):
         ir0.after = self.new_label()
         ir0.else_ = ir0.after
-        gen1 = f"if {ir1.place} == 0 goto {ir0.after_}"
+        gen1 = f"if {ir1.place} == 0 goto {ir0.after}"
         gen2 = f"goto {ir0.after}"
         gen4 = f"{ir0.after}:"
         ir0.code = self.join(ir1.code,gen1,ir2.code,gen2,gen4)
