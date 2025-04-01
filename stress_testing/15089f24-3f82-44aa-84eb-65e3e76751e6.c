@@ -17,6 +17,12 @@ int main() {
     }
     else if(z > 2){
         func(2,3);
+        if(z>2){
+            hello();
+        }
+        else{
+            func(x,y);
+        }
     }
     else{
         hello();

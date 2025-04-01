@@ -6,6 +6,7 @@ class IRGenerator:
     def __init__(self, irgen):
         self.temp_counter = 0
         self.label_counter = 0
+        self.bp_counter = 0
         self.function_labels = {}
         self.output_directory = DEFAULT_OUTPUT_DIRECTORY
         self.outfile = ""
@@ -37,6 +38,20 @@ class IRGenerator:
         
         label = f'$L{self.label_counter}'
         self.label_counter += 1
+        return label
+    
+    def bp_label(self, func_name=None):
+        """
+        Generate a new unique label. 
+        If a function name is provided, use it as the label. (No overloading is supported)
+        """
+        if func_name:
+            if func_name not in self.function_labels:
+                self.function_labels[func_name] = f".{func_name}"
+            return self.function_labels[func_name]
+        
+        label = f'$BP{self.bp_counter}'
+        self.bp_counter += 1
         return label
     
     def set_out_directory(self, dir):
@@ -283,6 +298,7 @@ class IRGenerator:
     def if_with_else(self, ir0, ir1, ir2,ir3):
         ir0.after = ir3.after
         gen4 = ""
+        self.resolve_exp(ir1)
         if ir0.after == "":
             ir0.after = self.new_label()
             gen4 = f"{ir0.after}:"
@@ -295,7 +311,61 @@ class IRGenerator:
     def if_no_else(self, ir0, ir1, ir2):
         ir0.after = self.new_label()
         ir0.else_ = ir0.after
+        self.resolve_exp(ir1)
         gen1 = f"if {ir1.place} == 0 goto {ir0.after}"
         gen2 = f"goto {ir0.after}"
         gen4 = f"{ir0.after}:"
         ir0.code = self.join(ir1.code,gen1,ir2.code,gen2,gen4)
+
+    def resolve_exp(self,ir1): #falselist truelist assign them to its place , new label
+        true = self.new_label()
+        false = self.new_label()
+        start = self.new_label()
+        var = self.new_temp()
+        gen1 = f"if {ir1.place} == 0 goto {false}"
+        gen2 = f"{true}:"
+        gen3 = f"{var} = 1"
+        gen4 = f"goto {start}"
+        gen5 = f"{false}:"
+        gen6 = f"{var} = 0"
+        gen7 = f"{start}:"
+        ir1.place = var
+        for c in ir1.truelist:
+            self.backpatch(ir1,c,true)
+        for c in ir1.falselist:
+            self.backpatch(ir1,c,false)
+        ir1.code = self.join(ir1.code,gen1,gen2,gen3,gen4,gen5,gen6,gen7)
+    
+    def logical_and(self,ir0,ir1,op,ir2):
+        falsego = self.bp_label() #go outside if, forloop
+        mid = self.new_label() #where && ka lhs should jump if true
+        gen = f"if234 {ir1.place} == 0 goto {falsego}" #lhs false go out
+        ir0.falselist += [falsego] #lhs false then go out , will be backpatced in IF
+        for c in ir1.truelist: #lhs ka true jumpshere
+            self.backpatch(ir1,c,mid)
+        ir0.falselist += ir1.falselist #lhs ka false also jumps out
+        #rhs ka true is added to truelist , coz rhs true then jumps to somewhere directly
+        ir0.truelist +=ir2.truelist
+        #rhs ka false goes out directly
+        ir0.falselist += ir2.falselist
+        gen2 = f"{mid}:"
+        ir0.place = ir2.place #ir1 is true so pass ir2 for further eval
+        ir0.code = self.join(ir1.code,gen,gen2,ir2.code)
+        self.debug_print(ir0)
+
+    def logical_or(self,ir0,ir1,op,ir2): # when true then we jump to the inside scope , using truelist
+        truego = self.bp_label()
+        mid = self.new_label()
+        gen = f"if345 {ir1.place} == 1 goto {truego}" #first statement true so go inside scope
+        gen2 = f"{mid}:"
+        for c in ir1.falselist: #lhs ka true jumpshere
+            self.backpatch(ir1,c,mid)
+        ir0.truelist += [truego] #false hua toh go to net statement
+        ir0.truelist += ir1.truelist + ir2.truelist
+        ir0.falselist += ir2.falselist
+        ir0.place = ir2.place #ir1 is false so pass ir2 and if that false then jump
+        ir0.code = self.join(ir1.code,gen,gen2,ir2.code)
+        return 
+
+    def backpatch(self,ir1,find,target):
+        ir1.code = ir1.code.replace(find, target)

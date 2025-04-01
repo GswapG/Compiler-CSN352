@@ -957,6 +957,7 @@ def p_logical_and_expression(p):
 
         p[0].name = "expression"
         p[0].return_type = "int"
+        IrGen.logical_and(p[0].ir,p[1].ir,p[2],p[3].ir)
 
 
 def p_logical_or_expression(p):
@@ -988,6 +989,7 @@ def p_logical_or_expression(p):
 
         p[0].name = "expression"
         p[0].return_type = "int"
+        IrGen.logical_or(p[0].ir,p[1].ir,p[2],p[3].ir)
 
 
 def p_conditional_expression(p):
