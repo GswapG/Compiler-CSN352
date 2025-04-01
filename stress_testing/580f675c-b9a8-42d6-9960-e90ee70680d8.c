@@ -21,8 +21,7 @@ int main() {
     for(;;z++){
         z = func(3,100);
     }
-    int x;
-    for(z = 1+func(100,200);x < 100;){
+    for(int x = 1;x < 100;){
         hello();
     }
     for(int x = 1;;z++){

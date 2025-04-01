@@ -251,3 +251,19 @@ class IRGenerator:
         gen4 = f"{ir0.after}:"
         ir0.code = self.join(gen1,ir2.code,gen3,ir1.code,gen2,gen4)
         self.debug_print(ir0)
+
+    def for_loop(self, ir0, ir1, ir2, ir3, ir4):
+        ir0.begin = self.new_label()
+        ir0.after = self.new_label()
+        gen1 = f"{ir0.begin}:"
+        gen2 = f"if {ir2.place} == 0 goto {ir0.after}"
+        ## NOTE TO SELF
+        # Uncomment the code below when relational and logical done
+        # if ir2.code == "":    
+        #     gen2 = ""
+        gen3 = f"goto {ir0.begin}"
+        gen4 = f"{ir0.after}:"
+        if ir3 is not None:
+            ir0.code = self.join(ir1.code,gen1,gen2,ir4.code,ir3.code,gen3,gen4)
+        else:
+            ir0.code = self.join(ir1.code,gen1,gen2,ir4.code,gen3,gen4)

@@ -2141,8 +2141,10 @@ def p_iteration_statement(p):
     elif p[1] == 'for':
         if len(p) == 9:
             p[0] = Node("iteration_statement", [p[1], p[4], p[5],p[7]])
+            IrGen.for_loop(p[0].ir, p[4].ir, p[5].ir,None, p[7].ir)
         else:
             p[0] = Node("iteration_statement", [p[1], p[4], p[5],p[6],p[8]])
+            IrGen.for_loop(p[0].ir, p[4].ir, p[5].ir,p[6].ir, p[8].ir)
 
 def p_jump_statement(p):
     '''jump_statement : GOTO IDENTIFIER SEMICOLON
