@@ -65,6 +65,7 @@ def p_primary_expression(p):
         p[0] = Node("primary_expression", [p[2]])
         p[0].return_type = p[2].return_type
 
+        p[0].name = p[2].name
         p[0].lvalue = p[2].lvalue
         p[0].rvalue = p[2].rvalue
 
@@ -74,6 +75,7 @@ def p_primary_expression_identifier(p):
     p[0] = Node("primary_expression_identifier", [p[1]])
     p[0].vars.append(str(p[1]))
 
+    p[0].name = "identifier"
     p[0].lvalue = True
     p[0].rvalue = False
     
@@ -86,6 +88,36 @@ def p_primary_expression_identifier(p):
 
     check = symtab.lookup(cpy)
     if check is not None:
+        if "function" == check.kind:
+            p[0].name = "function"
+        elif "D-array" in check.kind:
+            p[0].name = "array"
+        elif "*" in check.type:
+            p[0].name = "pointer"
+        elif "struct" in check.type:
+            p[0].name = "struct"
+        elif symtab.lookup(check.type) is not None and "struct" in symtab.lookup(check.type).kind:
+            p[0].name = "struct"
+        elif "union" in check.type:
+            p[0].name = "union"
+        elif symtab.lookup(check.type) is not None and "union" in symtab.lookup(check.type).kind:
+            p[0].name = "union"
+        elif "parameter" == check.kind:
+            if "[" in check.type:
+                p[0].name = "array"
+            elif "*" in check.type:
+                p[0].name = "pointer"
+            elif symtab.lookup(check.type) is not None and "struct" in symtab.lookup(check.type).kind:
+                p[0].name = "struct"
+            elif "union" in check.type:
+                p[0].name = "union"
+            elif symtab.lookup(check.type) is not None and "union" in symtab.lookup(check.type).kind:
+                p[0].name = "union"
+            else:
+                p[0].name = "variable"
+        else:
+            p[0].name = check.kind
+
         p[0].dtypes = check.type
         p[0].return_type = check.type
 
@@ -103,6 +135,7 @@ def p_constant(p):
                 | enumeration_constant'''
     
     p[0] = Node("constant", [p[1]])
+
     p[0].lvalue = False
     p[0].rvalue = True
 
@@ -120,6 +153,7 @@ def p_constant(p):
         var_sym = SymbolEntry(str(p[1]), constant_type, "constant")
         symtab.add_symbol(var_sym)
 
+        p[0].name = "constant"
         p[0].return_type = constant_type
 
     p[0].vars.append(str(p[1]))
@@ -133,6 +167,7 @@ def p_enumeration_constant(p):
     var_sym = SymbolEntry(str(p[1]), "int", "enumerator")
     symtab.add_symbol(var_sym)
 
+    p[0].name = "enumeration_constant"
     p[0].return_type = "int"
 
 def p_string(p):
@@ -144,6 +179,8 @@ def p_string(p):
     p[0].vars.append(p[1])
     p[0].lvalue = False
     p[0].rvalue = True
+
+    p[0].name = "string_literal"
     p[0].return_type = "*const char"
 
 def p_generic_selection(p):
@@ -199,11 +236,15 @@ def p_postfix_expression(p):
                 if p[1].lvalue is not True and p[1].rvalue is not False:
                     raise ValueError(f"Operator {p[2]} can only be applied to modifyable lvalues")
 
+                if p[1].name == "function" or p[1].name == "struct" or p[1].name == "union" or p[1].name == "array" or p[1].name == "constant":
+                    raise ValueError(f"Operator {p[2]} can only be applied to modifyable lvalues")
+
+                p[0].name = "expression"
+
         p[0].return_type = p[1].return_type
         p[0].lvalue = False
         p[0].rvalue = True
 
-        # IR
         IrGen.inc_dec(p[0].ir,p[1].ir,p[2],True)
 
     elif len(p) == 4 and p[2] == ".":
@@ -211,11 +252,21 @@ def p_postfix_expression(p):
         field_identifier = p[3]
         struct_object = p[0].vars[0]
 
+        print(p[1].name)
+
+        if (p[1].name != "struct" and p[1].name != "struct_member") and (p[1].name != "union" and p[1].name != "union_member"):
+            raise Exception("Dot operators are only allowed on structs or struct members")
+
         if symtab.search_struct(struct_object, field_identifier) is None:
             print(f"The identifier '{field_identifier}' does not exist in the struct {struct_object}")
 
         p[0].vars = [f"{struct_object}.{field_identifier}"]
         p[0].return_type = symtab.search_struct(struct_object, field_identifier)
+
+        if "struct" in p[1].name:
+            p[0].name = "struct_member"
+        elif "union" in p[1].name:
+            p[0].name = "union_member"
 
         p[0].lvalue = True
         p[0].rvalue = False
@@ -224,6 +275,9 @@ def p_postfix_expression(p):
         p[0] = Node("postfix_expression", [p[1], p[3]])
         field_identifier = p[3]
         struct_object = p[0].vars[0]
+
+        if p[1].name != "pointer":
+            raise Exception("Arrow operators are only allowed on pointer")
 
         if symtab.search_struct(struct_object, field_identifier) is None:
             print(f"The identifier '{field_identifier}' does not exist in the struct {struct_object}")
@@ -235,24 +289,41 @@ def p_postfix_expression(p):
         p[0].vars = [f"{struct_object}.{field_identifier}"]
         p[0].return_type = symtab.search_struct(struct_object, field_identifier)
 
+        if "struct" in type:
+            p[0].name = "struct_member"
+        elif "union" in type:
+            p[0].name = "union_member"
+
         p[0].lvalue = True
         p[0].rvalue = False
-
-    elif len(p) == 4 and p[3] != ")":
-        p[0] = Node("postfix_expression", [p[1], p[2], p[3]])
 
     elif len(p) == 4:
         p[0] = Node("postfix_expression", [p[1]])
         p[0].iscall = 1
 
+        if p[1].name != "function":
+            raise Exception("() can be only applied to functions")
+        
+        p[0].name = "function_call"
+        p[0].lvalue = False
+        p[0].rvalue = True
+        p[0].return_type = p[1].return_type
+
     elif len(p) == 5:
         p[0] = Node("postfix_expression", [p[1], p[3]])
 
         if p[2] == '[':
+            if p[1].name != "pointer" and p[1].name != "array":
+                raise Exception("[] operator incorrectly applied")
+            else:
+                p[0].name = p[1].name
+
             first_var = p[1].vars[0]
             if first_var[-1] == ']':
                 braces_count = first_var.count("]")
                 first_var = first_var[:-2 * braces_count]
+                if braces_count > 1 and p[1].name == "pointer":
+                    raise Exception("Incorrect bracket access for pointer types")
             
             if symtab.lookup(first_var) is not None:
                 kind = symtab.lookup(first_var).kind
@@ -274,8 +345,16 @@ def p_postfix_expression(p):
             p[0].listup=p[1].listup[1:]
             IrGen.call_array_position(p[0].ir,p[1].ir,p[3].ir,p[0].listup)
 
+            p[0].lvalue = True
+            p[0].rvalue = False
+
         if p[2] == '(':
             p[0].iscall = 1
+            print(p[1].name)
+            if p[1].name != "function":
+                raise Exception("() can be only applied to functions")
+            
+            p[0].name = "function_call"
 
         p[0].return_type = p[1].return_type
 
@@ -284,6 +363,7 @@ def p_postfix_expression(p):
         p[0].isbraces = True
 
         # compound literals 
+        p[0].name = "compound_literal"
         p[0].return_type = p[2].return_type
 
     if len(p) == 5 and p[2] == "(" and len(p[0].vars) > 0:
@@ -297,6 +377,10 @@ def p_postfix_expression(p):
         p[0].return_type = p[1].return_type
         p[0].lvalue = False
         p[0].rvalue = True
+        if p[1].name != "function":
+            raise Exception("() can be only applied to functions")
+        
+        p[0].name = "function_call"
 
         ret = symtab.lookup(p[1].vars[0]).type
         IrGen.function_call(p[0].ir, p[1].ir, p[3].ir,ret)
@@ -310,6 +394,10 @@ def p_postfix_expression(p):
         p[0].return_type = p[1].return_type
         p[0].lvalue = False
         p[0].rvalue = True
+        if p[1].name != "function":
+            raise Exception("() can be only applied to functions")
+        
+        p[0].name = "function_call"
 
         IrGen.function_call(p[0].ir, p[1].ir,None,ret)
 
@@ -352,7 +440,7 @@ def p_unary_expression(p):
     if len(p) == 2:
         p[0] = Node("unary_expression", [p[1]])
 
-        if len(p[1].vars):
+        if p[1].name == "array":
             var = p[1].vars[0]
             if var[-1] != ']':
                 if symtab.lookup(var) is not None and "1D-array" in symtab.lookup(var).kind:
@@ -362,16 +450,20 @@ def p_unary_expression(p):
                 new_var = var[:-2 * braces_count]
 
                 if symtab.lookup(new_var) is not None:
-                    kind = symtab.lookup(new_var).kind
+                    entry = symtab.lookup(new_var)
+                    kind = entry.kind
                     if "D-array" in kind:
                         if str(braces_count) != str(kind[0]):
                             raise Exception("Invalid array access")
+                    
+                    p[0].return_type = entry.type
+        elif p[1].name == "pointer":
+            var = p[1].vars[0]
+            if var[-1] == ']':
+                p[0].return_type = p[0].return_type[1:]
                         
         if(len(p[0].vars)>0 and '[' in p[0].vars[0] and symtab.lookup(p[0].vars[0].split('[')[0]) is not None and "array" in symtab.lookup(p[0].vars[0].split('[')[0]).kind):
             IrGen.unary_array(p[0].ir,p[1].ir,p[0].vars[0].split('[')[0])
-
-        p[0].lvalue = True
-        p[0].rvalue = False
 
     elif len(p) == 3:
         p[0] = Node("unary_expression", [p[1], p[2]])
@@ -380,6 +472,9 @@ def p_unary_expression(p):
         if isinstance(p[1], Node) and p[1].operator == '&':
             if p[2].lvalue is not True and p[2].rvalue is not False:
                 raise TypeError("Operand for & operator should be an lvalue")
+            
+            if p[2].name == "constant" or p[2].name == "string_literal":
+                raise TypeError("Operand for * operator is not valid")
             
             p[0].is_address = True
             for i in range(0,len(p[0].vars)):
@@ -392,10 +487,15 @@ def p_unary_expression(p):
 
             p[0].lvalue = False                
             p[0].rvalue = True
+            p[0].name = "reference"
  
         if isinstance(p[1], Node) and p[1].operator == '*':
             if p[2].lvalue is not True and p[2].rvalue is not False:
-                raise TypeError("Operand for * operator should be an lvalue")
+                if "*" not in p[2].return_type:
+                    raise TypeError("Operand for * operator should be an lvalue")
+                
+            if p[2].name == "constant" or p[2].name == "string_literal":
+                raise TypeError("Operand for * operator is not valid")
             
             for i in range(0,len(p[0].vars)):
                 p[0].vars[i] = '@' + p[0].vars[i]
@@ -405,7 +505,8 @@ def p_unary_expression(p):
                     p[0].return_type = p[0].return_type[1:]
                 else:
                     raise Exception("invalid deref")
-                
+            
+            p[0].name = "pointer"
             p[0].lvalue = True
             p[0].rvalue = False
         
@@ -413,24 +514,34 @@ def p_unary_expression(p):
             if get_label(p[2].return_type) != "int":
                 raise ValueError(f"~ operation cannot be used on {p[2].return_type}")
             
+            p[0].name = "expression"
+
+
         if isinstance(p[1], Node) and p[1].operator == '!':
             if get_label(p[2].return_type) != "int":
                 raise ValueError(f"~ operation cannot be used on {p[2].return_type}")
             
+            p[0].name = "expression"
+
         if isinstance(p[1], Node) and (p[1].operator == '+' or p[1].operator == '-'):
             if get_label(p[2].return_type) is None:
                 raise ValueError(f"Operator {p[1].operator} cannot be applied to type {p[2].return_type}")
             
+            p[0].name = "expression"
+
         if isinstance(p[1], str):
             if p[1] == "++" or p[1] == "--":
                 if get_label(p[2].return_type) != "int":
                     raise ValueError(f"{p[1]} operation cannot be used on {p[2].return_type}")
-        # IR
+            
+            p[0].name = "expression"
+
         if p[1] == '++' or p[1] == '--':
             p[0].lvalue = False
             p[0].rvalue = True
 
             IrGen.inc_dec(p[0].ir, p[2].ir, p[1])
+
         elif p[1] != "sizeof":    
             IrGen.unary(p[0].ir, p[2].ir,p[1].operator)
 
@@ -455,6 +566,7 @@ def p_unary_operator(p):
                      | NOT '''
     p[0] = Node("unary_operator", [p[1]])
     p[0].operator = p[1]
+    p[0].name = p[0].operator
 
 # Cast expressions
 def p_cast_expression(p):
@@ -497,7 +609,7 @@ def p_cast_expression(p):
             if symtab.lookup(union_name).kind != "union":
                 raise Exception(f"{union_name} not defined in the current scope")
             
-
+        p[0].name = "expression"
         p[0].return_type = p[2].return_type
         p[0].lvalue = False
         p[0].rvalue = True
@@ -540,6 +652,7 @@ def p_multiplicative_expression(p):
         else:
             p[0].return_type = p[3].return_type
 
+        p[0].name = "expression"
         p[0].lvalue = False
         p[0].rvalue = True
         
@@ -573,7 +686,7 @@ def p_additive_expression(p):
                     raise Exception(f"Addition Operation is not allowed for pointer type operands: {p[1].return_type} | {p[3].return_type}")
 
                 p[0].return_type = addition_compatibility(p[1].return_type, p[3].return_type)
-                
+
             elif p[2] == '-':
                 # ISO C99: 6.5.6: 3: For Subtraction, both operands have arithmetic type; both operands are pointers to qualified or unqualified versions of compatible object types; or the left operand is a pointer to an object type and the right operand has integer type.
                 p[0].return_type = subtraction_compatibility(p[1].return_type, p[3].return_type)
@@ -597,6 +710,7 @@ def p_additive_expression(p):
 
         IrGen.arithmetic_expression(p[0].ir, p[1].ir, p[2], p[3].ir)
 
+        p[0].name = "expression"
         p[0].lvalue = False
         p[0].rvalue = True
     
@@ -627,6 +741,7 @@ def p_shift_expression(p):
         else:
             p[0].return_type = p[3].return_type
 
+        p[0].name = "expression"
         p[0].lvalue = False
         p[0].rvalue = True
 
@@ -648,6 +763,7 @@ def p_relational_expression(p):
         p[0].lvalue = False
         p[0].rvalue = True
 
+        p[0].name = "expression"
         p[0].return_type = "int"
 
 def p_equality_expression(p):
@@ -672,6 +788,7 @@ def p_equality_expression(p):
         p[0].lvalue = False
         p[0].rvalue = True
 
+        p[0].name = "expression"
         p[0].return_type = "int"
 
 def p_and_expression(p):
@@ -695,6 +812,7 @@ def p_and_expression(p):
         p[0].lvalue = False
         p[0].rvalue = True
 
+        p[0].name = "expression"
         p[0].return_type = "int"
 
         IrGen.arithmetic_expression(p[0].ir, p[1].ir, p[2] ,p[3].ir)
@@ -721,6 +839,7 @@ def p_exclusive_or_expression(p):
         p[0].lvalue = False
         p[0].rvalue = True
 
+        p[0].name = "expression"
         p[0].return_type = "int"
 
         IrGen.arithmetic_expression(p[0].ir, p[1].ir, p[2] ,p[3].ir)
@@ -746,6 +865,7 @@ def p_inclusive_or_expression(p):
         p[0].lvalue = False
         p[0].rvalue = True
 
+        p[0].name = "expression"
         p[0].return_type = "int"
 
         IrGen.arithmetic_expression(p[0].ir, p[1].ir, p[2] ,p[3].ir)
@@ -771,6 +891,7 @@ def p_logical_and_expression(p):
         p[0].lvalue = False
         p[0].rvalue = True
 
+        p[0].name = "expression"
         p[0].return_type = "int"
 
 
@@ -795,6 +916,7 @@ def p_logical_or_expression(p):
         p[0].lvalue = False
         p[0].rvalue = True
 
+        p[0].name = "expression"
         p[0].return_type = "int"
 
 
@@ -806,11 +928,6 @@ def p_conditional_expression(p):
     else:
         p[0] = Node("conditional_expression", [p[1], p[3], p[5]])
 
-        dtype1 = None
-        if len(p[1].vars) > 0:
-            d, r, var0 = count_deref_ref(p[1].vars[0])
-            dtype1 = get_type_from_var(var0, d, r, symtab)
-
         if ternary_type_compatibility(p[1].return_type, p[3].return_type, p[5].return_type):
             raise ValueError(f"Incompatible types {p[3].return_type} and {p[5].return_type} in ternary operator")
         
@@ -819,7 +936,8 @@ def p_conditional_expression(p):
 
         else:
             p[0].return_type = p[5].return_type
-
+        
+        p[0].name = "expression"
 
 def p_assignment_expression(p):
     '''assignment_expression : conditional_expression
@@ -829,44 +947,104 @@ def p_assignment_expression(p):
         
     else:  
         p[0] = Node("assignment_expression", [p[1], p[2], p[3]])
+
+        if p[1].lvalue is not True and p[1].rvalue is not False:
+            raise TypeError(f"Left hand Operand is not an lvalue and cannot be used in an assignment expression")
         
-        lhs = p[0].vars[0]
-        brace_count = 0
-        if lhs[-1] == ']':
-            brace_count = lhs.count("]")
-            lhs = lhs[:-2 * brace_count]
-
-        if symtab.lookup(lhs) is not None:
-            kind = symtab.lookup(lhs).kind
-            if "D-array" in kind:
-                if str(brace_count) != str(kind[0]):
-                    raise Exception(f"Invalid array access")
-
-        d, r, clean_lhs = count_deref_ref(p[0].vars[0])
-        lhs_type = get_type_from_var(clean_lhs, d, r, symtab, kind_check=['variable', 'parameter', 'reference', '*D-array*'])
-
-        if lhs_type.startswith("const "):
-            raise TypeError(f"Cannot re-assign value to const variable")
+        if p[1].name == "reference" or p[1].name == "function" or p[1].name == "function_call" or p[1].name == "constant" or p[1].name == "string_literal":
+            raise Exception(f"{p[1].name} cannot appear on the left hand side")
         
+        if p[1].name == "array":
+            lhs = p[0].vars[0]
+            brace_count = 0
+            if lhs[-1] == ']':
+                brace_count = lhs.count("]")
+                lhs = lhs[:-2 * brace_count]
+
+            if symtab.lookup(lhs) is not None:
+                kind = symtab.lookup(lhs).kind
+                if "D-array" in kind:
+                    if str(brace_count) != str(kind[0]):
+                        raise Exception(f"Invalid array access")
+        
+        for vars in p[0].vars:
+            deref_count, ref_count, var = count_deref_ref(vars)
+            type = get_type_from_var(var, 0, 0, symtab)
+            
         if (p[2].operator == "<<=" or 
             p[2].operator == ">>=" or 
             p[2].operator == "%=" or
             p[2].operator == "&=" or
             p[2].operator == "^=" or 
             p[2].operator == "|="):
-            validate_assignment(trim_value(lhs_type, "const"), p[2].operator, p[3].vars, symtab, False, True)
 
+            if get_label(p[3].return_type) != "int" or get_label(p[1].return_type) != "int":
+                raise Exception(f"Invalid types {p[1].return_type} and {p[3].return_type} with the operator {p[2].operator}")
+
+            if p[3].name == "struct" or p[3].name == "union" or p[3].name == "function" or p[3].name == "compound_literal" or p[3].name == "string_literal":
+                raise Exception(f"Operator {p[2].name} cannot be applied to a {p[3].name}")
+
+        elif p[2].operator == '=':
+            if p[3].name != "compound_literal":
+                left_type = p[1].return_type
+                right_type = p[3].return_type
+
+                if implicit_type_compatibility(left_type, right_type, True):
+                    raise Exception("Invalid Assignment")
+            else:
+                left_type = p[1].return_type
+                notarray = (p[3].return_type == array_type_decay(p[3].return_type))
+                            
+                if notarray:
+                    if implicit_type_compatibility(left_type, p[3].return_type, True):
+                        raise Exception(f"Incompatible types {left_type} and {p[3].return_type}")
+                    ## check all implicit type compatibility for rhs var
+
+                    for rhs_var in p[3].vars:
+                        print(rhs_var)
+                        deref_count, ref_count, rhs_var = count_deref_ref(rhs_var)
+                        type_ = get_type_from_var(rhs_var, deref_count, ref_count, symtab)
+
+                        if implicit_type_compatibility(p[3].return_type, type_, True):
+                            raise Exception(f"Type mismatch in {p[3].return_type} with provided {type_}")
+
+                else:
+                    if p[3].return_type is None:
+                        p[3].return_type = left_type
+                    if implicit_type_compatibility(left_type, array_type_decay(p[3].return_type), True):
+                        raise Exception(f"Incompatible types {left_type} and {p[3].return_type}")
+
+                    ## check all implicit type compatibility for rhs var
+
+                    for rhs_var in p[3].vars:
+                        deref_count, ref_count, rhs_var = count_deref_ref(rhs_var)
+                        type_ = get_type_from_var(rhs_var, deref_count, ref_count, symtab)
+
+                        if implicit_type_compatibility(array_base_type(p[3].return_type), type_, True):
+                            raise Exception(f"Type mismatch in {array_base_type(p[3].return_type)} with provided {type_}")
+        
         else:
-            validate_assignment(trim_value(lhs_type, "const"), p[2].operator, p[3].vars, symtab, True, False)
+            
+            left_type = p[1].return_type
+            right_type = p[3].return_type
 
-        if(p[2].operator == '='):
+            if implicit_type_compatibility(left_type, right_type, True):
+                raise Exception("Invalid Assignment")
+            
+            if p[3].name == "struct" or p[3].name == "union" or p[3].name == "function" or p[3].name == "compound_literal" or p[3].name == "string_literal":
+                raise Exception(f"Operator {p[2].name} cannot be applied to a {p[3].name}")        
+
+        if p[2].operator == '=':
             IrGen.assignment(p[0].ir, p[1].ir, p[3].ir,p[0].vars[0])
         else:
             IrGen.op_assign(p[0].ir, p[1].ir, p[3].ir, p[2].operator)
 
         p[0].is_address = False
         
-    p[0].return_type = p[1].return_type
+        p[0].lvalue = False
+        p[0].rvalue = True
+
+        p[0].return_type = p[1].return_type
     # IR
 
 def p_assignment_operator(p):
@@ -889,6 +1067,7 @@ def p_expression(p):
                  | expression COMMA assignment_expression'''
     if len(p) == 2:
         p[0] = Node("expression", [p[1]])
+        print(f"primary expression => {p[0].return_type}")
     else:
         p[0] = Node("expression", [p[1], p[3]])
 

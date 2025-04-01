@@ -10,8 +10,7 @@ class Node:
     def __init__(self, type, children = None): 
         global node_name
         self.type = type
-        self.name = str(node_name)
-        node_name += 1
+        self.name = ""
         self.children = []
         self.vars = []
         self.dtypes = []
@@ -46,6 +45,7 @@ class Node:
             self.iscall = self.children[0].iscall
             self.lvalue = self.children[0].lvalue
             self.rvalue = self.children[0].rvalue
+            self.name = self.children[0].name
             self.ir = copy.deepcopy(self.children[0].ir)
 
         for c in self.children:
