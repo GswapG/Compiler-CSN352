@@ -121,7 +121,10 @@ def p_primary_expression_identifier(p):
         p[0].dtypes = check.type
         p[0].return_type = check.type
 
-    IrGen.identifier(p[0].ir, p[1])
+    if(symtab.lookup(p[1]) is not None and symtab.lookup(p[1]).kind=="reference"):
+        IrGen.identifier(p[0].ir, symtab.lookup(p[1]).refsto)
+    else:
+        IrGen.identifier(p[0].ir, p[1])
 
 def p_primary_expression_error(p):
     '''primary_expression : LPAREN expression error'''
@@ -1261,6 +1264,7 @@ def p_init_declarator(p):
             refsto= p[0].rhs[0]
         )
         symtab.add_symbol(var_sym)
+        kind="reference"
 
     elif symtab.lookup(base_var) is None:
         var_sym = SymbolEntry(
@@ -1379,8 +1383,9 @@ def p_init_declarator(p):
                 if not (trim_value(base_type, "const").split(" ")[0] == "enum" and type_ == "int"):
                     if implicit_type_compatibility(base_type, type_, True):
                         raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]}\n| base_type = {base_type} |\n| rhs_type = {type_} |")
-            
-        IrGen.assignment(p[0].ir, p[1].ir, p[3].ir,p[0].vars[0])
+        
+        if(kind!="reference"):
+            IrGen.assignment(p[0].ir, p[1].ir, p[3].ir,p[0].vars[0])
 
     p[0].is_address = False
 

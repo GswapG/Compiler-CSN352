@@ -252,6 +252,7 @@ class IRGenerator:
     def while_loop(self, ir0, ir1, ir2):
         ir0.begin = self.new_label()
         ir0.after = self.new_label()
+        self.resolve_exp(ir1)
         gen1 = f"{ir0.begin}:"
         gen2 = f"if {ir1.place} == 0 goto {ir0.after}"
         gen3 = f"goto {ir0.begin}"
@@ -262,27 +263,30 @@ class IRGenerator:
     def do_while_loop(self, ir0, ir1, ir2):
         ir0.begin = self.new_label()
         ir0.after = self.new_label()
+        self.resolve_exp(ir1)
         gen1 = f"{ir0.begin}:"
         gen2 = f"if {ir1.place} == 0 goto {ir0.after}"
         gen3 = f"goto {ir0.begin}"
         gen4 = f"{ir0.after}:"
-        ir0.code = self.join(gen1,ir2.code,gen3,ir1.code,gen2,gen4)
+        ir0.code = self.join(gen1,ir2.code,ir1.code,gen2,gen3,gen4)
         self.debug_print(ir0)
     
     def do_until_loop(self, ir0, ir1, ir2):
         ir0.begin = self.new_label()
         ir0.after = self.new_label()
+        self.resolve_exp(ir1)
         gen1 = f"{ir0.begin}:"
         gen2 = f"if {ir1.place} != 0 goto {ir0.after}"
         gen3 = f"goto {ir0.begin}"
         gen4 = f"{ir0.after}:"
-        ir0.code = self.join(gen1,ir2.code,gen3,ir1.code,gen2,gen4)
+        ir0.code = self.join(gen1,ir2.code,ir1.code,gen2,gen3,gen4)
         self.debug_print(ir0)
 
     def for_loop(self, ir0, ir1, ir2, ir3, ir4):
         ir0.begin = self.new_label()
         ir0.after = self.new_label()
         gen1 = f"{ir0.begin}:"
+        self.resolve_exp(ir2)
         gen2 = f"if {ir2.place} == 0 goto {ir0.after}"
         ## NOTE TO SELF
         # Uncomment the code below when relational and logical done
@@ -291,9 +295,9 @@ class IRGenerator:
         gen3 = f"goto {ir0.begin}"
         gen4 = f"{ir0.after}:"
         if ir3 is not None:
-            ir0.code = self.join(ir1.code,gen1,gen2,ir4.code,ir3.code,gen3,gen4)
+            ir0.code = self.join(ir1.code,gen1,ir2.code,gen2,ir4.code,ir3.code,gen3,gen4)
         else:
-            ir0.code = self.join(ir1.code,gen1,gen2,ir4.code,gen3,gen4)
+            ir0.code = self.join(ir1.code,gen1,ir2.code,gen2,ir4.code,gen3,gen4)
         
     def if_with_else(self, ir0, ir1, ir2,ir3):
         ir0.after = ir3.after
