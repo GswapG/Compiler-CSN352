@@ -180,9 +180,9 @@ tempCodeRunnerFile*
 **/parser.out
 **/ast
 **/ast.png
+**/renderedIRTrees
 **/renderedTrees
 **/renderedSymbolTables
-**/renderedIRTables
 **/parsetab.py
 **/hashes.bin
 **/generatedIR

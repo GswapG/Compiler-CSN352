@@ -2367,7 +2367,7 @@ def parseFile(filename, ogfilename, treedir, symtabdir, irtreedir, graphgen=Fals
         
         graph = root.to_annotated_parse_tree()
         graph.render(irtreepath, format='png', cleanup=True)
-        print(f"Parse tree saved as renderedIRTrees/{ogfilename[:-2]}.png")
+        print(f"IR tree saved as renderedIRTrees/{ogfilename[:-2]}.png")
         
         graph = symtab.to_graph()
         graph.render(symtabpath, format='png', cleanup=True)
