@@ -2159,7 +2159,7 @@ def p_selection_statement(p):
         p[0].break_count = False
         p[0].continue_count = False
 
-        if p[0].default_count != 1:
+        if p[0].default_count > 1:
             raise Exception("Switch statements expect 1 default case")
     
         p[0].default_count = 0
