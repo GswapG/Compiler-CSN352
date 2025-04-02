@@ -1316,8 +1316,8 @@ def p_init_declarator(p):
                     if checkfunc and symtab.lookup(rhs_var) is not None and symtab.lookup(rhs_var).kind == 'function':
                         raise Exception("Can't assign value of function")
 
-                
-                IrGen.array_initializer_list(p[0].ir, p[1].ir, p[3].ir)
+                size = symtab.get_array_size(base_var)
+                IrGen.array_initializer_list(p[0].ir, p[1].ir, p[3].ir, size)
 
             elif ((("struct" in base_type or "union" in base_type) or
             (symtab.lookup(base_type.split(' ')[-1]) is not None and 

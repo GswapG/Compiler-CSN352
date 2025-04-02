@@ -22,7 +22,7 @@ class IRGenerator:
 
     def new_temp(self):
         """Generate a new unique temporary variable."""
-        temp_var = f'_t{self.temp_counter}'
+        temp_var = f'@t{self.temp_counter}'
         self.temp_counter += 1
         return temp_var
 
@@ -36,7 +36,7 @@ class IRGenerator:
                 self.function_labels[func_name] = f".{func_name}"
             return self.function_labels[func_name]
         
-        label = f'.L{self.label_counter}'
+        label = f'$L{self.label_counter}'
         self.label_counter += 1
         return label
     
@@ -50,7 +50,7 @@ class IRGenerator:
                 self.function_labels[func_name] = f".{func_name}"
             return self.function_labels[func_name]
         
-        label = f'.BP{self.bp_counter}'
+        label = f'$BP{self.bp_counter}'
         self.bp_counter += 1
         return label
     
@@ -390,7 +390,7 @@ class IRGenerator:
         gen2=""
         print(ir0.place,ir1.place,ir2.place)
         ir0.place = self.new_temp()
-        if ir1.place[0] != "_":
+        if ir1.place[0] != "@":
             gen1 = f"{ir0.place} = {ir2.place}"
         else:
             gen1 = f"{ir0.place} = {ir1.place} + {ir2.place}"
@@ -415,34 +415,18 @@ class IRGenerator:
 
     def array_declarator(self, ir0, ir1, ir2):
         ir0.place = ir1.place
-        ir0.array_dimension += 1
-        ir0.array_sizes = ir1.array_sizes
-        ir0.array_sizes.append(ir2.place)
 
-    def array_initializer_list(self, ir0, ir1, ir2):
+    def array_initializer_list(self, ir0, ir1, ir2, size):
         array = ir1.place
         initializations = []
-        max_size = 1
-        counter = []
-        for dimension in ir1.array_sizes:
-            max_size *= dimension
-            counter.append(0)
+        max_size = size
 
         ptr = 0
         for _ in range(int(max_size)):
-            gen = f"{array}"
-            for count in counter:
-                gen += f"[{count}]"
+            label = self.new_temp()
+            gen = f"{label} = {ptr}\n"
+            gen += f"{array}[{label}]"
             gen += f" = {ir2.initializer_list[ptr]}"
-
-            counter[-1] += 1
-            counter_ptr = -1
-            for size in reversed(ir1.array_sizes):
-                if size == counter[counter_ptr]:
-                    counter[counter_ptr] = 0
-                    counter[counter_ptr - 1] += 1
-                
-                counter_ptr -= 1
 
             initializations.append(gen)
 

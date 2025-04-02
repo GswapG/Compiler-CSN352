@@ -412,6 +412,37 @@ class SymbolTable:
                 if strict_equal(entry.name, name):
                     return entry
             scope_pointer = scope_pointer.parent
+    
+    def get_size(self, name):
+        if "*" in name:
+            return 8
+        elif "char" in name:
+            return 1
+        elif "short" in name:
+            return 2
+        elif "double" in name:
+            return 8
+        elif "long" in name:
+            return 8
+        elif "float" in name:
+            return 4
+        elif "int" in name:
+            return 4
+
+        ## handle structs sizes
+        return 1
+
+    def get_array_size(self, name):
+        if name[-1] == ']':
+            index = name.index("[")
+            name = name[:index]
+
+        entry = self.lookup(name)
+        if entry is None:
+            raise Exception(f"No array identifier {name} exists in the current scope")
+        
+        size = self.get_size(entry.type)
+        return (entry.size // size)
 
     def search_function_scope(self, name, type):
         if self.current_scope_level == 0:
