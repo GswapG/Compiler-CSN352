@@ -5,6 +5,8 @@ class IR:
         self.truelist = []
         self.falselist = []
         self.nextlist = []
+        self.switchup = []
+        self.switchplace = []
         self.begin = ""
         self.after = ""
         self.parameters = []

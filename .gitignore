@@ -182,6 +182,7 @@ tempCodeRunnerFile*
 **/ast.png
 **/renderedTrees
 **/renderedSymbolTables
+**/renderedIRTables
 **/parsetab.py
 **/hashes.bin
 **/generatedIR

@@ -22,7 +22,7 @@ class IRGenerator:
 
     def new_temp(self):
         """Generate a new unique temporary variable."""
-        temp_var = f'_t{self.temp_counter}'
+        temp_var = f'@t{self.temp_counter}'
         self.temp_counter += 1
         return temp_var
 
@@ -36,7 +36,7 @@ class IRGenerator:
                 self.function_labels[func_name] = f".{func_name}"
             return self.function_labels[func_name]
         
-        label = f'.L{self.label_counter}'
+        label = f'$L{self.label_counter}'
         self.label_counter += 1
         return label
     
@@ -50,7 +50,7 @@ class IRGenerator:
                 self.function_labels[func_name] = f".{func_name}"
             return self.function_labels[func_name]
         
-        label = f'.BP{self.bp_counter}'
+        label = f'$BP{self.bp_counter}'
         self.bp_counter += 1
         return label
     
@@ -182,6 +182,10 @@ class IRGenerator:
 
     def blockitem(self, ir0, ir1, ir2):
         ir0.code = self.join(ir1.code, ir2.code)
+        ir0.falselist += ir1.falselist + ir2.falselist
+        ir0.truelist += ir1.truelist + ir2.truelist
+        ir0.switchup += ir1.switchup + ir2.switchup
+        ir0.switchplace += ir1.switchplace + ir2.switchplace
         self.debug_print(ir0)
         
     def translation_unit(self, ir0, ir1, ir2):
@@ -399,3 +403,41 @@ class IRGenerator:
     def unary_array(self, ir0, ir1, var):
         ir0.place = f"{var}[{ir1.place}]"
         self.debug_print(ir0)
+
+    def switch_labeled_statement(self,ir0,ir1,ir2): #ir1 is condition , ir2 is statement code
+        ir0.switchup = [ir1.code]
+        ir0.switchplace = [ir1.place]
+        true= self.new_label()
+        ir0.truelist = [true]
+        gen1 = f"{true}:"
+        ir0.code=self.join(gen1,ir2.code)
+
+    def default_labeled_statement(self,ir0,ir1): #no condition coz default, ir1 is statement code
+        ir0.switchup = ["default"]
+        ir0.switchplace = ["default"]
+        true= self.new_label()
+        ir0.truelist = [true]
+        gen1 = f"{true}:"
+        ir0.code=self.join(gen1,ir1.code)
+
+    def break_jump(self,ir0):
+        temp = self.bp_label()
+        ir0.code = f"goto {temp}"
+        ir0.falselist = [temp]
+
+    def switch_selection_statement(self,ir0,ir1,ir2): #ir1 has variable , ir2 has statements
+        gen1 = ""
+        for up, true, place in zip(ir2.switchup,ir2.truelist,ir2.switchplace):
+            if(place!="default"):
+                gen2 = f"if {place} == {ir1.place} goto {true}"
+                gen1 = self.join(gen1,up,gen2)
+            else:
+                gen2 = f"goto {true}"
+                gen1 = self.join(gen1,gen2)
+
+        temp = self.new_label()
+        gen3=f"{temp}:"
+        for c in ir2.falselist:
+            self.backpatch(ir2,c,temp)
+        ir0.code = self.join(ir1.code,gen1,ir2.code,gen3)
+        return

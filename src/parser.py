@@ -2048,11 +2048,14 @@ def p_labeled_statement(p):
 
     elif len(p) == 5:
         p[0] = Node("labeled_statement", [p[1], p[2], p[4]])
+        IrGen.switch_labeled_statement(p[0].ir,p[2].ir,p[4].ir)
 
     elif len(p) == 4:
         p[0] = Node("labeled_statement", [p[1], p[3]])
 
         p[0].default_count += 1
+
+        IrGen.default_labeled_statement(p[0].ir,p[3].ir)
         
 def p_compound_statement(p):
     '''compound_statement : LBRACE RBRACE
@@ -2156,6 +2159,8 @@ def p_selection_statement(p):
     
         p[0].default_count = 0
 
+        IrGen.switch_selection_statement(p[0].ir,p[3].ir,p[5].ir)
+
 def p_selection_statement_error(p):
     '''selection_statement : IF LPAREN expression error statement ELSE statement
                           | IF LPAREN expression error statement
@@ -2208,6 +2213,7 @@ def p_jump_statement(p):
             returns.add('void')
         if p[1] == 'break':
             p[0].break_count = True
+            IrGen.break_jump(p[0].ir)
         if p[1] == 'continue':
             p[0].continue_count = True
     elif len(p) == 4:
