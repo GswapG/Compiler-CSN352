@@ -118,7 +118,7 @@ class Node:
         node_label.append(f'<tr><td bgcolor="#f0f0f0" align="center"><b>{escape_html(self.type)}</b></td></tr>')
         
         # Process IR attributes
-        if self.ir and any([self.ir.place, self.ir.code]):
+        if self.ir:
             ir_info = []
             
             # Generic attribute formatter

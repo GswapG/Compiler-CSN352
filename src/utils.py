@@ -76,7 +76,7 @@ def get_type_from_var(var, deref_count, ref_count, symtab, kind_check=None):
         
         else:
             struct_scope, identifier = var.rsplit(".", 1)
-            entry_type = symtab.search_struct(struct_scope, identifier)
+            entry_type = symtab.search_struct(struct_scope, identifier)[0]
             if entry_type is None:
                 raise Exception(f"identifier |{identifier}| does not exist in the struct |{struct_scope}|")
             
@@ -134,7 +134,7 @@ def lookup_symbol(var, symtab):
     is_struct, data = clean_var(var)
     if is_struct:
         struct_name, field_name = data
-        entry = symtab.search_struct(struct_name, field_name)
+        entry = symtab.search_struct(struct_name, field_name)[0]
         if entry is None:
             raise ValueError(f"identifier {field_name} does not exist in the struct {struct_name}")
         return entry

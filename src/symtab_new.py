@@ -526,10 +526,18 @@ class SymbolTable:
             
         for entry in current_scope.entries:
             if entry.name == identifier:
-                return entry.type
+                return entry.type ,entry.offset
 
         return None
-
+    def search_struct_attributes(self,struct_name):
+        #WILL RETURN A LIST OF OFFSETS IN THE STRUCT
+        key = symtab.lookup(struct_name)
+        if key is None:
+            raise Exception("Invalid Strcut Access Made")
+        offsets = []
+        for e in key.child.entries:
+            offsets.append(e.offset)
+        return offsets
     def __str__(self):
         """
             print the symbol table object

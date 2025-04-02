@@ -272,9 +272,11 @@ def p_postfix_expression(p):
 
         if symtab.search_struct(struct_object, field_identifier) is None:
             raise Exception(f"The identifier '{field_identifier}' does not exist in the struct {struct_object}")
-
+        
         p[0].vars = [f"{struct_object}.{field_identifier}"]
-        p[0].return_type = symtab.search_struct(struct_object, field_identifier)
+        p[0].return_type = symtab.search_struct(struct_object, field_identifier)[0]
+        
+        print(p[0].return_type)
 
         if "struct" in p[1].name:
             p[0].name = "struct_member"
@@ -283,6 +285,9 @@ def p_postfix_expression(p):
 
         p[0].lvalue = True
         p[0].rvalue = False
+        # IR GENERATION
+        f_offset = symtab.search_struct(struct_object, field_identifier)[1]
+        IrGen.struct_access(p[0].ir,p[1].ir,f_offset)
 
     elif len(p) == 4 and p[2] == '->':
         p[0] = Node("postfix_expression", [p[1], p[3]])
@@ -300,7 +305,7 @@ def p_postfix_expression(p):
             raise TypeError(f"Arrow Operators are used on pointers to object of types structs or unions")
 
         p[0].vars = [f"{struct_object}.{field_identifier}"]
-        p[0].return_type = symtab.search_struct(struct_object, field_identifier)
+        p[0].return_type = symtab.search_struct(struct_object, field_identifier)[0]
 
         if "struct" in type:
             p[0].name = "struct_member"
@@ -309,7 +314,9 @@ def p_postfix_expression(p):
 
         p[0].lvalue = True
         p[0].rvalue = False
-
+        #IR GENERATION
+        f_offset = symtab.search_struct(struct_object, field_identifier)[1]
+        IrGen.struct_access(p[0].ir,p[1].ir,f_offset,True)
     elif len(p) == 4:
         p[0] = Node("postfix_expression", [p[1]])
         p[0].iscall = 1
@@ -1283,6 +1290,7 @@ def p_init_declarator(p):
             kind=str(kind)
         )
         symtab.add_symbol(var_sym)
+        # At this point struct entry is done in symtab
     
     elif symtab.lookup(base_var).kind != "function":
         var_sym = SymbolEntry(
@@ -1300,10 +1308,8 @@ def p_init_declarator(p):
                 kind=str(kind)
             )
             symtab.add_symbol(var_sym)
-
     if len(p) == 4 and kind != "reference":
         checkfunc = not p[3].iscall
-
         if p[0].isbraces:
             if base_var[-1] == ']':
                 for rhs_var in p[0].rhs:
@@ -1319,7 +1325,6 @@ def p_init_declarator(p):
                 size = symtab.get_array_size(base_var)
                 type_size = symtab.get_size(base_type)
                 IrGen.array_initializer_list(p[0].ir, p[1].ir, p[3].ir, size, type_size)
-
             elif ((("struct" in base_type or "union" in base_type) or
             (symtab.lookup(base_type.split(' ')[-1]) is not None and 
             ("struct" in symtab.lookup(base_type.split(' ')[-1]).type or 
@@ -1327,7 +1332,6 @@ def p_init_declarator(p):
                 struct_name = base_type.split(' ')[-1]
                 struct_scope = symtab.lookup(struct_name).child
                 struct_entries = struct_scope.entries
-
                 if len(struct_entries) < len(p[0].rhs):
                     raise Exception("Number of identifiers in struct doesnt match with initialiser list length")
                 
@@ -1342,6 +1346,12 @@ def p_init_declarator(p):
         
                     if implicit_type_compatibility(struct_entry_type, field_type, True):
                         raise Exception(f"Type mismatch in {struct_entry_type} with provided {field_type}")
+                    
+                #IR FOR STRUCT INIT LIST
+                if p[3].ir.initializer_list is None:
+                    raise Exception("Not Allowed Empty Struct Declarators")
+                offset_list = symtab.search_struct_attributes(struct_name)
+                IrGen.struct_init_list(p[0].ir,p[1].ir,offset_list,p[3].ir.initializer_list)
             else:
                 notarray = (p[3].return_type == array_type_decay(p[3].return_type))
                             
@@ -1397,9 +1407,8 @@ def p_init_declarator(p):
                 if not (trim_value(base_type, "const").split(" ")[0] == "enum" and type_ == "int"):
                     if implicit_type_compatibility(base_type, type_, True):
                         raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]}\n| base_type = {base_type} |\n| rhs_type = {type_} |")
-        
             IrGen.assignment(p[0].ir, p[1].ir, p[3].ir,p[0].vars[0])
-
+    
     p[0].is_address = False
 
 
@@ -2326,7 +2335,7 @@ def p_error(p):
     exit(0)
     
 # Build parser
-parser = yacc.yacc(debug=True)
+parser = yacc.yacc(debug=False)
 
 def parseFile(filename, ogfilename, treedir, symtabdir, irtreedir, graphgen=False,irgen=True):
     global IrGen

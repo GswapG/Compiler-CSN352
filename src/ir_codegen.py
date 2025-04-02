@@ -1,5 +1,6 @@
 from .ir import IR
 import os
+import copy
 DEFAULT_OUTPUT_DIRECTORY = "generatedIR"
 
 class IRGenerator:
@@ -411,7 +412,7 @@ class IRGenerator:
         ir0.code = ir1.code
 
     def initializer_list(self, ir0, ir1, ir2):
-        ir0.initializer_list = ir1.initializer_list
+        ir0.initializer_list = copy.deepcopy(ir1.initializer_list)
         ir0.initializer_list.append(ir2.place)
         ir0.code = self.join(ir1.code, ir2.code)
 
@@ -478,4 +479,23 @@ class IRGenerator:
             self.backpatch(ir2,c,temp)
         ir0.code = self.join(ir1.code,gen1,ir2.code,gen3)
         return
+    def struct_access(self,ir0,ir1,offset,isArrow=False):
+        ir0.place = self.new_temp()
+        if isArrow:
+            gen1 = f"{ir0.place} = {ir1.place}"
+        else:
+            gen1 = f"{ir0.place} = & {ir1.place}"
+        gen2 = f"{ir0.place} = {ir0.place} + {offset}"
+        # gen3 = f"*{ir0.place}"
+        ir0.place = '*'+ir0.place
+        ir0.code = self.join(gen1,gen2)
+    def struct_init_list(self,ir0,ir1,offset_list,init_list):
+        ir0.place = self.new_temp()
+        gen1 = f"{ir0.place} = & {ir1.place}"
+        for i in range(0,len(init_list)):
+            #size of this is always <= size of offset since we have done semantic checks
+            gen_temp = f"{ir0.place} = {ir0.place} + {offset_list[i]}"
+            gen_temp2 = f"*{ir0.place} = {init_list[i]}"
+            gen1 = self.join(gen1,gen_temp,gen_temp2)
+        ir0.code = gen1
     
