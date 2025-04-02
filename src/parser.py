@@ -469,13 +469,13 @@ def p_unary_expression(p):
                             raise Exception("Invalid array access")
                     
                     p[0].return_type = entry.type
+                base_type = symtab.lookup(new_var).type
+                type_size = symtab.get_size(base_type)
+                IrGen.unary_array(p[0].ir,p[1].ir,p[0].vars[0].split('[')[0],type_size)
         elif p[1].name == "pointer":
             var = p[1].vars[0]
             if var[-1] == ']':
                 p[0].return_type = p[0].return_type[1:]
-                        
-        if(len(p[0].vars)>0 and '[' in p[0].vars[0] and symtab.lookup(p[0].vars[0].split('[')[0]) is not None and "array" in symtab.lookup(p[0].vars[0].split('[')[0]).kind):
-            IrGen.unary_array(p[0].ir,p[1].ir,p[0].vars[0].split('[')[0])
 
     elif len(p) == 3:
         p[0] = Node("unary_expression", [p[1], p[2]])
@@ -1315,9 +1315,10 @@ def p_init_declarator(p):
                     
                     if checkfunc and symtab.lookup(rhs_var) is not None and symtab.lookup(rhs_var).kind == 'function':
                         raise Exception("Can't assign value of function")
-
+                # IR
                 size = symtab.get_array_size(base_var)
-                IrGen.array_initializer_list(p[0].ir, p[1].ir, p[3].ir, size)
+                type_size = symtab.get_size(base_type)
+                IrGen.array_initializer_list(p[0].ir, p[1].ir, p[3].ir, size, type_size)
 
             elif ((("struct" in base_type or "union" in base_type) or
             (symtab.lookup(base_type.split(' ')[-1]) is not None and 
@@ -2042,20 +2043,21 @@ def p_statement(p):
 
 
 def p_labeled_statement(p):
-    '''labeled_statement : IDENTIFIER COLON
+    '''labeled_statement : IDENTIFIER COLON statement
                         | CASE constant_expression COLON statement
                         | DEFAULT COLON statement'''
-    if len(p) == 3 and p[2] == ':' and p[1] != 'default':
-        p[0] = Node("labeled_statement", [p[1]])
-
+    if len(p) == 4 and p[2] == ':' and p[1] != 'default':
+        # labels
+        p[0] = Node("labeled_statement", [p[1], p[3]])
         symtab.add_goto_symbol(p[1], "identifier")
         IrGen.label_add(p[0].ir,p[1])
-
     elif len(p) == 5:
+        # case
         p[0] = Node("labeled_statement", [p[1], p[2], p[4]])
         IrGen.switch_labeled_statement(p[0].ir,p[2].ir,p[4].ir)
 
     elif len(p) == 4:
+        # default
         p[0] = Node("labeled_statement", [p[1], p[3]])
 
         p[0].default_count += 1

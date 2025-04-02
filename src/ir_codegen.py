@@ -400,8 +400,10 @@ class IRGenerator:
         ir0.code = self.join(ir1.code,ir2.code,gen1,gen2) 
         self.debug_print(ir0)
 
-    def unary_array(self, ir0, ir1, var):
+    def unary_array(self, ir0, ir1, var,size):
         ir0.place = f"{var}[{ir1.place}]"
+        gen = f"{ir1.place} = {ir1.place} * {size}"
+        ir0.code = self.join(ir1.code,gen)
         self.debug_print(ir0)
 
     def initializer(self, ir0, ir1):
@@ -416,7 +418,7 @@ class IRGenerator:
     def array_declarator(self, ir0, ir1, ir2):
         ir0.place = ir1.place
 
-    def array_initializer_list(self, ir0, ir1, ir2, size):
+    def array_initializer_list(self, ir0, ir1, ir2, size,type_size):
         array = ir1.place
         initializations = []
         max_size = size
@@ -424,7 +426,7 @@ class IRGenerator:
         ptr = 0
         for _ in range(int(max_size)):
             label = self.new_temp()
-            gen = f"{label} = {ptr}\n"
+            gen = f"{label} = {ptr} * {type_size}\n"
             gen += f"{array}[{label}]"
             gen += f" = {ir2.initializer_list[ptr]}"
 
