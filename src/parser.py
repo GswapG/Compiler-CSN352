@@ -1329,6 +1329,9 @@ def p_init_declarator(p):
             (symtab.lookup(base_type.split(' ')[-1]) is not None and 
             ("struct" in symtab.lookup(base_type.split(' ')[-1]).type or 
              "union" in symtab.lookup(base_type.split(' ')[-1]).type)))):
+                isUnion = "union" in base_type
+                if isUnion and len(p[0].rhs) > 1:
+                    raise Exception("Unions Support only single list assignment")
                 struct_name = base_type.split(' ')[-1]
                 struct_scope = symtab.lookup(struct_name).child
                 struct_entries = struct_scope.entries
