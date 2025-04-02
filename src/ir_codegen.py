@@ -130,6 +130,8 @@ class IRGenerator:
         ir0.place = str(const)
 
     def assignment(self, ir0, ir1, ir2, var):
+        if ir2.bpneed>0:
+            self.resolve_exp(ir2)
         gen = f"{ir1.place} = {ir2.place}"
         ir0.code = self.join(ir1.code, ir2.code, gen)
         self.debug_print(ir0)
@@ -243,59 +245,83 @@ class IRGenerator:
         ir0.code = f"goto {label}"
     
     def while_loop(self, ir0, ir1, ir2):
+        self.manage_lists(ir0,ir2)
         ir0.begin = self.new_label()
         ir0.after = self.new_label()
-        self.resolve_exp(ir1)
+        if ir1.bpneed>0:
+            self.resolve_exp(ir1)
         gen1 = f"{ir0.begin}:"
         gen2 = f"if {ir1.place} == 0 goto {ir0.after}"
         gen3 = f"goto {ir0.begin}"
         gen4 = f"{ir0.after}:"
         ir0.code = self.join(gen1, ir1.code, gen2, ir2.code, gen3, gen4)
+        for c in ir0.truelist: #handle continue
+            self.backpatch(ir0,c,ir0.begin)
+        for c in ir0.falselist: #handle break
+            self.backpatch(ir0,c,ir0.after)
         self.debug_print(ir0)
     
     def do_while_loop(self, ir0, ir1, ir2):
+        self.manage_lists(ir0,ir2)
         ir0.begin = self.new_label()
         ir0.after = self.new_label()
-        self.resolve_exp(ir1)
+        if ir1.bpneed>0:
+            self.resolve_exp(ir1)
         gen1 = f"{ir0.begin}:"
         gen2 = f"if {ir1.place} == 0 goto {ir0.after}"
         gen3 = f"goto {ir0.begin}"
         gen4 = f"{ir0.after}:"
         ir0.code = self.join(gen1,ir2.code,ir1.code,gen2,gen3,gen4)
+        for c in ir0.truelist: #handle continue
+            self.backpatch(ir0,c,ir0.begin)
+        for c in ir0.falselist: #handle break
+            self.backpatch(ir0,c,ir0.after)
         self.debug_print(ir0)
     
     def do_until_loop(self, ir0, ir1, ir2):
+        self.manage_lists(ir0,ir2)
         ir0.begin = self.new_label()
         ir0.after = self.new_label()
-        self.resolve_exp(ir1)
+        if ir1.bpneed>0:
+            self.resolve_exp(ir1)
         gen1 = f"{ir0.begin}:"
         gen2 = f"if {ir1.place} != 0 goto {ir0.after}"
         gen3 = f"goto {ir0.begin}"
         gen4 = f"{ir0.after}:"
         ir0.code = self.join(gen1,ir2.code,ir1.code,gen2,gen3,gen4)
+        for c in ir0.truelist: #handle continue
+            self.backpatch(ir0,c,ir0.begin)
+        for c in ir0.falselist: #handle break
+            self.backpatch(ir0,c,ir0.after)
         self.debug_print(ir0)
 
     def for_loop(self, ir0, ir1, ir2, ir3, ir4):
+        self.manage_lists(ir0,ir3,ir4)
         ir0.begin = self.new_label()
+        ir0.cont = self.new_label()  #continue jumps here
         ir0.after = self.new_label()
         gen1 = f"{ir0.begin}:"
-        self.resolve_exp(ir2)
+        if ir2.bpneed>0:
+            self.resolve_exp(ir2)
         gen2 = f"if {ir2.place} == 0 goto {ir0.after}"
-        ## NOTE TO SELF
-        # Uncomment the code below when relational and logical done
-        # if ir2.code == "":    
-        #     gen2 = ""
+        gen5 = f"{ir0.cont}:"    
         gen3 = f"goto {ir0.begin}"
         gen4 = f"{ir0.after}:"
         if ir3 is not None:
-            ir0.code = self.join(ir1.code,gen1,ir2.code,gen2,ir4.code,ir3.code,gen3,gen4)
+            ir0.code = self.join(ir1.code,gen1,ir2.code,gen2,ir4.code,gen5,ir3.code,gen3,gen4)
         else:
-            ir0.code = self.join(ir1.code,gen1,ir2.code,gen2,ir4.code,gen3,gen4)
+            ir0.code = self.join(ir1.code,gen1,ir2.code,gen2,ir4.code,gen5,gen3,gen4)
+
+        for c in ir0.truelist: #handle continue
+            self.backpatch(ir0,c,ir0.cont)
+        for c in ir0.falselist: #handle break
+            self.backpatch(ir0,c,ir0.after)
         
-    def if_with_else(self, ir0, ir1, ir2,ir3):
+    def if_with_else(self, ir0, ir1, ir2,ir3): #1exp 2statement 3statement
         ir0.after = ir3.after
         gen4 = ""
-        self.resolve_exp(ir1)
+        if ir1.bpneed>0:
+            self.resolve_exp(ir1)
         if ir0.after == "":
             ir0.after = self.new_label()
             gen4 = f"{ir0.after}:"
@@ -303,15 +329,18 @@ class IRGenerator:
         gen1 = f"if {ir1.place} == 0 goto {ir0.else_}"
         gen2 = f"goto {ir0.after}"
         gen3 = f"{ir0.else_}:"
+        self.manage_lists(ir0,ir2)
         ir0.code = self.join(ir1.code,gen1,ir2.code,gen2,gen3,ir3.code,gen4)
     
     def if_no_else(self, ir0, ir1, ir2):
         ir0.after = self.new_label()
         ir0.else_ = ir0.after
-        self.resolve_exp(ir1)
+        if ir1.bpneed>0:
+            self.resolve_exp(ir1)
         gen1 = f"if {ir1.place} == 0 goto {ir0.after}"
         gen2 = f"goto {ir0.after}"
         gen4 = f"{ir0.after}:"
+        self.manage_lists(ir0,ir2)
         ir0.code = self.join(ir1.code,gen1,ir2.code,gen2,gen4)
 
     def resolve_exp(self,ir1): #falselist truelist assign them to its place , new label
@@ -347,6 +376,7 @@ class IRGenerator:
         ir0.truelist +=ir2.truelist
         #rhs ka false goes out directly
         ir0.falselist += ir2.falselist
+        ir0.bpneed += ir1.bpneed + ir2.bpneed + 1
         gen2 = f"{mid}:"
         ir0.place = ir2.place #ir1 is true so pass ir2 for further eval
         ir0.code = self.join(ir1.code,gen,gen2,ir2.code)
@@ -354,6 +384,7 @@ class IRGenerator:
 
     def logical_or(self,ir0,ir1,op,ir2): # when true then we jump to the inside scope , using truelist
         truego = self.bp_label()
+        ir0.bpneed += ir1.bpneed + ir2.bpneed + 1
         mid = self.new_label()
         gen = f"if {ir1.place} == 1 goto {truego}" #first statement true so go inside scope
         gen2 = f"{mid}:"
@@ -463,6 +494,17 @@ class IRGenerator:
         ir0.code = f"goto {temp}"
         ir0.falselist = [temp]
 
+    def continue_jump(self,ir0):
+        temp = self.bp_label()
+        ir0.code = f"goto {temp}"
+        ir0.truelist = [temp]
+
+    def manage_lists(self,ir0,*args):
+        for c in args:
+            if c is not None:
+                ir0.falselist += c.falselist
+                ir0.truelist += c.truelist
+
     def switch_selection_statement(self,ir0,ir1,ir2): #ir1 has variable , ir2 has statements
         gen1 = ""
         for up, true, place in zip(ir2.switchup,ir2.truelist,ir2.switchplace):
@@ -478,7 +520,7 @@ class IRGenerator:
         for c in ir2.falselist:
             self.backpatch(ir2,c,temp)
         ir0.code = self.join(ir1.code,gen1,ir2.code,gen3)
-        return
+
     def struct_access(self,ir0,ir1,offset,isArrow=False):
         ir0.place = self.new_temp()
         if isArrow:
@@ -489,6 +531,7 @@ class IRGenerator:
         # gen3 = f"*{ir0.place}"
         ir0.place = '*'+ir0.place
         ir0.code = self.join(gen1,gen2)
+
     def struct_init_list(self,ir0,ir1,offset_list,init_list):
         ir0.place = self.new_temp()
         gen1 = f"{ir0.place} = & {ir1.place}"

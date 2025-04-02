@@ -2235,6 +2235,7 @@ def p_jump_statement(p):
             IrGen.break_jump(p[0].ir)
         if p[1] == 'continue':
             p[0].continue_count = True
+            IrGen.continue_jump(p[0].ir)
     elif len(p) == 4:
         p[0] = Node("jump_statement", [p[1], p[2]])
         if p[1] == 'return':

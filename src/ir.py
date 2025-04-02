@@ -6,6 +6,7 @@ class IR:
         self.falselist = []
         self.nextlist = []
         self.switchup = []
+        self.bpneed = 0
         self.switchplace = []
         self.begin = ""
         self.after = ""
