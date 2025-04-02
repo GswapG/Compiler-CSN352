@@ -22,7 +22,7 @@ class IRGenerator:
 
     def new_temp(self):
         """Generate a new unique temporary variable."""
-        temp_var = f'@t{self.temp_counter}'
+        temp_var = f'_t{self.temp_counter}'
         self.temp_counter += 1
         return temp_var
 
@@ -36,7 +36,7 @@ class IRGenerator:
                 self.function_labels[func_name] = f".{func_name}"
             return self.function_labels[func_name]
         
-        label = f'$L{self.label_counter}'
+        label = f'.L{self.label_counter}'
         self.label_counter += 1
         return label
     
@@ -50,7 +50,7 @@ class IRGenerator:
                 self.function_labels[func_name] = f".{func_name}"
             return self.function_labels[func_name]
         
-        label = f'$BP{self.bp_counter}'
+        label = f'.BP{self.bp_counter}'
         self.bp_counter += 1
         return label
     
@@ -110,9 +110,12 @@ class IRGenerator:
         return ret[:-1]
     
     def remove_lastline(self,ir):
-        index = ir.code.rfind("\n")  # Find the last occurrence of "/n"
+        """
+        Remove the last line
+        """
+        index = ir.code.rfind("\n")
         if index != -1:
-            ir.code = ir.code[:index]  # Slice up to the last "/n"
+            ir.code = ir.code[:index]
         return ir.code
 
     # Functions for actual IR rules
@@ -125,9 +128,9 @@ class IRGenerator:
     def constant(self, ir0, const):
         ir0.place = str(const)
 
-    def assignment(self, ir0, ir1, ir2,var):
+    def assignment(self, ir0, ir1, ir2, var):
         gen = f"{ir1.place} = {ir2.place}"
-        ir0.code = self.join(ir1.code,ir2.code, gen)
+        ir0.code = self.join(ir1.code, ir2.code, gen)
         self.debug_print(ir0)
     
     def multiple_assignment(self, ir0, ir1, ir2):
@@ -168,21 +171,21 @@ class IRGenerator:
             ir0.place = ir1.place
         op = op[0]
         gen2 = f"{ir1.place} = {ir1.place} {op} 1"
-        ir0.code = self.join(gen1,gen2)
+        ir0.code = self.join(gen1, gen2)
         self.debug_print(ir0)
 
     def unary(self, ir0, ir1, op):
         ir0.place = self.new_temp()
         gen = f"{ir0.place} = {op} {ir1.place}"
-        ir0.code = self.join(ir1.code,gen)
+        ir0.code = self.join(ir1.code, gen)
         self.debug_print(ir0)
 
-    def blockitem(self,ir0,ir1,ir2):
-        ir0.code = self.join(ir1.code,ir2.code)
+    def blockitem(self, ir0, ir1, ir2):
+        ir0.code = self.join(ir1.code, ir2.code)
         self.debug_print(ir0)
         
-    def translation_unit(self,ir0,ir1,ir2):
-        ir0.code = self.join(ir1.code,ir2.code)
+    def translation_unit(self, ir0, ir1, ir2):
+        ir0.code = self.join(ir1.code, ir2.code)
         self.debug_print(ir0)
 
     def function_definition(self,ir0,ir1,ir2,func_name):
@@ -192,12 +195,12 @@ class IRGenerator:
         ir0.code = self.join(gen1,gen2,ir2.code,gen3)
         self.debug_print(ir0)
 
-    def return_jump(self, ir0,ir1):
+    def return_jump(self, ir0, ir1):
         gen = f"return {ir1.place}"
-        ir0.code = self.join(ir1.code,gen)
+        ir0.code = self.join(ir1.code, gen)
 
     def argument_expression(self, ir0, ir1, ir2):
-        ir0.code = self.join(ir1.code,ir2.code)
+        ir0.code = self.join(ir1.code, ir2.code)
         ir0.parameters = ir1.parameters + [ir2.place]
     
     def parameter_init(self, ir0, ir1):
@@ -233,24 +236,6 @@ class IRGenerator:
 
     def goto_label(self, ir0, label):
         ir0.code = f"goto {label}"
-
-    def call_array_position(self, ir0, ir1, ir2, dimensions):
-        gen2=""
-        print(ir0.place,ir1.place,ir2.place)
-        ir0.place = self.new_temp()
-        if ir1.place[0]!="@":
-            gen1 = f"{ir0.place} = {ir2.place}"
-        else:
-            gen1 = f"{ir0.place} = {ir1.place} + {ir2.place}"
-            
-        if(len(dimensions)>0):
-            gen2 = f"{ir0.place} = {ir0.place} * {dimensions[0]}"
-        ir0.code = self.join(ir1.code,ir2.code,gen1,gen2) 
-        self.debug_print(ir0)
-
-    def unary_array(self, ir0, ir1, var):
-        ir0.place = f"{var}[{ir1.place}]"
-        self.debug_print(ir0)
     
     def while_loop(self, ir0, ir1, ir2):
         ir0.begin = self.new_label()
@@ -260,7 +245,7 @@ class IRGenerator:
         gen2 = f"if {ir1.place} == 0 goto {ir0.after}"
         gen3 = f"goto {ir0.begin}"
         gen4 = f"{ir0.after}:"
-        ir0.code = self.join(gen1,ir1.code,gen2,ir2.code,gen3,gen4)
+        ir0.code = self.join(gen1, ir1.code, gen2, ir2.code, gen3, gen4)
         self.debug_print(ir0)
     
     def do_while_loop(self, ir0, ir1, ir2):
@@ -396,3 +381,21 @@ class IRGenerator:
         else:
             ir0.place=f"*{ir1.place}"
         ir0.code = self.join(ir1.code,gen1)
+
+    def call_array_position(self, ir0, ir1, ir2, dimensions):
+        gen2=""
+        print(ir0.place,ir1.place,ir2.place)
+        ir0.place = self.new_temp()
+        if ir1.place[0]!="@":
+            gen1 = f"{ir0.place} = {ir2.place}"
+        else:
+            gen1 = f"{ir0.place} = {ir1.place} + {ir2.place}"
+            
+        if(len(dimensions)>0):
+            gen2 = f"{ir0.place} = {ir0.place} * {dimensions[0]}"
+        ir0.code = self.join(ir1.code,ir2.code,gen1,gen2) 
+        self.debug_print(ir0)
+
+    def unary_array(self, ir0, ir1, var):
+        ir0.place = f"{var}[{ir1.place}]"
+        self.debug_print(ir0)

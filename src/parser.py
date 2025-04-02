@@ -564,12 +564,12 @@ def p_unary_expression(p):
             IrGen.inc_dec(p[0].ir, p[2].ir, p[1])
 
         elif p[1] != "sizeof":
-            if(p[1].operator)=='!':
-                IrGen.unary_not(p[0].ir, p[2].ir,p[1].operator)    
-            elif(p[1].operator)=='*':
-                IrGen.unary_ptr(p[0].ir, p[2].ir,p[1].operator)
+            if p[1].operator == '!':
+                IrGen.unary_not(p[0].ir, p[2].ir, p[1].operator)    
+            elif p[1].operator == '*':
+                IrGen.unary_ptr(p[0].ir, p[2].ir, p[1].operator)
             else:
-                IrGen.unary(p[0].ir, p[2].ir,p[1].operator)
+                IrGen.unary(p[0].ir, p[2].ir, p[1].operator)
 
     elif len(p) == 5:
         p[0] = Node("unary_expression", [p[1], p[3]])
@@ -1133,7 +1133,6 @@ def p_assignment_expression(p):
         p[0].rvalue = True
 
         p[0].return_type = p[1].return_type
-    # IR
 
 def p_assignment_operator(p):
     '''assignment_operator : ASSIGN
@@ -2240,7 +2239,7 @@ def p_function_definition(p):
         p[0] = Node("function_definition", [p[1], p[2], p[3], p[4]])
     else:
         p[0] = Node("function_definition", [p[1], p[2], p[3]])
-        IrGen.function_definition(p[0].ir, p[2].ir, p[3].ir,p[2].vars[0])
+        IrGen.function_definition(p[0].ir, p[2].ir, p[3].ir, p[2].vars[0])
 
     ## because child scope was created earlier and attached already.
     symtab.to_add_child = False
@@ -2255,7 +2254,6 @@ def p_function_definition(p):
         base_type += " "
     
     base_type=base_type[:-1]
-
 
     global returns
     while len(func_name) > 0 and func_name[-1] == '?':
@@ -2317,7 +2315,7 @@ def p_error(p):
 # Build parser
 parser = yacc.yacc(debug=True)
 
-def parseFile(filename, ogfilename, treedir, symtabdir,graphgen=False,irgen=True):
+def parseFile(filename, ogfilename, treedir, symtabdir, irtreedir, graphgen=False,irgen=True):
     global IrGen
     IrGen = IRGenerator(irgen)
     IrGen.set_out_file(ogfilename)
@@ -2336,13 +2334,19 @@ def parseFile(filename, ogfilename, treedir, symtabdir,graphgen=False,irgen=True
     if graphgen:
         treepath = os.path.join(treedir, ogfilename[:-2])
         symtabpath = os.path.join(symtabdir, ogfilename[:-2])
+        irtreepath = os.path.join(irtreedir, ogfilename[:-2])
         graph = root.to_graph()
         graph.render(treepath, format='png', cleanup=True)
         print(f"Parse tree saved as renderedTrees/{ogfilename[:-2]}.png")
+        
+        graph = root.to_annotated_parse_tree()
+        graph.render(irtreepath, format='png', cleanup=True)
+        print(f"Parse tree saved as renderedIRTrees/{ogfilename[:-2]}.png")
+        
         graph = symtab.to_graph()
         graph.render(symtabpath, format='png', cleanup=True)
         print(f"Symbol table tree saved as renderedSymbolTables/{ogfilename[:-2]}.png")
-
+        
     print("\n")
 
     symtab.clear()

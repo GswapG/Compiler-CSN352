@@ -13,6 +13,7 @@ STRESS_TESTING = './stress_testing'
 DEFAULT_SOURCE_DIR = './tests/testing'
 TREE_PATH = './renderedTrees'
 SYMBOL_TABLE_PATH = './renderedSymbolTables'
+IR_TREE_PATH = './renderedIRTrees'
 
 # Command line arguments
 strargv = [str(x) for x in sys.argv]
@@ -93,7 +94,7 @@ def process_file(filename,source_dir=testcase_dir):
         print(f"Preprocessed: {filename} -> {temp_file.name}")
 
     # Pass the temporary file to the parser.
-    parseFile(temp_file.name,filename,TREE_PATH,SYMBOL_TABLE_PATH,graphgen,irgen)
+    parseFile(temp_file.name,filename,TREE_PATH,SYMBOL_TABLE_PATH,IR_TREE_PATH,graphgen,irgen)
 
     add_file(input_path)
     return temp_file.name

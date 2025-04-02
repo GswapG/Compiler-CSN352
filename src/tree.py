@@ -85,7 +85,92 @@ class Node:
             #     graph.edge(str(id(self)), child_id)
         
         return graph
+    
+    def to_annotated_parse_tree(self, graph=None):
+        if graph is None:
+            graph = Digraph()
+            graph.attr('node', shape='plaintext', margin='0.2', fontname='Helvetica')
+            graph.attr('edge', arrowhead='vee', arrowsize='0.5')
+            graph.attr('graph', rankdir='TB', splines='ortho')
 
+        def escape_html(text):
+            """Escape only HTML-sensitive characters (single pass)"""
+            if text is None:
+                return ""
+            return (str(text)
+                    .replace('&', '&amp;')
+                    .replace('<', '&lt;')
+                    .replace('>', '&gt;'))
+
+        def format_code(code):
+            """Format code with proper escaping and line breaks"""
+            if not code:
+                return ""
+            # First escape HTML, then handle whitespace
+            return (escape_html(code)
+                    .replace('\n', '<BR ALIGN="LEFT"/>')
+                    .replace('\t', '    '))  # 4 spaces for tabs
+
+        # Create HTML-like table for the node
+        node_label = ['<<table border="0" cellborder="1" cellspacing="0" cellpadding="4">']
+        
+        # Node type header
+        node_label.append(f'<tr><td bgcolor="#f0f0f0" align="center"><b>{escape_html(self.type)}</b></td></tr>')
+        
+        # Process IR attributes
+        if self.ir and any([self.ir.place, self.ir.code]):
+            ir_info = []
+            
+            # Generic attribute formatter
+            def format_attr(value):
+                if isinstance(value, list):
+                    return ', '.join(escape_html(str(v)) for v in value)
+                return escape_html(str(value))
+
+            # Special handling for code
+            if self.ir.code:
+                code_content = format_code(self.ir.code)
+                ir_info.append(('code', f'<font face="Courier">{code_content}</font>'))
+
+            # Add other attributes
+            attrs = [
+                ('place', self.ir.place),
+                ('truelist', self.ir.truelist),
+                ('falselist', self.ir.falselist),
+                ('nextlist', self.ir.nextlist),
+                ('begin', self.ir.begin),
+                ('after', self.ir.after),
+                ('params', self.ir.parameters),
+                ('else', self.ir.else_)
+            ]
+            
+            for name, value in attrs:
+                if value:
+                    ir_info.append((name, format_attr(value)))
+
+            # Build table rows
+            for name, value in ir_info:
+                node_label.append(f'<tr><td align="left"><i>{escape_html(name)}:</i> {value}</td></tr>')
+
+        node_label.append('</table>>')
+        
+        # Create node with properly escaped label
+        graph.node(str(id(self)), label='\n'.join(node_label))
+
+        # Process children
+        for child in self.children:
+            if isinstance(child, Node):
+                child_label = [
+                    '<<table border="0" cellborder="1" cellspacing="0" cellpadding="4">',
+                    f'<tr><td align="center" bgcolor="#f0f0f0">{escape_html(child.type)}</td></tr>',
+                    '</table>>'
+                ]
+                graph.node(str(id(child)), label='\n'.join(child_label))
+                graph.edge(str(id(self)), str(id(child)))
+                child.to_annotated_parse_tree(graph)
+
+        return graph
+    
     def dfs2(self):
         """if one parent and one child then both get linked and i disappear"""
         for i in range(len(self.children)):

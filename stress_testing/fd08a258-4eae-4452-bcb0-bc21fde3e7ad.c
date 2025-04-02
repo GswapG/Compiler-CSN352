@@ -4,7 +4,7 @@ int main() {
 
     if (arr[1] < 5) {
         char c = 'e';
-    } else if (arr[5] >= arr[1]) {
+    } else {
         char* d = "hello";
     }
 }

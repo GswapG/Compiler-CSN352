@@ -24,6 +24,17 @@ def count_deref_ref(var):
 def validate_relational_operands(left_vars, right_vars, symtab, allow_int_float):
     # Validate left variables exist in the symbol table.
     for var in left_vars:
+        braces_count = 0
+        if var[-1] == ']':
+            braces_count = var.count("]")
+            var = var[:-2 * braces_count]
+
+        if symtab.lookup(var) is not None:
+            kind = symtab.lookup(var).kind
+            if "D-array" in kind:
+                if str(kind[0]) != str(braces_count):
+                    raise Exception("Invalid array access")
+
         d, r, clean_var = count_deref_ref(var)
         if symtab.lookup(clean_var) is None:
             raise ValueError(f"No symbol '{clean_var}' in the symbol table")
