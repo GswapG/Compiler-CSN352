@@ -346,23 +346,17 @@ class IRGenerator:
     def resolve_exp(self,ir1): #falselist truelist assign them to its place , new label
         true = self.new_label()
         false = self.new_label()
-        start = self.new_label()
-        var = self.new_temp()
         gen0 = "=======extra logic for logical handling========"
         gen1 = f"if {ir1.place} == 0 goto {false}"
         gen2 = f"{true}:"
-        gen3 = f"{var} = 1"
-        gen4 = f"goto {start}"
-        gen5 = f"{false}:"
-        gen6 = f"{var} = 0"
-        gen7 = f"{start}:"
+        gen3 = f"{ir1.place} = 1"
+        gen7 = f"{false}:"
         gen8 = "==============================================="
-        ir1.place = var
         for c in ir1.truelist:
             self.backpatch(ir1,c,true)
         for c in ir1.falselist:
             self.backpatch(ir1,c,false)
-        ir1.code = self.join(ir1.code,gen0,gen1,gen2,gen3,gen4,gen5,gen6,gen7,gen8)
+        ir1.code = self.join(ir1.code,gen0,gen1,gen2,gen3,gen7,gen8)
     
     def logical_and(self,ir0,ir1,op,ir2):
         falsego = self.bp_label() #go outside if, forloop
