@@ -1301,7 +1301,7 @@ def p_init_declarator(p):
             )
             symtab.add_symbol(var_sym)
 
-    if len(p) == 4:
+    if len(p) == 4 and kind != "reference":
         checkfunc = not p[3].iscall
 
         if p[0].isbraces:
@@ -1315,6 +1315,9 @@ def p_init_declarator(p):
                     
                     if checkfunc and symtab.lookup(rhs_var) is not None and symtab.lookup(rhs_var).kind == 'function':
                         raise Exception("Can't assign value of function")
+
+                
+                IrGen.array_initializer_list(p[0].ir, p[1].ir, p[3].ir)
 
             elif ((("struct" in base_type or "union" in base_type) or
             (symtab.lookup(base_type.split(' ')[-1]) is not None and 
@@ -1394,7 +1397,6 @@ def p_init_declarator(p):
                     if implicit_type_compatibility(base_type, type_, True):
                         raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]}\n| base_type = {base_type} |\n| rhs_type = {type_} |")
         
-        if(kind!="reference"):
             IrGen.assignment(p[0].ir, p[1].ir, p[3].ir,p[0].vars[0])
 
     p[0].is_address = False
@@ -1713,7 +1715,8 @@ def p_direct_declarator(p):
         
         p[0] = Node("array_declarator", [p[1], p[3]])
         p[0].vars[0] += "[" + p[3].expression + "]"
-    
+        IrGen.array_declarator(p[0].ir, p[1].ir, p[3].ir)
+
     # direct_declarator LPAREN RPAREN case
     elif len(p) == 4 and p[2] == '(' and p[3] == ')':
         p[0] = Node("function_declarator", [p[1]])
@@ -1974,8 +1977,10 @@ def p_initializer_list(p):
                        | initializer_list COMMA initializer'''
     if len(p) == 2:
         p[0] = Node("initializer_list", [p[1]])
+        IrGen.initializer(p[0].ir, p[1].ir)
     elif len(p) == 4:
         p[0] = Node("initializer_list", [p[1], p[3]])
+        IrGen.initializer_list(p[0].ir, p[1].ir, p[3].ir)
     else:
         p[0] = Node("initializer_list", [p[1], p[3]])
     

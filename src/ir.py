@@ -11,3 +11,6 @@ class IR:
         self.after = ""
         self.parameters = []
         self.else_ = ""
+        self.initializer_list = []
+        self.array_dimension = 0
+        self.array_sizes = []

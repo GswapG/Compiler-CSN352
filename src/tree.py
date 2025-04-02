@@ -141,7 +141,8 @@ class Node:
                 ('begin', self.ir.begin),
                 ('after', self.ir.after),
                 ('params', self.ir.parameters),
-                ('else', self.ir.else_)
+                ('else', self.ir.else_),
+                ('initializer_list', self.ir.initializer_list)
             ]
             
             for name, value in attrs:
