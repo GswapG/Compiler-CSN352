@@ -124,7 +124,10 @@ def dominating_type(type1, type2):
                                     if "char" in types1 and "char" in types2:
                                         return True
                                     else:
-                                        raise Exception(f"Unexpected types received {types1} {types2}")
+                                        if type1 == type2:
+                                            return True
+                                        else:
+                                            raise Exception(f"Unexpected types received {types1} {types2}")
                                 else:
                                     if "short" in types1:
                                         return True

@@ -646,6 +646,8 @@ def p_cast_expression(p):
         p[0].return_type = p[2].return_type
         p[0].lvalue = False
         p[0].rvalue = True
+        # IR
+        IrGen.cast_expression(p[0].ir, p[2].return_type, p[4].ir)
 
 def p_cast_expression_error(p):
     '''cast_expression : LPAREN type_name error cast_expression'''
@@ -1129,17 +1131,19 @@ def p_assignment_expression(p):
             if p[3].name == "struct" or p[3].name == "union" or p[3].name == "function" or p[3].name == "compound_literal" or p[3].name == "string_literal":
                 raise Exception(f"Operator {p[2].name} cannot be applied to a {p[3].name}")        
 
-        if p[2].operator == '=':
-            IrGen.assignment(p[0].ir, p[1].ir, p[3].ir,p[0].vars[0])
-        else:
-            IrGen.op_assign(p[0].ir, p[1].ir, p[3].ir, p[2].operator)
-
         p[0].is_address = False
         
         p[0].lvalue = False
         p[0].rvalue = True
 
         p[0].return_type = p[1].return_type
+        
+        # IR
+        if p[2].operator == '=':
+            IrGen.assignment(p[0].ir, p[1].ir, p[3].ir)
+        else:
+            IrGen.op_assign(p[0].ir, p[1].ir, p[3].ir, p[2].operator)
+
 
 def p_assignment_operator(p):
     '''assignment_operator : ASSIGN
@@ -1308,6 +1312,8 @@ def p_init_declarator(p):
                 kind=str(kind)
             )
             symtab.add_symbol(var_sym)
+    # setting type for IR gen
+    p[1].return_type = base_type
     if len(p) == 4 and kind != "reference":
         checkfunc = not p[3].iscall
         if p[0].isbraces:
@@ -1410,7 +1416,7 @@ def p_init_declarator(p):
                 if not (trim_value(base_type, "const").split(" ")[0] == "enum" and type_ == "int"):
                     if implicit_type_compatibility(base_type, type_, True):
                         raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]}\n| base_type = {base_type} |\n| rhs_type = {type_} |")
-            IrGen.assignment(p[0].ir, p[1].ir, p[3].ir,p[0].vars[0])
+            IrGen.assignment(p[0].ir, p[1].ir, p[3].ir)
     
     p[0].is_address = False
 

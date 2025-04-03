@@ -19,7 +19,7 @@ class Node:
         self.is_const = 0
         self.is_address = False
         self.isbraces = False
-        self.return_type = None
+        self._return_type = None
         self.iscall = 0
         self.param_list = []
         self.operator = None
@@ -44,7 +44,7 @@ class Node:
             self.children = children_conv
 
         if len(self.children) == 1 and isinstance(self.children[0], Node):
-            self.return_type = self.children[0].return_type
+            self._return_type = self.children[0]._return_type
             self.iscall = self.children[0].iscall
             self.lvalue = self.children[0].lvalue
             self.rvalue = self.children[0].rvalue
@@ -68,6 +68,15 @@ class Node:
 
     def __repr__(self):
         return f"Node({self.type})"
+
+    @property
+    def return_type(self):
+        return self._return_type
+    
+    @return_type.setter
+    def return_type(self, new_value):
+        self._return_type = new_value
+        self.ir.data_type = self._return_type
 
     def to_graph(self, graph=None):
         if graph is None:
@@ -142,7 +151,8 @@ class Node:
                 ('after', self.ir.after),
                 ('params', self.ir.parameters),
                 ('else', self.ir.else_),
-                ('initializer_list', self.ir.initializer_list)
+                ('initializer_list', self.ir.initializer_list),
+                ('data_type', self.ir.data_type)
             ]
             
             for name, value in attrs:

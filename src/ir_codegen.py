@@ -1,6 +1,7 @@
 from .ir import IR
 import os
 import copy
+from .compatible import dominating_type
 DEFAULT_OUTPUT_DIRECTORY = "generatedIR"
 
 class IRGenerator:
@@ -119,6 +120,9 @@ class IRGenerator:
             ir.code = ir.code[:index]
         return ir.code
 
+    def dom_type(self, ir1, ir2):
+        return ir1.data_type if dominating_type(ir1.data_type,ir2.data_type) else ir2.data_type
+    
     # Functions for actual IR rules
     def identifier(self, ir0, id):
         ir0.place = str(id)
@@ -129,10 +133,13 @@ class IRGenerator:
     def constant(self, ir0, const):
         ir0.place = str(const)
 
-    def assignment(self, ir0, ir1, ir2, var):
+    def assignment(self, ir0, ir1, ir2):
         if ir2.bpneed>0:
             self.resolve_exp(ir2)
         gen = f"{ir1.place} = {ir2.place}"
+        if ir1.data_type != ir2.data_type:
+            cvt = f"{ir2.data_type}To{ir1.data_type}"
+            gen =  f"{ir1.place} = {cvt} {ir2.place}"
         ir0.code = self.join(ir1.code, ir2.code, gen)
         self.debug_print(ir0)
     
@@ -141,16 +148,38 @@ class IRGenerator:
         self.debug_print(ir0)
 
     def op_assign(self, ir0, ir1, ir2, op):
+        dom_type = self.dom_type(ir1,ir2)
+        gen1 = ""
+        if ir1.data_type != dom_type:
+            cvt = f"{ir1.data_type}To{dom_type}"
+            gen1 = f"{ir1.place} = {cvt} {ir1.place}"
+        if ir2.data_type != dom_type:
+            cvt = f"{ir2.data_type}To{dom_type}"
+            gen1 = f"{ir2.place} = {cvt} {ir2.place}"
         if op.endswith('='):
             op = op[:-1]
-        gen = f"{ir1.place} = {ir1.place} {op} {ir2.place}"
-        ir0.code = self.join(ir2.code, gen)
+        op = f"({dom_type}){op}"
+        gen2 = f"{ir1.place} = {ir1.place} {op} {ir2.place}"
+        gen3 = ""
+        if gen1 != "":
+            cvt = f"{dom_type}To{ir1.data_type}"
+            gen3 = f"{ir1.place} = {cvt} {ir1.place}"
+        ir0.code = self.join(ir2.code, gen1, gen2,gen3)
         self.debug_print(ir0)
 
     def arithmetic_expression(self, ir0, ir1, op, ir2):
         ir0.place = self.new_temp()
-        gen = f"{ir0.place} = {ir1.place} {op} {ir2.place}"
-        ir0.code = self.join(ir1.code, ir2.code, gen)
+        dom_type = self.dom_type(ir1,ir2)
+        gen1 = ""
+        if ir1.data_type != dom_type:
+            cvt = f"{ir1.data_type}To{dom_type}"
+            gen1 = f"{ir1.place} = {cvt} {ir1.place}"
+        if ir2.data_type != dom_type:
+            cvt = f"{ir2.data_type}To{dom_type}"
+            gen1 = f"{ir2.place} = {cvt} {ir2.place}"
+        op = f"({dom_type}){op}"
+        gen2 = f"{ir0.place} = {ir1.place} {op} {ir2.place}"
+        ir0.code = self.join(ir1.code, ir2.code,gen1, gen2)
         self.debug_print(ir0)
 
     def bitwise_expression(self, ir0, ir1, op, ir2):
@@ -161,9 +190,18 @@ class IRGenerator:
     
     def relational_expression(self, ir0, ir1, op, ir2):
         ir0.place = self.new_temp()
-        gen = f"{ir0.place} = {ir1.place} {op} {ir2.place}"
-        ir0.code = self.join(ir1.code, ir2.code, gen)
-        self.debug_print(ir0)
+        dom_type = self.dom_type(ir1,ir2)
+        gen1 = ""
+        if ir1.data_type != dom_type:
+            cvt = f"{ir1.data_type}To{dom_type}"
+            gen1 = f"{ir1.place} = {cvt} {ir1.place}"
+        if ir2.data_type != dom_type:
+            cvt = f"{ir2.data_type}To{dom_type}"
+            gen1 = f"{ir2.place} = {cvt} {ir2.place}"
+        op = f"({ir0.data_type}){op}"
+        gen2 = f"{ir0.place} = {ir1.place} {op} {ir2.place}"
+        ir0.code = self.join(ir1.code, ir2.code, gen1,gen2)
+        self.debug_print(ir0)    
 
     def inc_dec(self, ir0, ir1, op, post=False):
         gen1 = ""
@@ -541,4 +579,11 @@ class IRGenerator:
             gen_temp2 = f"*{ir0.place} = {init_list[i]}"
             gen1 = self.join(gen1,gen_temp,gen_temp2)
         ir0.code = gen1
-    
+
+    def cast_expression(self, ir0, cast_type ,ir1):
+        ir0.place = self.new_temp()
+        gen = ""
+        if cast_type != ir1.data_type:
+            cvt = f"{ir1.data_type}To{cast_type}"
+            gen = f"{ir0.place} = {cvt} {ir1.place}"
+        ir0.code = self.join(ir1.code,gen)

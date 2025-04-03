@@ -15,3 +15,4 @@ class IR:
         self.initializer_list = []
         self.array_dimension = 0
         self.array_sizes = []
+        self.data_type = None
