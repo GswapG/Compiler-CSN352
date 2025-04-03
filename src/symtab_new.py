@@ -6,7 +6,7 @@ def strict_equal(a, b):
     return type(a) is type(b) and a == b
 
 class SymbolEntry:
-    def __init__(self, name, type, kind, child = None, node = None, isForwardable = False, refsto = None, size = 0, offset = 0):
+    def __init__(self, name, type, kind, child = None, node = None, isForwardable = False, refsto = None, size = 0, offset = 0,value=None):
         """
             name        -> identifier
             type        -> data type
@@ -25,7 +25,7 @@ class SymbolEntry:
         self.isFunctionDefinition = False
         self.size = size 
         self.offset = offset
-        self.value = None
+        self.value = value
 
 class SymbolEntryNode:
     def __init__(self, scope_level, scope_name, parent=None):
@@ -322,7 +322,7 @@ class SymbolTable:
 
         for entry in self.current_scope.entries:
             if strict_equal(entry.name, symbol.name):
-                if entry.kind != "constant":
+                if entry.kind != "constant" and entry.kind != "enumerator":
                     raise ValueError(f"Duplicate symbol '{symbol.name}' in scope {self.current_scope_name}")
                 else:
                     return
