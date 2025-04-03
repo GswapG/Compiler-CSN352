@@ -386,7 +386,7 @@ class IRGenerator:
         truego = self.bp_label()
         ir0.bpneed += ir1.bpneed + ir2.bpneed + 1
         mid = self.new_label()
-        gen = f"if {ir1.place} == 1 goto {truego}" #first statement true so go inside scope
+        gen = f"if {ir1.place} != 0 goto {truego}" #first statement true so go inside scope
         gen2 = f"{mid}:"
         for c in ir1.falselist: #lhs ka true jumpshere
             self.backpatch(ir1,c,mid)
