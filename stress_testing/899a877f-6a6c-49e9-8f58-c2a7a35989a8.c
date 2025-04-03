@@ -1,0 +1,3 @@
+struct Node {
+    int x;
+};

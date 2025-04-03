@@ -180,5 +180,12 @@ tempCodeRunnerFile*
 **/parser.out
 **/ast
 **/ast.png
+**/renderedIRTrees
 **/renderedTrees
 **/renderedSymbolTables
+**/parsetab.py
+**/hashes.bin
+**/generatedIR
+
+# Redundant Batch
+driver.bat 

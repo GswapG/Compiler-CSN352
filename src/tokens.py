@@ -49,7 +49,7 @@ reserved_keywords = {
 }
 
 # Arithmetic Operators Dictionary
-arithmetic_operators = {
+arithmetic_operators = { #DONE IR
     '+': 'PLUS',
     '-': 'MINUS',
     '*': 'TIMES',
@@ -70,7 +70,7 @@ relational_operators = {
 }
 
 # Bitwise Operators Dictionary
-bitwise_operators = {
+bitwise_operators = { #DONE IR
     '&': 'AND',
     '|': 'OR',
     '^': 'XOR',
@@ -80,14 +80,14 @@ bitwise_operators = {
 }
 
 # Logical Operators Dictionary
-logical_operators = {
+logical_operators = { 
     '&&': 'AND_OP',
     '||': 'OR_OP',
     '!': 'NOT'
 }
 
 # Assignment Operators Dictionary
-assignment_operators = {
+assignment_operators = { #DONE IR
     '=': 'ASSIGN',
     '+=': 'ADD_ASSIGN',
     '-=': 'SUB_ASSIGN',
