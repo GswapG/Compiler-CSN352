@@ -88,6 +88,9 @@ This compiler project implements a full-featured compiler for a C-like language,
 
 **Symbol Table Example:**
 ```
++--------------+-------------+-----------+---------+-------------+--------+----------+
+| Name         | Type        | Kind      |   Scope | ScopeName   |   Size |   Offset |
++==============+=============+===========+=========+=============+========+==========+
 | fun          | int         | function  |       0 | global      |      0 |        0 |
 +--------------+-------------+-----------+---------+-------------+--------+----------+
 | i            | int         | parameter |       1 | block@1     |      4 |        0 |
