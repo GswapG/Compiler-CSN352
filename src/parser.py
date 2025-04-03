@@ -1451,11 +1451,22 @@ def p_type_specifier(p):
                      | TYPEDEF_NAME'''
     p[0] = Node("type_specifier", [p[1]])
     if isinstance(p[1],str):
-        p[0].return_type = p[1]
+        '''
+        typedefs are entered in symtab with kind set as the actual type
+        to avoid further complications in the code, we set the data type as the kind
+        struct case is handeled seperately and hence we only set the type if the type is simple
+        '''
+        ret_type = p[1]
+        if symtab.lookup(p[1]) is not None and not symtab.lookup(p[1]).kind.startswith("struct"):
+            ret_type = symtab.lookup(p[1]).kind
+        p[0].return_type = ret_type
     else:
         p[0].return_type = p[1].return_type
     if not isinstance(p[1],Node):
-        p[0].dtypes.append(p[1])
+        ret_type = p[1]
+        if symtab.lookup(p[1]) is not None and not symtab.lookup(p[1]).kind.startswith("struct"):
+            ret_type = symtab.lookup(p[1]).kind
+        p[0].dtypes.append(ret_type)
     
 # Structures and Unions
 def p_struct_or_union_specifier(p):
