@@ -7,6 +7,9 @@ This compiler project implements a full-featured compiler for a C-like language,
 ## Compilation Stages
 
 ### 1. Preprocessor Stage (cpp.py)
+
+**Output**: Pre-Processed Code
+
 - Macro Preprocessing Support
   - Object-like macros
   - Function-like macros
@@ -16,6 +19,25 @@ This compiler project implements a full-featured compiler for a C-like language,
 - Directive parsing and preprocessing
 - Preliminary error detection
 - Note: No full linking implemented at this stage
+
+**Output Example:**
+
+> ```
+> Preprocessed: ff84274d-67f4-42f7-bd98-394db3e29328.c
+> ╔══════════ File Contents ══════════╗
+> ║ void print_int(int x);            ║
+> ║ void print_float(float x);        ║
+> ║ void print_char(char x);          ║
+> ║ void print_string(const char *s); ║
+> ║                                   ║
+> ║ enum Color {TRUE, FALSE};         ║
+> ║ int main() {                      ║
+> ║     int* x;                       ║
+> ║     int y = *x;                   ║
+> ║ }                                 ║
+> ╚═══════════════════════════════════╝
+> Parsing file: C:\Users\mailg\AppData\Local\Temp\tmpaic2idcm.c
+> ```
 
 ### 2. Lexical Analysis Stage
 **Output**: Token Stream
@@ -66,17 +88,65 @@ This compiler project implements a full-featured compiler for a C-like language,
 
 **Symbol Table Example:**
 ```
-+--------+--------+-----------+---------+-------------+
-| Name   | Type   | Kind      | Scope   | ScopeName   |
-+========+========+===========+=========+=============+
-| main   | int    | function  |    0    | global      |
-| argc   | int    | parameter |    1    | block@1     |
-| argv   | **char | parameter |    1    | block@1     |
-...
+| fun          | int         | function  |       0 | global      |      0 |        0 |
++--------------+-------------+-----------+---------+-------------+--------+----------+
+| i            | int         | parameter |       1 | block@1     |      4 |        0 |
++--------------+-------------+-----------+---------+-------------+--------+----------+
+| _VAR_ARGS_   | ...         | parameter |       1 | block@1     |        |        0 |
++--------------+-------------+-----------+---------+-------------+--------+----------+
+| main         | int         | function  |       0 | global      |      0 |        0 |
++--------------+-------------+-----------+---------+-------------+--------+----------+
+| a            | int         | variable  |       1 | block@1     |      4 |        0 |
++--------------+-------------+-----------+---------+-------------+--------+----------+
+| x            | *int        | variable  |       1 | block@1     |      8 |        4 |
++--------------+-------------+-----------+---------+-------------+--------+----------+
+| z            | int         | variable  |       1 | block@1     |      4 |       12 |
++--------------+-------------+-----------+---------+-------------+--------+----------+
 ```
 **Scope Tree Example:**
 
 ![Scope Tree](images/scopes.c.png)
+
+
+### 5. IR Generation (3AC)
+
+**Output of IR Stage**: 
+- Three Address Code Intermediate Representation
+- Visual Representation in form of IR-Tree to understand the data flow of code generation
+
+**Advanced Supported Features**
+- Implicit and Explicit Type Conversion
+- Variable Arguments
+- Multidimensional array access and declaration
+- Multilevel pointer and dereferencing
+- Struct/Union Access using DOT and -> operators
+- Enumerators
+- typedef
+- Operators with types
+- Recursion
+- CLI
+- Until Loops
+
+**Example Output**
+
+```assembly
+.fun:
+    BeginFunc
+    return 11
+    EndFunc
+
+.main:
+    BeginFunc
+    a = 11
+    @t0 = & a
+    x = @t0
+    @t1 = charToint 'a'
+    z = @t1
+    param z
+    param a
+    @t2 = call fun, 2
+    EndFunc
+```
 
 ## Quick Start
 
@@ -117,6 +187,8 @@ run.bat
 - `-h`: Help
 - `-g`: Render Parse Trees
 - `--fast`: Enable JIT Compilation
+- `-d` to choose an entire directory of test cases to run the compiler
+- `--no-ir` to disable IR Generation
 
 ## Project Structure
 ```
@@ -139,6 +211,8 @@ compiler-project/
 - Python
 - PLY (Python Lex-Yacc)
 - Graphviz
+- Rich (For Pretty Tables)
+- CryptoHash (Used to generate hashes for stress testing)
 - Optional: PyPy3 for JIT (Useful for large or many files)
 
 ## Known Issues and Contributions
