@@ -186,3 +186,6 @@ tempCodeRunnerFile*
 **/parsetab.py
 **/hashes.bin
 **/generatedIR
+
+# Redundant Batch
+driver.bat 

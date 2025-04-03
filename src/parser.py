@@ -96,7 +96,9 @@ def p_primary_expression_identifier(p):
         cpy = cpy[1:]
 
     check = symtab.lookup(cpy)
+    ir_entry = p[1]
     if check is not None:
+        # print(check.kind)
         if "function" == check.kind:
             p[0].name = "function"
         elif "D-array" in check.kind:
@@ -124,6 +126,10 @@ def p_primary_expression_identifier(p):
                 p[0].name = "union"
             else:
                 p[0].name = "variable"
+        elif "enumerator" == check.kind:
+           ir_entry = check.value
+           p[0].lvalue = False
+           p[0].rvalue = True
         else:
             p[0].name = check.kind
 
@@ -133,7 +139,7 @@ def p_primary_expression_identifier(p):
     if(symtab.lookup(p[1]) is not None and symtab.lookup(p[1]).kind=="reference"):
         IrGen.identifier(p[0].ir, symtab.lookup(p[1]).refsto)
     else:
-        IrGen.identifier(p[0].ir, p[1])
+        IrGen.identifier(p[0].ir, ir_entry)
 
 def p_primary_expression_error(p):
     '''primary_expression : LPAREN expression error'''
@@ -176,11 +182,12 @@ def p_enumeration_constant(p):
     p[0] = Node("enumeration_constant", [p[1]])
     symbol_table.append((p[1] , "int"))
 
-    var_sym = SymbolEntry(str(p[1]), "int", "enumerator")
-    symtab.add_symbol(var_sym)
+    # var_sym = SymbolEntry(str(p[1]), "int", "enumerator")
+    # symtab.add_symbol(var_sym)
 
     p[0].name = "enumeration_constant"
     p[0].return_type = "int"
+    p[0].vars.append(str(p[1]))
 
 def p_string(p):
     '''string : STRING_LITERAL'''
@@ -1049,7 +1056,7 @@ def p_assignment_expression(p):
         if p[1].lvalue is not True and p[1].rvalue is not False:
             raise TypeError(f"Left hand Operand is not an lvalue and cannot be used in an assignment expression")
         
-        if p[1].name == "reference" or p[1].name == "function" or p[1].name == "function_call" or p[1].name == "constant" or p[1].name == "string_literal":
+        if p[1].name == "reference" or p[1].name == "function" or p[1].name == "function_call" or p[1].name == "constant" or p[1].name == "string_literal" :
             raise Exception(f"{p[1].name} cannot appear on the left hand side")
         
         if p[1].name == "array":
@@ -1613,8 +1620,32 @@ def p_enumerator(p):
                  | enumeration_constant'''
     if len(p) == 4:
         p[0] = Node("enumerator", [p[1], p[3]])
+        # CASE WHERE ENUMERATOR IS ASSIGNED A VALUE
+        entry = symtab.lookup(p[0].vars[0])
+        if entry is not None:
+            raise Exception(f"Error: Enumerator {p[0].vars[0]} redeclared")
+        var_sym = SymbolEntry(
+            name=str(p[0].vars[0]),
+            type="int",
+            kind="enumerator",
+            value = int(p[0].vars[1])
+        )
+        symtab.add_symbol(var_sym)
     else:
         p[0] = Node("enumerator", [p[1]])
+        # CASE WHERE ENUMERATOR IS NOT ASSIGNED A VALUE WE LOOK AT PREVIOUS ENTRIES
+        entry = symtab.table_entries[-1]
+        if entry.kind == "enumerator":
+            value = entry.entry.value + 1
+        else:
+            value = 0
+        var_sym = SymbolEntry(
+            name=str(p[0].vars[0]),
+            type="int",
+            kind="enumerator",
+            value = value
+        )
+        symtab.add_symbol(var_sym)
     
 # Atomic types
 def p_atomic_type_specifier(p):
