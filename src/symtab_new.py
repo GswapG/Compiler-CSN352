@@ -395,7 +395,7 @@ class SymbolTable:
             scope_pointer = scope_pointer.parent
 
         if type == "identifier":
-            print(f"{name} when identifier:")
+            # print(f"{name} when identifier:")
             symbol = SymbolEntry(name, "label_exist", "label", node = scope_pointer)
         else:
             symbol = SymbolEntry(name, "label_defined", "label", node = scope_pointer)

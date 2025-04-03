@@ -98,7 +98,6 @@ def p_primary_expression_identifier(p):
     check = symtab.lookup(cpy)
     ir_entry = p[1]
     if check is not None:
-        # print(check.kind)
         if "function" == check.kind:
             p[0].name = "function"
         elif "D-array" in check.kind:
@@ -282,8 +281,7 @@ def p_postfix_expression(p):
         
         p[0].vars = [f"{struct_object}.{field_identifier}"]
         p[0].return_type = symtab.search_struct(struct_object, field_identifier)[0]
-        
-        print(p[0].return_type)
+
 
         if "struct" in p[1].name:
             p[0].name = "struct_member"

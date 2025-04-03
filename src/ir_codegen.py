@@ -95,9 +95,10 @@ class IRGenerator:
         """
         For printing intermediate values of ir.code
         """
-        print("-=====-")
-        print(ir.code)
-        print("-=====-")
+        # print("-=====-")
+        # print(ir.code)
+        # print("-=====-")
+        pass
 
     def join(self,*args):
         """
@@ -263,7 +264,7 @@ class IRGenerator:
             else:
                 ir0.place = self.new_temp()
                 gen1 = ""
-                print(ir2.parameters)
+                # print(ir2.parameters)
                 for param  in ir2.parameters:
                     gen1 = self.join(gen1, f"param {param}")
                 gen2 = f"{ir0.place} = call {ir1.place}, {str(len(ir2.parameters))}"
@@ -386,7 +387,7 @@ class IRGenerator:
         false = self.new_label()
         start = self.new_label()
         var = self.new_temp()
-        gen0 = "=======extra logic for logical handling========"
+        gen0 = ""
         gen1 = f"if {ir1.place} == 0 goto {false}"
         gen2 = f"{true}:"
         gen3 = f"{var} = 1"
@@ -394,7 +395,7 @@ class IRGenerator:
         gen5 = f"{false}:"
         gen6 = f"{var} = 0"
         gen7 = f"{start}:"
-        gen8 = "==============================================="
+        gen8 = ""
         ir1.place = var
         for c in ir1.truelist:
             self.backpatch(ir1,c,true)
@@ -458,7 +459,7 @@ class IRGenerator:
 
     def call_array_position(self, ir0, ir1, ir2, dimensions):
         gen2=""
-        print(ir0.place,ir1.place,ir2.place)
+        # print(ir0.place,ir1.place,ir2.place)
         ir0.place = self.new_temp()
         if ir1.place[0] != "@":
             gen1 = f"{ir0.place} = {ir2.place}"
