@@ -134,6 +134,9 @@ class IRGenerator:
     def constant(self, ir0, const):
         ir0.place = str(const)
 
+    def string(self, ir0, const):
+        ir0.place = str(const.encode('unicode_escape').decode('utf-8'))
+
     def assignment(self, ir0, ir1, ir2):
         if ir2.bpneed>0:
             self.resolve_exp(ir2)
@@ -377,10 +380,24 @@ class IRGenerator:
         if ir1.bpneed>0:
             self.resolve_exp(ir1)
         gen1 = f"if {ir1.place} == 0 goto {ir0.after}"
-        gen2 = f"goto {ir0.after}"
+        gen2 = "" #f"goto {ir0.after}"
         gen4 = f"{ir0.after}:"
         self.manage_lists(ir0,ir2)
         ir0.code = self.join(ir1.code,gen1,ir2.code,gen2,gen4)
+
+    def ternary(self,ir0,ir1,ir2,ir3): #1 is condition , 2 is true , 3 is false
+        if ir1.bpneed>0:
+            self.resolve_exp(ir1)
+        false = self.new_label()
+        after = self.new_label()
+        ir0.place = self.new_temp() 
+        gen1 = f"if {ir1.place} == 0 goto {false}"
+        gen2 = f"{ir0.place} = {ir2.place}" #true
+        gen3 = f"goto {after}"
+        gen4 = f"{false}:"
+        gen5 = f"{ir0.place} = {ir3.place}" #false
+        gen6 = f"{after}:"
+        ir0.code = self.join(ir1.code,gen1,ir2.code,gen2,gen3,gen4,ir3.code,gen5,gen6)
 
     def resolve_exp(self,ir1): #falselist truelist assign them to its place , new label
         true = self.new_label()

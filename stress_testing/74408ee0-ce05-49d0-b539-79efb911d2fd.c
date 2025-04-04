@@ -2,5 +2,5 @@
 
 int main() {
     int a = 10, b = 3;
-    float max = (a > b) ? a : b;
+    int max = (a > b) ? a : b;
 }

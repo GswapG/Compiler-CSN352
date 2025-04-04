@@ -193,6 +193,7 @@ def p_string(p):
     p[0] = Node("string", [p[1]])
     string_sym = SymbolEntry(str(p[1]), type='*const char', kind='constant')
     symtab.add_symbol(string_sym)
+    IrGen.string(p[0].ir, p[1])
 
     p[0].vars.append(p[1])
     p[0].lvalue = False
@@ -1041,6 +1042,8 @@ def p_conditional_expression(p):
             p[0].return_type = p[5].return_type
         
         p[0].name = "expression"
+
+        IrGen.ternary(p[0].ir, p[1].ir, p[3].ir, p[5].ir)
 
 def p_assignment_expression(p):
     '''assignment_expression : conditional_expression
