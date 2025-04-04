@@ -119,6 +119,8 @@ def process_directory(source_dir=testcase_dir):
         temp_files.append(ret)
 
     for temp_file in temp_files:
+        if temp_file is None:
+            continue
         if os.path.exists(temp_file):
             os.remove(temp_file)
     with open(HASH_FILE, 'wb') as file:
