@@ -186,6 +186,19 @@ class IRGenerator:
         ir0.code = self.join(ir1.code, ir2.code,gen1, gen2)
         self.debug_print(ir0)
 
+    def pointer_arithmetic_expression(self, ir0, ir1, op, ir2,c1,c2,d_size=None):
+        ir0.place = self.new_temp()
+        val = 8
+        if c1 != 0: # ir1 is n-dimensional pointer
+            if c1 == 1:
+                val = d_size
+            gen1 = f"{ir0.place} = {ir1.place} {op} {ir2.place} * {val}"
+        else:
+           if c2 == 1:
+               val = d_size
+           gen1 = f"{ir0.place} = {ir2.place} {op} {ir1.place} * {val}"
+        ir0.code = self.join(ir1.code, ir2.code, gen1)
+
     def bitwise_expression(self, ir0, ir1, op, ir2):
         ir0.place = self.new_temp()
         gen = f"{ir0.place} = {ir1.place} {op} {ir2.place}"

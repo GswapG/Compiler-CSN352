@@ -1,5 +1,5 @@
 int main(){
-int **p;
-int ** pr;
+int *p;
+int * pr;
 int x = (pr - p);
 }

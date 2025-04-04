@@ -7,7 +7,6 @@ from .tree import *
 from .symtab_new import *
 from .ir import *
 from .ir_codegen import *
-
 datatypeslhs=[]
 returns = set()
 constants = defaultdict(lambda: None)
@@ -760,8 +759,12 @@ def p_additive_expression(p):
                 p[0].return_type = p[1].return_type
             else:
                 p[0].return_type = p[3].return_type
-
-        IrGen.arithmetic_expression(p[0].ir, p[1].ir, p[2], p[3].ir)
+        c1 = "*" in p[1].return_type
+        c2 = "*" in p[3].return_type
+        if c1 ^ c2:
+            IrGen.pointer_arithmetic_expression(p[0].ir,p[1].ir, p[2], p[3].ir,p[1].return_type.count("*"),p[3].return_type.count("*"),get_size_from_type(p[1].return_type.lstrip('*')))
+        else:
+            IrGen.arithmetic_expression(p[0].ir, p[1].ir, p[2], p[3].ir)
 
         p[0].name = "expression"
         p[0].lvalue = False
