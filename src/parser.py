@@ -2040,8 +2040,10 @@ def p_initializer_list(p):
     elif len(p) == 4:
         p[0] = Node("initializer_list", [p[1], p[3]])
         IrGen.initializer_list(p[0].ir, p[1].ir, p[3].ir)
+    elif len(p)==5:
+        p[0] = Node("initializer_list", [p[1], p[3],p[4]])
     else:
-        p[0] = Node("initializer_list", [p[1], p[3]])
+        p[0] = Node("initializer_list", [p[1], p[2]])
     
     p[0].return_type = None
 

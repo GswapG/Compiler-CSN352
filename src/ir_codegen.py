@@ -478,12 +478,16 @@ class IRGenerator:
         self.debug_print(ir0)
 
     def initializer(self, ir0, ir1):
-        ir0.initializer_list.append(ir1.place)
+        if ir1.place is not None:
+            ir0.initializer_list.append(ir1.place)
         ir0.code = ir1.code
 
     def initializer_list(self, ir0, ir1, ir2):
         ir0.initializer_list = copy.deepcopy(ir1.initializer_list)
-        ir0.initializer_list.append(ir2.place)
+        if(len(ir2.initializer_list) > 0):
+            ir0.initializer_list += ir2.initializer_list
+        elif(ir2.place is not None):
+            ir0.initializer_list.append(ir2.place)
         ir0.code = self.join(ir1.code, ir2.code)
 
     def array_declarator(self, ir0, ir1, ir2):
