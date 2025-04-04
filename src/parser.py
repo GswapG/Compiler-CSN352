@@ -1915,6 +1915,11 @@ def p_parameter_declaration(p):
                 base_type += dtype
                 base_type += " "
             base_type = base_type[:-1]
+            if p[0].vars[0].endswith(']'):
+                #Only adding support of 1d array like input in functions 
+                #will ensure type is correctly added
+                base_type = '*' + base_type
+                p[0].vars[0] = p[0].vars[0][:-2]
             param_sym = SymbolEntry(
                 name=str(p[0].vars[0]), #check gang
                 type=str(base_type),
