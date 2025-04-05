@@ -121,15 +121,15 @@ def process_directory(source_dir=testcase_dir):
     temp_files = []
     for filename in (os.listdir(source_dir)):
         ret = None
-        # try:
-        ret = process_file(filename)
-        pretty_print_test_output("Compiled Successfully", "green")
-        # except Exception as e:
-        #     pretty_print_test_output("Compilation Error!", "red")
-        #     print(e)
-        #     errors.append((filename,e))
-        # finally:
-        temp_files.append(ret)
+        try:
+            ret = process_file(filename)
+            pretty_print_test_output("Compiled Successfully", "light_steel_blue")
+        except Exception as e:
+            pretty_print_test_output("Compilation Error!", "red")
+            # print(e)
+            errors.append((filename,e))
+        finally:
+            temp_files.append(ret)
 
     for temp_file in temp_files:
         if temp_file is None:
@@ -141,9 +141,9 @@ def process_directory(source_dir=testcase_dir):
     
     # Report errors
     if len(errors) == 0:
-        pretty_print_test_output("All files processed successfully!", "yellow")
+        pretty_print_test_output("All files processed successfully!", "green")
     else:
-        pretty_print_test_output("All files processed, some have errors!", "red")
+        pretty_print_test_output("All files processed, some have errors!", "orange_red1")
         for f, e in errors:
             print(f"\nIn file : {f}")
             if e.__class__.__name__ == "CompileException":

@@ -3,9 +3,41 @@ import re
 import sys
 import shutil
 import tempfile
+
 from .exceptions import *
 
 STANDARD_LIBS = {'stdio.h', 'stdlib.h', 'math.h', 'string.h', 'ctype.h'}
+
+def splitParams(s):
+    params = []
+    cur_param = ""
+    stk = []
+    for c in s:
+        if c == '"':
+            if len(stk) > 0 and stk[-1] == '"':
+                stk.pop()
+            else:
+                stk.append(c)
+            cur_param += c
+        elif c == '(':
+            stk.append(c)
+            cur_param += c
+        elif c == ')':
+            if len(stk) > 0 and stk[-1] == '(':
+                stk.pop()
+            cur_param += c
+        elif c == ',':
+            if len(stk) == 0:
+                cur_param.strip()
+                params.append(cur_param)
+            else:
+                cur_param += c
+        else:
+            cur_param += c
+    if cur_param != "":
+        cur_param.strip()
+        params.append(cur_param)
+    return params
 
 class Preprocessor:
     def __init__(self):
@@ -149,7 +181,7 @@ class Preprocessor:
         args_str = match.group(2)
         args = []
         if args_str:
-            args = [arg.strip() for arg in args_str.split(',')]
+            args = splitParams(args_str)
         new_lines = []
         arg_index = 0
 
