@@ -249,7 +249,7 @@ def p_postfix_expression(p):
 
         if isinstance(p[2], str):
             if p[2] == "++" or p[2] == "--":
-                if get_label(p[1].return_type) != "int":
+                if get_label(p[1].return_type) != "int" and p[1].return_type[0] != "*":
                     raise ValueError(f"{p[2]} operator is incompatible with the operand of type {p[1].return_type}")
 
                 if p[1].lvalue is not True and p[1].rvalue is not False:
@@ -543,8 +543,8 @@ def p_unary_expression(p):
 
 
         if isinstance(p[1], Node) and p[1].operator == '!':
-            if get_label(p[2].return_type) != "int":
-                raise ValueError(f"~ operation cannot be used on {p[2].return_type}")
+            if (get_label(p[2].return_type) != "int") and (p[2].return_type[0] != '*'):
+                raise ValueError(f"! operation cannot be used on {p[2].return_type}")
             
             p[0].name = "expression"
 

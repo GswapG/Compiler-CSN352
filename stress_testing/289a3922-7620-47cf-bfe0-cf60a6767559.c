@@ -2,13 +2,14 @@
 #include <stdlib.h>
 
 int main() {
-    int *p = (int *)malloc(sizeof(int));
+    // int *p = (int *)malloc(2);
+    int *p;
     if(!p) {
         printf("Memory allocation failed.\n");
         return 1;
     }
     *p = 42;
     printf("Allocated integer: %d\n", *p);
-    free(p);
+    // free(p);
     return 0;
 }

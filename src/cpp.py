@@ -20,7 +20,9 @@ class Preprocessor:
                     "void print_int(int x);\n"
                     "void print_float(float x);\n"
                     "void print_char(char x);\n"
-                    "void print_string(const char *s);\n\n"
+                    "void print_string(const char *s);\n"
+                    "void* malloc(int size);\n"
+                    "void free(void* ptr);\n\n"
                 )
                 output_file.write(prototypes)
                 self.prototypes_written = True
@@ -144,10 +146,11 @@ class Preprocessor:
         
         fmt = match.group(1)
         args_str = match.group(2)
+        print(args_str)
         args = []
         if args_str:
             args = [arg.strip() for arg in args_str.split(',')]
-        
+        print(args)
         new_lines = []
         arg_index = 0
 
@@ -168,16 +171,19 @@ class Preprocessor:
             
             spec = m.group(1)
             # Only allow %d, %f, %c.
-            if spec not in ['d', 'f', 'c', '%', ' ']:
+            if spec not in ['d', 'f', 'c','s','%', ' ']:
                 raise Exception(f"Unknown conversion identifier at line {line_num}: {spec}")
             else:
                 if arg_index < len(args):
                     if spec == 'd':
+                        print(args[arg_index])
                         new_lines.append(f'print_int({args[arg_index]});')
                     elif spec == 'f':
                         new_lines.append(f'print_float({args[arg_index]});')
                     elif spec == 'c':
                         new_lines.append(f'print_char({args[arg_index]});')
+                    elif spec == 's':
+                        new_lines.append(f"print_string({args[arg_index]});")
                     elif spec == '%':
                         arg_index -= 1
                         percentage_exists = True
