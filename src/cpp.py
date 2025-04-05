@@ -146,11 +146,9 @@ class Preprocessor:
         
         fmt = match.group(1)
         args_str = match.group(2)
-        print(args_str)
         args = []
         if args_str:
             args = [arg.strip() for arg in args_str.split(',')]
-        print(args)
         new_lines = []
         arg_index = 0
 

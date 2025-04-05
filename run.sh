@@ -87,9 +87,13 @@ if [ "$CLEAR" = true ]; then
         rm -rf renderedSymbolTables/*
         echo "Cleared renderedSymbolTables folder."
     fi
-    if [ -d "renderedSymbolTables" ]; then
+    if [ -d "generatedIR" ]; then
         rm -rf generatedIR/*
         echo "Cleared generatedIR folder."
+    fi
+    if [ -d "renderedIRTrees" ]; then
+        rm -rf rederedIRTrees/*
+        echo "Cleared renderedIRTrees folder."
     fi
     exit 0
 fi

@@ -2425,7 +2425,7 @@ def p_error(p):
 parser = yacc.yacc(debug=False)
 
 def clearGlobal():
-    print("CLEARING GLOBALS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+    # print("CLEARING GLOBALS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
     global symtab
     global typedef_names
     global lexer

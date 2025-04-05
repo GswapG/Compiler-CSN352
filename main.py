@@ -6,8 +6,9 @@ import sys
 import tempfile
 import pickle
 from Crypto.Hash import SHA256
-from tqdm import tqdm
+# from tqdm import tqdm
 import uuid
+# from rich.progress import track
 
 HASH_FILE = "hashes.bin"
 STRESS_TESTING = './stress_testing'
@@ -21,6 +22,9 @@ strargv = [str(x) for x in sys.argv]
 
 # Hashes
 hashes = []
+
+# Errors found
+errors = []
 
 # Testcase directory/file
 testcase_dir = DEFAULT_SOURCE_DIR
@@ -115,7 +119,7 @@ def process_directory(source_dir=testcase_dir):
     if not os.path.isdir(source_dir):
         raise Exception(f"Error: {source_dir} is not a valid directory.")
     temp_files = []
-    for filename in tqdm(os.listdir(source_dir)):
+    for filename in (os.listdir(source_dir)):
         ret = None
         try:
             ret = process_file(filename)
@@ -123,6 +127,7 @@ def process_directory(source_dir=testcase_dir):
         except Exception as e:
             pretty_print_test_output("Compilation Error!", "red")
             print(e)
+            errors.append((filename,e))
         finally:
             temp_files.append(ret)
 
@@ -133,10 +138,15 @@ def process_directory(source_dir=testcase_dir):
             os.remove(temp_file)
     with open(HASH_FILE, 'wb') as file:
         pickle.dump(hashes, file)
+    
+    # Report errors
+    if len(errors) == 0:
+        pretty_print_test_output("All files processed successfully!", "yellow")
+    else:
+        pretty_print_test_output("All files processed, some have errors!", "red")
+        for f, e in errors:
+            print(f"\nIn file : {f}")
+            print(e)
 
 if __name__ == "__main__":
-    try:
-        process_directory()
-        pretty_print_test_output("All files processed successfully!", "yellow")
-    except Exception as e:
-        pass
+    process_directory()

@@ -53,4 +53,8 @@ if exist generatedIR (
     del /q /f generatedIR\*
     echo Cleared generatedIR folder.
 )
+if exist renderedIRTrees (
+    del /q /f renderedIRTrees\*
+    echo Cleared renderedIRTrees folder.
+)
 exit /b
