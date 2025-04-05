@@ -1,6 +1,7 @@
 from graphviz import Digraph
 from collections import deque
 from .ir import IR
+from .exceptions import *
 import copy
 # AST
 symbol_table = []

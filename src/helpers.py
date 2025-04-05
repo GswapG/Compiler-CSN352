@@ -5,7 +5,7 @@ from rich.text import Text
 from rich.rule import Rule
 import fnmatch
 import re
-
+from .exceptions import *
 console = Console()
 
 def pretty_type_concat(*args):
@@ -30,7 +30,7 @@ def pretty_type_concat(*args):
         return new_type
 
     else:
-        raise Exception(f"wrong pretty_type for {args} parsed as {return_type}")
+        raise CompileException(f"wrong pretty_type for {args} parsed as {return_type}")
     
     pass
 

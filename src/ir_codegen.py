@@ -1,6 +1,7 @@
 from .ir import IR
 import os
 import copy
+from .exceptions import *
 from .compatible import dominating_type
 DEFAULT_OUTPUT_DIRECTORY = "generatedIR"
 

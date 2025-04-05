@@ -1,0 +1,2 @@
+class CompileException(Exception):
+    pass

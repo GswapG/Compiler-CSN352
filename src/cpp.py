@@ -3,6 +3,7 @@ import re
 import sys
 import shutil
 import tempfile
+from .exceptions import *
 
 STANDARD_LIBS = {'stdio.h', 'stdlib.h', 'math.h', 'string.h', 'ctype.h'}
 
@@ -50,7 +51,7 @@ class Preprocessor:
                             elif directive == '#undef':
                                 self._handle_undef(parts)
                             else:
-                                raise Exception(f"Invalid preprocessor directive at line number {line_num}:\n{stripped}")
+                                raise CompileException(f"Invalid preprocessor directive at line number {line_num}:\n{stripped}")
     
                     else:
                         if self.current_inclusion:
@@ -61,7 +62,7 @@ class Preprocessor:
                             else:
                                 output_file.write(self._apply_macros(line))
         except IOError as e:
-            raise Exception(f"Error processing {input_path}: {e}")
+            raise CompileException(f"Error processing {input_path}: {e}")
 
     def _handle_include(self, line, output, current_dir):
         line, line_num = line
@@ -170,7 +171,7 @@ class Preprocessor:
             spec = m.group(1)
             # Only allow %d, %f, %c.
             if spec not in ['d', 'f', 'c','s','%', ' ']:
-                raise Exception(f"Unknown conversion identifier at line {line_num}: {spec}")
+                raise CompileException(f"Unknown conversion identifier at line {line_num}: {spec}")
             else:
                 if arg_index < len(args):
                     if spec == 'd':
@@ -187,7 +188,7 @@ class Preprocessor:
                         percentage_exists = True
                     arg_index += 1
                 else:
-                    raise Exception(f"Missing argument at line {line_num} for : {spec}")
+                    raise CompileException(f"Missing argument at line {line_num} for : {spec}")
             last_pos = m.end()
         # Append any trailing literal text after the last specifier.
         trailing_literal = fmt[last_pos:]
@@ -200,7 +201,7 @@ class Preprocessor:
         
         # Check if there are extra arguments that weren't used.
         if arg_index < len(args):
-            raise Exception(f"Provided too many arguments for printf at line {line_num}")
+            raise CompileException(f"Provided too many arguments for printf at line {line_num}")
         return " ".join(new_lines)
 
 def preprocess(input_file, output_file):

@@ -1,7 +1,7 @@
 from collections import defaultdict, deque
 from graphviz import Digraph
 from .utils import *
-
+from .exceptions import *
 def strict_equal(a, b):
     return type(a) is type(b) and a == b
 
@@ -129,7 +129,7 @@ class SymbolTable:
             scope_node = self.function_scope
             
             if not self.function_symbol.isFunctionDefinition:
-                raise Exception(f"Function {self.function_symbol.name} has been already defined")
+                raise CompileException(f"Function {self.function_symbol.name} has been already defined")
             
             self.function_symbol.isFunctionDefinition = False
             self.function_definition = False
@@ -155,7 +155,7 @@ class SymbolTable:
             scope_node = self.function_scope
             
             if not self.function_symbol.isFunctionDefinition:
-                raise Exception(f"Function {self.function_symbol.name} has been already defined")
+                raise CompileException(f"Function {self.function_symbol.name} has been already defined")
             
             self.function_symbol.isFunctionDefinition = False
             self.function_definition = False
@@ -180,7 +180,7 @@ class SymbolTable:
     def function_exit_scope(self):
         for entry in self.current_scope.entries:
             if entry.kind == "label" and entry.type == "label_defined":
-                raise Exception(f"Label {entry.name} does not exist in the current function scope")
+                raise CompileException(f"Label {entry.name} does not exist in the current function scope")
 
         parent = self.current_scope.parent 
         self.current_scope_name = parent.scope_name
@@ -377,7 +377,7 @@ class SymbolTable:
         entry = self.search_function_scope(name, "label")
         if entry is not None:
             if type == "identifier" and entry.type == "label_exist":
-                raise Exception(f"Goto label {name} already exists in the current function scope")
+                raise CompileException(f"Goto label {name} already exists in the current function scope")
             elif type == "identifier" and entry.type == "label_defined":
                 entry.type = "label_exist"
                 new_entry = SymbolTableEntry(entry.name, entry.type, entry.kind, entry, entry.node, entry.node.scope_level, entry.node.scope_name, size=entry.size, offset=entry.offset)
@@ -389,7 +389,7 @@ class SymbolTable:
 
         scope_pointer = self.current_scope
         if self.current_scope_level == 0:
-            raise Exception("Cannot define goto labels in global scope")
+            raise CompileException("Cannot define goto labels in global scope")
         
         while scope_pointer.scope_level != 1:
             scope_pointer = scope_pointer.parent
@@ -423,7 +423,7 @@ class SymbolTable:
                 break
 
         if child_scope is None:
-            raise Exception(f"Struct {struct_name} not found in the global scope")
+            raise CompileException(f"Struct {struct_name} not found in the global scope")
         
         size = 0
         for entry in child_scope.entries:
@@ -444,7 +444,7 @@ class SymbolTable:
                 break
 
         if child_scope is None:
-            raise Exception(f"Union {union_name} not found in the global scope")
+            raise CompileException(f"Union {union_name} not found in the global scope")
 
         size = 0
         for entry in child_scope.entries:
@@ -484,14 +484,14 @@ class SymbolTable:
 
         entry = self.lookup(name)
         if entry is None:
-            raise Exception(f"No array identifier {name} exists in the current scope")
+            raise CompileException(f"No array identifier {name} exists in the current scope")
         
         size = self.get_size(entry.type)
         return (entry.size // size)
 
     def search_function_scope(self, name, type):
         if self.current_scope_level == 0:
-            raise Exception("Cannot define in global scope")
+            raise CompileException("Cannot define in global scope")
 
         scope_pointer = self.current_scope
         while scope_pointer and scope_pointer.scope_level != 0:
@@ -503,7 +503,7 @@ class SymbolTable:
     def search_params(self, name):
         func_entry = self.lookup(name)
         if func_entry.child is None or func_entry.kind != "function":
-            raise Exception(f"function {name} does not exist")
+            raise CompileException(f"function {name} does not exist")
         
         child_scope = func_entry.child
 
@@ -517,7 +517,7 @@ class SymbolTable:
     def func_params_size(self, name):
         func_entry = self.lookup(name)
         if func_entry.child is None or func_entry.kind != "function":
-            raise Exception(f"function {name} does not exist")
+            raise CompileException(f"function {name} does not exist")
         
         child_scope = func_entry.child
 
@@ -531,7 +531,7 @@ class SymbolTable:
     def func_scope_size(self, name):
         func_entry = self.lookup(name)
         if func_entry.child is None or func_entry.kind != "function":
-            raise Exception(f"function {name} does not exist")
+            raise CompileException(f"function {name} does not exist")
         
         child_scope = func_entry.child
 
@@ -547,7 +547,7 @@ class SymbolTable:
         field_chain = struct_object.split('.')
 
         if symtab.lookup(field_chain[0]) is None:
-            raise Exception(f"{field_chain[0]} not declared")
+            raise CompileException(f"{field_chain[0]} not declared")
         
         type = symtab.lookup(field_chain[0]).type
 
@@ -555,7 +555,7 @@ class SymbolTable:
             type = symtab.lookup(type).type
 
         if "struct" not in type and "union" not in type:
-            raise Exception(f"Variable is not a struct/union")
+            raise CompileException(f"Variable is not a struct/union")
     
         field_chain[0] = symtab.lookup(field_chain[0]).type.split(' ')[-1]
         current_scope = self.root
@@ -580,7 +580,7 @@ class SymbolTable:
         #WILL RETURN A LIST OF OFFSETS IN THE STRUCT
         key = symtab.lookup(struct_name)
         if key is None:
-            raise Exception("Invalid Strcut Access Made")
+            raise CompileException("Invalid Strcut Access Made")
         offsets = []
         for e in key.child.entries:
             offsets.append(e.offset)

@@ -7,6 +7,7 @@ from .tree import *
 from .symtab_new import *
 from .ir import *
 from .ir_codegen import *
+from .exceptions import *
 datatypeslhs=[]
 returns = set()
 constants = defaultdict(lambda: None)
@@ -35,13 +36,13 @@ def p_start_symbol(p):
     '''start_symbol : translation_unit'''
     p[0] = Node("start_symbol",[p[1]])
     if p[0].default_count != 0:
-        raise Exception("Unexpected use of default keywords")
+        raise CompileException("Unexpected use of default keywords")
 
     if p[0].break_count != 0:
-        raise Exception("Unexpected use of break keyword")
+        raise CompileException("Unexpected use of break keyword")
     
     if p[0].continue_count != 0:
-        raise Exception("Unexpected use of continue keyword")
+        raise CompileException("Unexpected use of continue keyword")
 
     IrGen.print_final_code(p[1].ir)
     
@@ -275,10 +276,10 @@ def p_postfix_expression(p):
         struct_object = p[0].vars[0]
 
         if (p[1].name != "struct" and p[1].name != "struct_member") and (p[1].name != "union" and p[1].name != "union_member"):
-            raise Exception("Dot operators are only allowed on structs or struct members")
+            raise CompileException("Dot operators are only allowed on structs or struct members")
 
         if symtab.search_struct(struct_object, field_identifier) is None:
-            raise Exception(f"The identifier '{field_identifier}' does not exist in the struct {struct_object}")
+            raise CompileException(f"The identifier '{field_identifier}' does not exist in the struct {struct_object}")
         
         p[0].vars = [f"{struct_object}.{field_identifier}"]
         p[0].return_type = symtab.search_struct(struct_object, field_identifier)[0]
@@ -301,10 +302,10 @@ def p_postfix_expression(p):
         struct_object = p[0].vars[0]
 
         if p[1].name != "pointer":
-            raise Exception("Arrow operators are only allowed on pointer")
+            raise CompileException("Arrow operators are only allowed on pointer")
 
         if symtab.search_struct(struct_object, field_identifier) is None:
-            raise Exception(f"The identifier '{field_identifier}' does not exist in the struct {struct_object}")
+            raise CompileException(f"The identifier '{field_identifier}' does not exist in the struct {struct_object}")
 
         type = symtab.lookup(struct_object).type
         if "*" not in type or not ("struct" in type or "union" in type):
@@ -328,7 +329,7 @@ def p_postfix_expression(p):
         p[0].iscall = 1
 
         if p[1].name != "function":
-            raise Exception("() can be only applied to functions")
+            raise CompileException("() can be only applied to functions")
         
         p[0].name = "function_call"
         p[0].lvalue = False
@@ -340,7 +341,7 @@ def p_postfix_expression(p):
 
         if p[2] == '[':
             if p[1].name != "pointer" and p[1].name != "array":
-                raise Exception("[] operator incorrectly applied")
+                raise CompileException("[] operator incorrectly applied")
             else:
                 p[0].name = p[1].name
 
@@ -349,7 +350,7 @@ def p_postfix_expression(p):
                 braces_count = first_var.count("]")
                 first_var = first_var[:-2 * braces_count]
                 if braces_count > 1 and p[1].name == "pointer":
-                    raise Exception("Incorrect bracket access for pointer types")
+                    raise CompileException("Incorrect bracket access for pointer types")
             
             if symtab.lookup(first_var) is not None:
                 kind = symtab.lookup(first_var).kind
@@ -377,7 +378,7 @@ def p_postfix_expression(p):
         if p[2] == '(':
             p[0].iscall = 1
             if p[1].name != "function":
-                raise Exception("() can be only applied to functions")
+                raise CompileException("() can be only applied to functions")
             
             p[0].name = "function_call"
 
@@ -403,7 +404,7 @@ def p_postfix_expression(p):
         p[0].lvalue = False
         p[0].rvalue = True
         if p[1].name != "function":
-            raise Exception("() can be only applied to functions")
+            raise CompileException("() can be only applied to functions")
         
         p[0].name = "function_call"
 
@@ -420,7 +421,7 @@ def p_postfix_expression(p):
         p[0].lvalue = False
         p[0].rvalue = True
         if p[1].name != "function":
-            raise Exception("() can be only applied to functions")
+            raise CompileException("() can be only applied to functions")
         
         p[0].name = "function_call"
 
@@ -479,7 +480,7 @@ def p_unary_expression(p):
                     kind = entry.kind
                     if "D-array" in kind:
                         if str(braces_count) != str(kind[0]):
-                            raise Exception("Invalid array access")
+                            raise CompileException("Invalid array access")
                     
                     p[0].return_type = entry.type
                 base_type = symtab.lookup(new_var).type
@@ -518,7 +519,7 @@ def p_unary_expression(p):
 
             if symtab.lookup(p[2].vars[0]):
                 if symtab.lookup(p[2].vars[0]).kind in ('constant','enumerator') :
-                    raise Exception("Cant bind addr to constant/enum type")
+                    raise CompileException("Cant bind addr to constant/enum type")
 
             p[0].lvalue = False                
             p[0].rvalue = True
@@ -539,7 +540,7 @@ def p_unary_expression(p):
                 if p[0].return_type[0] == '*':
                     p[0].return_type = p[0].return_type[1:]
                 else:
-                    raise Exception("invalid deref")
+                    raise CompileException("invalid deref")
             
             p[0].name = "pointer"
             p[0].lvalue = True
@@ -628,35 +629,35 @@ def p_cast_expression(p):
         p[0] = Node("cast_expression", [p[2], p[4]])
 
         if not compatible_cast(p[2].return_type, p[4].return_type):
-            raise Exception(f"Return type of expression {p[4].return_type} cannot be casted to {p[2].return_type}")
+            raise CompileException(f"Return type of expression {p[4].return_type} cannot be casted to {p[2].return_type}")
 
         if "struct" in p[2].return_type:
             struct_name = p[2].return_type.split(' ')[-1]
             if symtab.lookup(struct_name) is None:
-                raise Exception(f"{struct_name} not defined in the current scope")
+                raise CompileException(f"{struct_name} not defined in the current scope")
             if symtab.lookup(struct_name).kind != "struct":
-                raise Exception(f"{struct_name} not defined in the current scope")
+                raise CompileException(f"{struct_name} not defined in the current scope")
             
         if "union" in p[2].return_type:
             union_name = p[2].return_type.split(' ')[-1]
             if symtab.lookup(union_name) is None:
-                raise Exception(f"{union_name} not defined in the current scope")
+                raise CompileException(f"{union_name} not defined in the current scope")
             if symtab.lookup(union_name).kind != "union":
-                raise Exception(f"{union_name} not defined in the current scope")
+                raise CompileException(f"{union_name} not defined in the current scope")
             
         if "struct" in p[4].return_type:
             struct_name = p[4].return_type.split(' ')[-1]
             if symtab.lookup(struct_name) is None:
-                raise Exception(f"{struct_name} not defined in the current scope")
+                raise CompileException(f"{struct_name} not defined in the current scope")
             if symtab.lookup(struct_name).kind != "struct":
-                raise Exception(f"{struct_name} not defined in the current scope")
+                raise CompileException(f"{struct_name} not defined in the current scope")
             
         if "union" in p[4].return_type:
             union_name = p[4].return_type.split(' ')[-1]
             if symtab.lookup(union_name) is None:
-                raise Exception(f"{union_name} not defined in the current scope")
+                raise CompileException(f"{union_name} not defined in the current scope")
             if symtab.lookup(union_name).kind != "union":
-                raise Exception(f"{union_name} not defined in the current scope")
+                raise CompileException(f"{union_name} not defined in the current scope")
             
         p[0].name = "expression"
         p[0].return_type = p[2].return_type
@@ -691,7 +692,7 @@ def p_multiplicative_expression(p):
 
         # ISO C99: 6.5.5: 2: Each of the operands shall have arithmetic type. The operands of the % operator shall have integer type.
         if "*" in p[1].return_type or "*" in p[3].return_type:
-            raise Exception(f"Invalid Operands of type {p[1].return_type} and {p[3].return_type} to the operator *")
+            raise CompileException(f"Invalid Operands of type {p[1].return_type} and {p[3].return_type} to the operator *")
         
         if isinstance(p[2], str) and p[2] == "%":
             if get_label(p[1].return_type) == "float" or get_label(p[3].return_type) == "float":
@@ -702,7 +703,7 @@ def p_multiplicative_expression(p):
         implicit_type_check_list(p[3].vars, var_type, p[2], symtab, True)
 
         if implicit_type_compatibility(p[1].return_type, p[3].return_type, True):
-            raise Exception(f"Invalid Operands of type {p[1].return_type} and {p[3].return_type} to the operator +")
+            raise CompileException(f"Invalid Operands of type {p[1].return_type} and {p[3].return_type} to the operator +")
 
         if dominating_type(p[1].return_type, p[3].return_type):
             p[0].return_type = p[1].return_type
@@ -719,7 +720,7 @@ def p_multiplicative_expression(p):
             func_id += 1
 
     if func_id != p[0].iscall:
-        raise Exception("Invalid Function Call")
+        raise CompileException("Invalid Function Call")
     
     # IR
     if len(p) == 4:
@@ -746,7 +747,7 @@ def p_additive_expression(p):
             if p[2] == '+':
                 # ISO C99: 6.5.6: 2: For addition, either both operands shall have arithmetic type, or one operand shall be a pointer to an object type and the other shall have integer type. (Incrementing is equivalent to adding 1
                 if "*" in p[1].return_type and "*" in p[3].return_type:
-                    raise Exception(f"Addition Operation is not allowed for pointer type operands: {p[1].return_type} | {p[3].return_type}")
+                    raise CompileException(f"Addition Operation is not allowed for pointer type operands: {p[1].return_type} | {p[3].return_type}")
 
                 p[0].return_type = addition_compatibility(p[1].return_type, p[3].return_type)
 
@@ -763,7 +764,7 @@ def p_additive_expression(p):
             implicit_type_check_list(p[3].vars, var_type, p[2], symtab, True)
 
             if implicit_type_compatibility(p[1].return_type, p[3].return_type, True):
-                raise Exception(f"Invalid Operands of type {p[1].return_type} and {p[3].return_type} to the operator +")
+                raise CompileException(f"Invalid Operands of type {p[1].return_type} and {p[3].return_type} to the operator +")
 
             # to determine the return type
             if dominating_type(p[1].return_type, p[3].return_type):
@@ -804,7 +805,7 @@ def p_shift_expression(p):
         implicit_type_check_list(p[3].vars, dtype1, p[2], symtab, False)
 
         if "*" in p[1].return_type or "*" in p[3].return_type:
-            raise Exception(f"Invalid Operands of type {p[1].return_type} and {p[3].return_type} to the operator {p[2]}")
+            raise CompileException(f"Invalid Operands of type {p[1].return_type} and {p[3].return_type} to the operator {p[2]}")
 
         if get_label(p[1].return_type) != "int" or get_label(p[3].return_type) != "int":
             raise ValueError(f"Incompatible types {p[1].return_type} and {p[3].return_type} with shift operations")
@@ -1072,7 +1073,7 @@ def p_assignment_expression(p):
             raise TypeError(f"Left hand Operand is not an lvalue and cannot be used in an assignment expression")
         
         if p[1].name == "reference" or p[1].name == "function" or p[1].name == "function_call" or p[1].name == "constant" or p[1].name == "string_literal" :
-            raise Exception(f"{p[1].name} cannot appear on the left hand side")
+            raise CompileException(f"{p[1].name} cannot appear on the left hand side")
         
         if p[1].name == "array":
             lhs = p[0].vars[0]
@@ -1085,7 +1086,7 @@ def p_assignment_expression(p):
                 kind = symtab.lookup(lhs).kind
                 if "D-array" in kind:
                     if str(brace_count) != str(kind[0]):
-                        raise Exception(f"Invalid array access")
+                        raise CompileException(f"Invalid array access")
         
         for vars in p[0].vars:
             deref_count, ref_count, var = count_deref_ref(vars)
@@ -1099,10 +1100,10 @@ def p_assignment_expression(p):
             p[2].operator == "|="):
 
             if get_label(p[3].return_type) != "int" or get_label(p[1].return_type) != "int":
-                raise Exception(f"Invalid types {p[1].return_type} and {p[3].return_type} with the operator {p[2].operator}")
+                raise CompileException(f"Invalid types {p[1].return_type} and {p[3].return_type} with the operator {p[2].operator}")
 
             if p[3].name == "struct" or p[3].name == "union" or p[3].name == "function" or p[3].name == "compound_literal" or p[3].name == "string_literal":
-                raise Exception(f"Operator {p[2].name} cannot be applied to a {p[3].name}")
+                raise CompileException(f"Operator {p[2].name} cannot be applied to a {p[3].name}")
 
         elif p[2].operator == '=':
             if p[3].name != "compound_literal":
@@ -1110,14 +1111,14 @@ def p_assignment_expression(p):
                 right_type = p[3].return_type
 
                 if implicit_type_compatibility(left_type, right_type, True):
-                    raise Exception(f"Invalid Assignment|{left_type}|{right_type}|")
+                    raise CompileException(f"Invalid Assignment|{left_type}|{right_type}|")
             else:
                 left_type = p[1].return_type
                 notarray = (p[3].return_type == array_type_decay(p[3].return_type))
                             
                 if notarray:
                     if implicit_type_compatibility(left_type, p[3].return_type, True):
-                        raise Exception(f"Incompatible types {left_type} and {p[3].return_type}")
+                        raise CompileException(f"Incompatible types {left_type} and {p[3].return_type}")
                     ## check all implicit type compatibility for rhs var
 
                     for rhs_var in p[3].vars:
@@ -1125,13 +1126,13 @@ def p_assignment_expression(p):
                         type_ = get_type_from_var(rhs_var, deref_count, ref_count, symtab)
 
                         if implicit_type_compatibility(p[3].return_type, type_, True):
-                            raise Exception(f"Type mismatch in {p[3].return_type} with provided {type_}")
+                            raise CompileException(f"Type mismatch in {p[3].return_type} with provided {type_}")
 
                 else:
                     if p[3].return_type is None:
                         p[3].return_type = left_type
                     if implicit_type_compatibility(left_type, array_type_decay(p[3].return_type), True):
-                        raise Exception(f"Incompatible types {left_type} and {p[3].return_type}")
+                        raise CompileException(f"Incompatible types {left_type} and {p[3].return_type}")
 
                     ## check all implicit type compatibility for rhs var
 
@@ -1140,7 +1141,7 @@ def p_assignment_expression(p):
                         type_ = get_type_from_var(rhs_var, deref_count, ref_count, symtab)
 
                         if implicit_type_compatibility(array_base_type(p[3].return_type), type_, True):
-                            raise Exception(f"Type mismatch in {array_base_type(p[3].return_type)} with provided {type_}")
+                            raise CompileException(f"Type mismatch in {array_base_type(p[3].return_type)} with provided {type_}")
         
         else:
             
@@ -1148,10 +1149,10 @@ def p_assignment_expression(p):
             right_type = p[3].return_type
 
             if implicit_type_compatibility(left_type, right_type, True):
-                raise Exception("Invalid Assignment")
+                raise CompileException("Invalid Assignment")
             
             if p[3].name == "struct" or p[3].name == "union" or p[3].name == "function" or p[3].name == "compound_literal" or p[3].name == "string_literal":
-                raise Exception(f"Operator {p[2].name} cannot be applied to a {p[3].name}")        
+                raise CompileException(f"Operator {p[2].name} cannot be applied to a {p[3].name}")        
 
         p[0].is_address = False
         
@@ -1295,10 +1296,10 @@ def p_init_declarator(p):
 
     if isinstance(base_var, str) and base_var[0] == '%':
         if len(p[0].rhs) != 1:
-            raise Exception("invalid reference created") 
+            raise CompileException("invalid reference created") 
         
         if symtab.lookup(p[0].rhs[0]).kind == 'constant':
-            raise Exception("references can't be bound to constants")
+            raise CompileException("references can't be bound to constants")
         
         var_sym = SymbolEntry(
             name=str(base_var[1:]),
@@ -1348,7 +1349,7 @@ def p_init_declarator(p):
                         raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs_var}\n| base_type = {base_type} |\n| rhs_type = {type_} |")
                     
                     if checkfunc and symtab.lookup(rhs_var) is not None and symtab.lookup(rhs_var).kind == 'function':
-                        raise Exception("Can't assign value of function")
+                        raise CompileException("Can't assign value of function")
                 # IR
                 size = symtab.get_array_size(base_var)
                 type_size = symtab.get_size(base_type)
@@ -1359,15 +1360,15 @@ def p_init_declarator(p):
              "union" in symtab.lookup(base_type.split(' ')[-1]).type)))):
                 isUnion = "union" in base_type
                 if isUnion and len(p[0].rhs) > 1:
-                    raise Exception("Unions Support only single list assignment")
+                    raise CompileException("Unions Support only single list assignment")
                 struct_name = base_type.split(' ')[-1]
                 struct_scope = symtab.lookup(struct_name).child
                 struct_entries = struct_scope.entries
                 if len(struct_entries) < len(p[0].rhs):
-                    raise Exception("Number of identifiers in struct doesnt match with initialiser list length")
+                    raise CompileException("Number of identifiers in struct doesnt match with initialiser list length")
                 
                 if p[3].return_type is not None and strict_compatibility(base_type, p[3].return_type):
-                    raise Exception(f"Cannot case the compound literal of type {p[3].return_type} to {base_type}")
+                    raise CompileException(f"Cannot case the compound literal of type {p[3].return_type} to {base_type}")
 
                 for struct_entry, list_entry in zip(struct_entries, p[0].rhs):
                     deref_count, ref_count, clean_list_entry = count_deref_ref(list_entry)
@@ -1376,11 +1377,11 @@ def p_init_declarator(p):
                     field_type = get_type_from_var(clean_list_entry, deref_count, ref_count, symtab)
         
                     if implicit_type_compatibility(struct_entry_type, field_type, True):
-                        raise Exception(f"Type mismatch in {struct_entry_type} with provided {field_type}")
+                        raise CompileException(f"Type mismatch in {struct_entry_type} with provided {field_type}")
                     
                 #IR FOR STRUCT INIT LIST
                 if p[3].ir.initializer_list is None:
-                    raise Exception("Not Allowed Empty Struct Declarators")
+                    raise CompileException("Not Allowed Empty Struct Declarators")
                 offset_list = symtab.search_struct_attributes(struct_name)
                 IrGen.struct_init_list(p[0].ir,p[1].ir,offset_list,p[3].ir.initializer_list)
             else:
@@ -1388,7 +1389,7 @@ def p_init_declarator(p):
                             
                 if notarray:
                     if implicit_type_compatibility(base_type, p[3].return_type, True):
-                        raise Exception(f"Incompatible types {base_type} and {p[3].return_type}")
+                        raise CompileException(f"Incompatible types {base_type} and {p[3].return_type}")
                     ## check all implicit type compatibility for rhs var
 
                     for rhs_var in p[0].rhs:
@@ -1396,13 +1397,13 @@ def p_init_declarator(p):
                         type_ = get_type_from_var(rhs_var, deref_count, ref_count, symtab)
 
                         if implicit_type_compatibility(p[3].return_type, type_, True):
-                            raise Exception(f"Type mismatch in {p[3].return_type} with provided {type_}")
+                            raise CompileException(f"Type mismatch in {p[3].return_type} with provided {type_}")
 
                 else:
                     if p[3].return_type is None:
                         p[3].return_type = base_type
                     if implicit_type_compatibility(base_type, array_type_decay(p[3].return_type), True):
-                        raise Exception(f"Incompatible types {base_type} and {p[3].return_type}")
+                        raise CompileException(f"Incompatible types {base_type} and {p[3].return_type}")
 
                     ## check all implicit type compatibility for rhs var
 
@@ -1411,26 +1412,26 @@ def p_init_declarator(p):
                         type_ = get_type_from_var(rhs_var, deref_count, ref_count, symtab)
 
                         if implicit_type_compatibility(array_base_type(p[3].return_type), type_, True):
-                            raise Exception(f"Type mismatch in {array_base_type(p[3].return_type)} with provided {type_}")
+                            raise CompileException(f"Type mismatch in {array_base_type(p[3].return_type)} with provided {type_}")
 
 
         else:
             if base_var[-1] == "]":
-                raise Exception("Array being initialised without braces")
+                raise CompileException("Array being initialised without braces")
         
             elif ((("struct" in base_type or "union" in base_type) or
             (symtab.lookup(base_type.split(' ')[-1]) is not None and 
             ("struct" in symtab.lookup(base_type.split(' ')[-1]).type or 
              "union" in symtab.lookup(base_type.split(' ')[-1]).type)))):
                 if len(p[0].rhs) > 1:
-                    raise Exception("more than one variables in the rhs")
+                    raise CompileException("more than one variables in the rhs")
                 
                 if len(p[0].rhs) == 1:
                     deref_count, ref_count, rhs_var = count_deref_ref(p[0].rhs[0])
                     rhs_var_type = get_type_from_var(rhs_var, deref_count, ref_count, symtab)
 
                     if implicit_type_compatibility(base_type, rhs_var_type):
-                        raise Exception(f"Type mismatch in {base_type} with provided {rhs_var_type}")
+                        raise CompileException(f"Type mismatch in {base_type} with provided {rhs_var_type}")
         
             else:
                 type_ = p[3].return_type
@@ -1605,7 +1606,7 @@ def p_enum_specifier(p):
         p[0] = Node("enum_specifier", [p[2]])
         p[0].dtypes.append(p[1]+" "+p[2])
         if symtab.lookup(p[2])==None:
-            raise Exception(f"Error: Enum Identifier {p[2]} not found")
+            raise CompileException(f"Error: Enum Identifier {p[2]} not found")
     elif len(p) == 6 and p[3] == '{':
         p[0] = Node("enum_specifier", [p[2], p[4]])
     elif len(p) == 6:
@@ -1649,7 +1650,7 @@ def p_enumerator(p):
         # CASE WHERE ENUMERATOR IS ASSIGNED A VALUE
         entry = symtab.lookup(p[0].vars[0])
         if entry is not None:
-            raise Exception(f"Error: Enumerator {p[0].vars[0]} redeclared")
+            raise CompileException(f"Error: Enumerator {p[0].vars[0]} redeclared")
         var_sym = SymbolEntry(
             name=str(p[0].vars[0]),
             type="int",
@@ -2040,7 +2041,7 @@ def p_initializer(p):
     #     type_ = get_type_from_var(clean_var, deref_count, ref_count, symtab)
 
     #     if type_ is None:
-    #         raise Exception(f"Error: variable {clean_var} not declared")
+    #         raise CompileException(f"Error: variable {clean_var} not declared")
         
     p[0].rhs += p[0].vars
     p[0].vars = []
@@ -2247,10 +2248,10 @@ def p_selection_statement(p):
         
 
         if p[0].default_count > 1:
-            raise Exception("Switch statements expect 1 default case")
+            raise CompileException("Switch statements expect 1 default case")
         
         if p[0].continue_count:
-            raise Exception("Switch statements dont support continue statements")
+            raise CompileException("Switch statements dont support continue statements")
 
         if implicit_type_compatibility(p[3].return_type,"int") :
             raise TypeError("Switch statements expect int type")
@@ -2369,11 +2370,11 @@ def p_function_definition(p):
     b_type = symtab.lookup(func_name).type
 
     # if len(returns) > 1:
-    #     raise Exception("Multiple Return Types")
+    #     raise CompileException("Multiple Return Types")
 
     for type in returns:
         if implicit_type_compatibility(b_type, type, True):
-            raise Exception("Invalid Type of Value returned")
+            raise CompileException("Invalid Type of Value returned")
     returns = set()
     # Enter FUNCTION SCOPE (for parameters/local vars)
     # symtab.enter_scope(func_name)
@@ -2418,7 +2419,7 @@ def p_error(p):
 
     pointer = " " * (col - 1) + "^"
     print(pointer)
-    raise Exception("Syntax Error")
+    raise CompileException("Syntax Error")
     # exit(0)
     
 # Build parser

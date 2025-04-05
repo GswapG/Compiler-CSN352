@@ -1,5 +1,6 @@
 import ply.lex as lex 
 from .tokens import *
+from .exceptions import *
 typedef_names = set()
 line_start_positions = [0]
 

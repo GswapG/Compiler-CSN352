@@ -31,7 +31,7 @@ testcase_dir = DEFAULT_SOURCE_DIR
 if "-d" in strargv or "--directory" in strargv:
     position = 1 + (strargv.index("-d") if strargv.index("-d") != -1 else strargv.index("--directory"))
     if len(strargv) <= position:
-        raise Exception("Incorrect use of the flag \"-d\" or \"--directory\". Please specify the directory path following the flag.")
+        raise CompileException("Incorrect use of the flag \"-d\" or \"--directory\". Please specify the directory path following the flag.")
     testcase_dir = strargv[position]
     print(testcase_dir)
 
@@ -39,7 +39,7 @@ specific_filename = None
 if "-f" in strargv or "--file" in strargv:
     position = 1 + (strargv.index("-f") if strargv.index("-f") != -1 else strargv.index("--file"))
     if len(strargv) <= position:
-        raise Exception("Incorrect use of the flag \"-f\" or \"--file\". Please specify the directory path following the flag.")
+        raise CompileException("Incorrect use of the flag \"-f\" or \"--file\". Please specify the directory path following the flag.")
     
     specific_filename = strargv[position]
 
@@ -112,12 +112,12 @@ def process_directory(source_dir=testcase_dir):
     calc_and_dump_hashes()
     if specific_filename is not None:
         if not os.path.exists(specific_filename):
-            raise Exception(f"Error: {specific_filename} does not exist. Make sure the path is correct!!")
+            raise CompileException(f"Error: {specific_filename} does not exist. Make sure the path is correct!!")
         directory, filename = os.path.split(specific_filename)
         process_file(filename,directory)
         return
     if not os.path.isdir(source_dir):
-        raise Exception(f"Error: {source_dir} is not a valid directory.")
+        raise CompileException(f"Error: {source_dir} is not a valid directory.")
     temp_files = []
     for filename in (os.listdir(source_dir)):
         ret = None
@@ -146,6 +146,10 @@ def process_directory(source_dir=testcase_dir):
         pretty_print_test_output("All files processed, some have errors!", "red")
         for f, e in errors:
             print(f"\nIn file : {f}")
+            if e.__class__.__name__ == "CompileException":
+                print("COMPILE ERROR: ", end="")
+            else:
+                print("PYTHON ERROR: ", end="")
             print(e)
 
 if __name__ == "__main__":

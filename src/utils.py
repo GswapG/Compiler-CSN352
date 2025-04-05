@@ -1,7 +1,7 @@
 from .helpers import *
 from .compatible import *
 from .symtab_helpers import *
-
+from .exceptions import *
 def count_deref_ref(var):
     """
     Count dereference (@) and reference (!) prefixes in a variable.
@@ -33,7 +33,7 @@ def validate_relational_operands(left_vars, right_vars, symtab, allow_int_float)
             kind = symtab.lookup(var).kind
             if "D-array" in kind:
                 if str(kind[0]) != str(braces_count):
-                    raise Exception("Invalid array access")
+                    raise CompileException("Invalid array access")
 
         d, r, clean_var = count_deref_ref(var)
         if symtab.lookup(clean_var) is None:
@@ -61,7 +61,7 @@ def get_type_from_var(var, deref_count, ref_count, symtab, kind_check=None):
         if "D-array" in kind:
             if braces_count > 0:
                 if str(kind[0]) != str(braces_count):
-                    raise Exception("Invalid array access")
+                    raise CompileException("Invalid array access")
             else:
                 decay = True
 
@@ -78,12 +78,12 @@ def get_type_from_var(var, deref_count, ref_count, symtab, kind_check=None):
             struct_scope, identifier = var.rsplit(".", 1)
             entry_type = symtab.search_struct(struct_scope, identifier)[0]
             if entry_type is None:
-                raise Exception(f"identifier |{identifier}| does not exist in the struct |{struct_scope}|")
+                raise CompileException(f"identifier |{identifier}| does not exist in the struct |{struct_scope}|")
             
             type_ = entry_type
     else:
         if symtab.lookup(var) is None:
-            raise Exception(f"{var} does not exist in the scope")
+            raise CompileException(f"{var} does not exist in the scope")
         
         var_ = symtab.lookup(var)
         type_ = var_.type
@@ -175,16 +175,16 @@ def validate_assignment(lhs_effective_type, operator, rhs_vars, symtab, allow_in
             clean_rhs = clean_rhs[:-2 * brace_count]
 
             if symtab.lookup(clean_rhs) is None:
-                raise Exception(f"identifier {clean_rhs} does not exist in the scope")
+                raise CompileException(f"identifier {clean_rhs} does not exist in the scope")
             
             else:
                 kind = symtab.lookup(clean_rhs).kind
                 if "D-array" in kind:
                     if str(brace_count) != str(kind[0]):
-                        raise Exception(f"Invalid array access")
+                        raise CompileException(f"Invalid array access")
         else:
             if symtab.lookup(clean_rhs) is None:
-                raise Exception(f"identifier {clean_rhs} does not exist in the scope")
+                raise CompileException(f"identifier {clean_rhs} does not exist in the scope")
             else:
                 if "D-array" in symtab.lookup(clean_rhs).kind:
                     rhs_effective = "*" + rhs_effective
@@ -207,20 +207,20 @@ def argument_param_match(argument_list, func_params):
             pass
         else:
             if implicit_type_compatibility(func_params[params_ptr].type, argument_list[argument_ptr], True):
-                raise Exception(f"Invalid Function Parameters => {trim_value(func_params[params_ptr].type, 'const')} | {trim_value(argument_list[argument_ptr], 'const')}")
+                raise CompileException(f"Invalid Function Parameters => {trim_value(func_params[params_ptr].type, 'const')} | {trim_value(argument_list[argument_ptr], 'const')}")
             else:
                 argument_ptr += 1 
                 params_ptr += 1
 
     if argument_ptr != len(argument_list):
-        raise Exception("Invalid Function Parameter Length")
+        raise CompileException("Invalid Function Parameter Length")
     
     if params_ptr != len(func_params):
         if params_ptr == len(func_params) - 1 and func_params[params_ptr].type =='...':
             pass
 
         else:
-            raise Exception("Invalid Function Parameter Length")
+            raise CompileException("Invalid Function Parameter Length")
 
 def get_size_from_type(c_type):
     modifiers = ["const", "static", "volatile", "register", "extern", "auto", "restrict"]

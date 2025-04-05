@@ -1,5 +1,5 @@
 from .helpers import *
-
+from .exceptions import *
 # helper functions for type compatibility checks
 
 def validate_c_datatype(data_type, symtab):
@@ -57,10 +57,10 @@ def validate_c_datatype(data_type, symtab):
             
             elif identifier != "enum":
                 if symtab.lookup(c) is None:
-                    raise Exception(f"Identifier {c} does not exist in the current scope")
+                    raise CompileException(f"Identifier {c} does not exist in the current scope")
 
                 if symtab.lookup(c).kind != identifier:
-                    raise Exception(f"Identifier {c} does not exist in the current scope")
+                    raise CompileException(f"Identifier {c} does not exist in the current scope")
                 
         return True
 
@@ -127,7 +127,7 @@ def dominating_type(type1, type2):
                                         if type1 == type2:
                                             return True
                                         else:
-                                            raise Exception(f"Unexpected types received {types1} {types2}")
+                                            raise CompileException(f"Unexpected types received {types1} {types2}")
                                 else:
                                     if "short" in types1:
                                         return True
@@ -170,7 +170,7 @@ def get_label(type):
 
 def get_unqualified_type(type):
     if type is None:
-        raise Exception("Invalid type provided")
+        raise CompileException("Invalid type provided")
     
     # add type qualifiers to trim here
     type = trim_value(type, "const")
@@ -178,10 +178,10 @@ def get_unqualified_type(type):
 
 def strict_unqualified_compatibility(type1, type2):
     if type1 is None:
-        raise Exception("Invalid type provided")
+        raise CompileException("Invalid type provided")
     
     if type2 is None:
-        raise Exception("Invalid type provided")
+        raise CompileException("Invalid type provided")
     
     type1 = get_unqualified_type(type1)
     type2 = get_unqualified_type(type2)
@@ -193,10 +193,10 @@ def strict_unqualified_compatibility(type1, type2):
 
 def strict_compatibility(type1, type2):
     if type1 is None:
-        raise Exception("Invalid type provided")
+        raise CompileException("Invalid type provided")
     
     if type2 is None:
-        raise Exception("Invalid type provided")
+        raise CompileException("Invalid type provided")
 
     if type1 != type2:
         return True 
@@ -208,7 +208,7 @@ def array_type_decay(type):
         return type
     
     if type.count("[") > 1:
-        raise Exception(f"Invalid type {type}")
+        raise CompileException(f"Invalid type {type}")
     
     if type.count("[") == 1:
         type = type.replace("[", "")
@@ -220,7 +220,7 @@ def array_type_decay(type):
 
 def array_base_type(type):
     if type is None:
-        raise Exception("Invalid Type received")
+        raise CompileException("Invalid Type received")
 
     type = type.replace("[", "")
     type = type.replace("]", "")
@@ -230,10 +230,10 @@ def array_base_type(type):
 def implicit_type_compatibility(type1, type2, allow_int_float=False):
     ## implicit type conversion
     if type1 is None:
-        raise Exception("lvalue is None")
+        raise CompileException("lvalue is None")
     
     if type2 is None:
-        raise Exception("rvalue is None")
+        raise CompileException("rvalue is None")
 
     if type1 == type2:
         return False
@@ -340,10 +340,10 @@ def implicit_type_compatibility(type1, type2, allow_int_float=False):
 def addition_compatibility(type1, type2):
     # print(type1, type2)
     if type1 is None:
-        raise Exception("lvalue is None")
+        raise CompileException("lvalue is None")
     
     if type2 is None:
-        raise Exception("rvalue is None")
+        raise CompileException("rvalue is None")
     
     save_type1 = type1
     save_type2 = type2
@@ -381,14 +381,14 @@ def addition_compatibility(type1, type2):
         else:
             raise TypeError(f"Incompatible types {save_type1} {save_type2} for the operation addition")
 
-    raise Exception(f"This method should only be called when either one of the types is a pointer to an object, but the types passed were: {save_type1} and {save_type2}")
+    raise CompileException(f"This method should only be called when either one of the types is a pointer to an object, but the types passed were: {save_type1} and {save_type2}")
 
 def subtraction_compatibility(type1, type2):
     if type1 is None:
-        raise Exception("lvalue is None")
+        raise CompileException("lvalue is None")
     
     if type2 is None:
-        raise Exception("rvalue is None")
+        raise CompileException("rvalue is None")
     
     save_type1 = type1
     save_type2 = type2
@@ -398,7 +398,7 @@ def subtraction_compatibility(type1, type2):
         # for double pointers, it should exactly match without the *
 
         if type1.count("*") != type2.count("*"):
-            raise Exception(f"Incompatible types for subtraction operator: {save_type1} and {save_type2}")
+            raise CompileException(f"Incompatible types for subtraction operator: {save_type1} and {save_type2}")
 
         if type1.count("*") == 1 and type2.count("*") == 1:
             type1 = trim_value(type1, "const")
@@ -411,10 +411,10 @@ def subtraction_compatibility(type1, type2):
             return type1.lstrip("*")
         
         else:
-            raise Exception(f"Incompatible types for subtraction operator: {save_type1} and {save_type2}")
+            raise CompileException(f"Incompatible types for subtraction operator: {save_type1} and {save_type2}")
  
     elif "*" in type2:
-        raise Exception(f"Subtraction operator is not compatible with the first operand type: '{save_type1}' being an integer type and the second operand type: '{save_type2}' being a pointer type")
+        raise CompileException(f"Subtraction operator is not compatible with the first operand type: '{save_type1}' being an integer type and the second operand type: '{save_type2}' being a pointer type")
 
     elif "*" in type1: 
         type1 = trim_value(type1, "const")
@@ -435,14 +435,14 @@ def subtraction_compatibility(type1, type2):
         else:
             raise TypeError(f"Incompatible types {save_type1} {save_type2} for the operation addition")
 
-    raise Exception(f"This method should only be called when either one of the types is a pointer to an object, but the types passed were: {save_type1} and {save_type2}")    
+    raise CompileException(f"This method should only be called when either one of the types is a pointer to an object, but the types passed were: {save_type1} and {save_type2}")    
 
 def compatible_cast(cast_type, expression_type):
     if cast_type is None:
-        raise Exception(f"cast type is invalid")
+        raise CompileException(f"cast type is invalid")
     
     if expression_type is None:
-        raise Exception(f"expression type is invalid")
+        raise CompileException(f"expression type is invalid")
     
     if "*void" == cast_type or "*void" == expression_type:
         return True
@@ -478,7 +478,7 @@ def compatible_cast(cast_type, expression_type):
 
 def ternary_type_compatibility(type1, type2, type3):
     if get_label(type1.replace("*", "")) is None:
-        raise Exception("First type in ternary operators should be a scalar type")
+        raise CompileException("First type in ternary operators should be a scalar type")
 
     return implicit_type_compatibility(type2, type3, True)
 

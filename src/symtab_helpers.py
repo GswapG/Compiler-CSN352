@@ -1,5 +1,5 @@
 # helper functions for symbol table entries
-
+from .exceptions import *
 def compute_struct(symbol, symtab):
     entries = symbol.child.entries
     maximum_alignment = 0
@@ -115,14 +115,14 @@ def get_size(symbol, symtab):
     if "struct" in symbol.type:
         struct_name = symbol.type.split(' ')[-1]
         if symtab.lookup(struct_name) is None:
-            raise Exception(f"Definition of {symbol.type} not found during lookup in the parent scopes")
+            raise CompileException(f"Definition of {symbol.type} not found during lookup in the parent scopes")
 
         return symtab.lookup(struct_name).size
     
     if "union" in symbol.type:
         union_name = symbol.type.split(' ')[-1]
         if symtab.lookup(union_name) is None:
-            raise Exception(f"Definition of {symbol.type} not found during lookup in the parent scopes")
+            raise CompileException(f"Definition of {symbol.type} not found during lookup in the parent scopes")
 
         return symtab.lookup(union_name).size
 
