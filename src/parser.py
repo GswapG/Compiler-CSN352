@@ -489,6 +489,16 @@ def p_unary_expression(p):
             if var[-1] == ']':
                 p[0].return_type = p[0].return_type[1:]
 
+        if('[' in p[0].vars[0]):
+            braces_count = var.count("]")
+            new_var = var[:-2 * braces_count]
+            base_type = symtab.lookup(new_var).type
+            print("                                         ",base_type)
+            if(base_type[0]=='*'):
+                base_type = base_type[1:]
+            type_size = symtab.get_size(base_type)
+            IrGen.unary_array(p[0].ir,p[1].ir,p[0].vars[0].split('[')[0],type_size)
+
     elif len(p) == 3:
         p[0] = Node("unary_expression", [p[1], p[2]])
         p[0].return_type = p[2].return_type
@@ -1099,7 +1109,7 @@ def p_assignment_expression(p):
                 right_type = p[3].return_type
 
                 if implicit_type_compatibility(left_type, right_type, True):
-                    raise Exception("Invalid Assignment")
+                    raise Exception(f"Invalid Assignment|{left_type}|{right_type}|")
             else:
                 left_type = p[1].return_type
                 notarray = (p[3].return_type == array_type_decay(p[3].return_type))

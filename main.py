@@ -121,6 +121,7 @@ def process_directory(source_dir=testcase_dir):
             pretty_print_test_output("Compilation Error!", "red")
             print(e)
             ret = None
+            continue
         temp_files.append(ret)
 
     for temp_file in temp_files:
