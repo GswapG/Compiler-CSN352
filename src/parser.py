@@ -2125,6 +2125,8 @@ def p_labeled_statement(p):
     elif len(p) == 5:
         # case
         p[0] = Node("labeled_statement", [p[1], p[2], p[4]])
+        if implicit_type_compatibility(p[2].return_type,"int") :
+            raise TypeError("Case labels must be primitive types")
         IrGen.switch_labeled_statement(p[0].ir,p[2].ir,p[4].ir)
 
     elif len(p) == 4:
@@ -2229,13 +2231,19 @@ def p_selection_statement(p):
 
     elif p[1] == 'switch':
         p[0] = Node("selection_statement", [p[1], p[3], p[5]])
-        p[0].break_count = False
-        p[0].continue_count = False
+        
 
         if p[0].default_count > 1:
             raise Exception("Switch statements expect 1 default case")
-    
+        
+        if p[0].continue_count:
+            raise Exception("Switch statements dont support continue statements")
+
+        if implicit_type_compatibility(p[3].return_type,"int") :
+            raise TypeError("Switch statements expect int type")
         p[0].default_count = 0
+        p[0].break_count = False
+        p[0].continue_count = False
 
         IrGen.switch_selection_statement(p[0].ir,p[3].ir,p[5].ir)
 
@@ -2395,7 +2403,8 @@ def p_error(p):
 
     pointer = " " * (col - 1) + "^"
     print(pointer)
-    exit(0)
+    raise Exception("Syntax Error")
+    # exit(0)
     
 # Build parser
 parser = yacc.yacc(debug=False)
@@ -2413,7 +2422,7 @@ def parseFile(filename, ogfilename, treedir, symtabdir, irtreedir, graphgen=Fals
 
     root = parser.parse(data)
 
-    pretty_print_header("Final Symbol Table", text_style="bold underline red")
+    pretty_print_header("Final Symbol Table", text_style="bold underline magenta" , border_style="bold magenta")
     print(symtab)
 
     if graphgen:

@@ -193,13 +193,25 @@ class IRGenerator:
         if c1 != 0: # ir1 is n-dimensional pointer
             if c1 == 1:
                 val = d_size
-            gen0 = f"{t_place} = {ir2.place} * {val}"
+            gen0 = ""
+            if ir2.data_type != 'int': # pointer arithmetic type conversion to int
+                cvt = f"{ir2.data_type}Toint"
+                type_cast_place = self.new_temp()
+                gen0 = f"{type_cast_place} = {cvt} {ir2.place}"
+                ir2.place = type_cast_place
+            gen0 = self.join(gen0 , f"{t_place} = {ir2.place} * {val}")
             gen1 = f"{ir0.place} = {ir1.place} {op} {t_place}"
         else:
-           if c2 == 1: # ir2 is n-dimensional pointer
+            if c2 == 1: # ir2 is n-dimensional pointer
                val = d_size
-           gen0 = f"{t_place} = {ir1.place} * {val}"
-           gen1 = f"{ir0.place} = {ir2.place} {op} {t_place}"
+            gen0 = ""
+            if ir1.data_type != 'int':
+                cvt = f"{ir1.data_type}Toint"
+                type_cast_place = self.new_temp()
+                gen0 = f"{type_cast_place} = {cvt} {ir1.place}"
+                ir1.place = type_cast_place
+            gen0 = self.join(gen0, f"{t_place} = {ir1.place} * {val}")
+            gen1 = f"{ir0.place} = {ir2.place} {op} {t_place}"
         ir0.code = self.join(ir1.code, ir2.code, gen0 , gen1)
 
     def bitwise_expression(self, ir0, ir1, op, ir2):

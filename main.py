@@ -90,7 +90,7 @@ def process_file(filename,source_dir=testcase_dir):
     # Create a temporary file for the preprocessed output.
     with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.c') as temp_file:
         preprocess(input_path, temp_file.name)
-        pretty_print_header(f"Compilation Results for: {filename}", text_style="bold underline red", border_style="green")
+        pretty_print_header(f"Compilation Results for: {filename}", text_style="bold underline blue", border_style="blue")
         print(f"Preprocessed: {filename} -> {temp_file.name}")
 
     # Pass the temporary file to the parser.
@@ -115,7 +115,12 @@ def process_directory(source_dir=testcase_dir):
         raise Exception(f"Error: {source_dir} is not a valid directory.")
     temp_files = []
     for filename in os.listdir(source_dir):
-        ret = process_file(filename)
+        try:
+            ret = process_file(filename)
+        except Exception as e:
+            pretty_print_test_output("Compilation Error!", "red")
+            print(e)
+            ret = None
         temp_files.append(ret)
 
     for temp_file in temp_files:
@@ -127,4 +132,8 @@ def process_directory(source_dir=testcase_dir):
         pickle.dump(hashes, file)
 
 if __name__ == "__main__":
-    process_directory()
+    try:
+        process_directory()
+        pretty_print_test_output("All files processed successfully!", "green")
+    except Exception as e:
+        pass
