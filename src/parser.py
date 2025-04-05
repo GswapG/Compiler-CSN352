@@ -79,7 +79,8 @@ def p_primary_expression(p):
 
 def p_primary_expression_identifier(p):
     '''primary_expression : IDENTIFIER'''
-
+    if(symtab.lookup(p[1]) is not None and symtab.lookup(p[1]).kind=="reference"):
+        p[1]= symtab.lookup(p[1]).refsto
     p[0] = Node("primary_expression_identifier", [p[1]])
     p[0].vars.append(str(p[1]))
 
@@ -1759,6 +1760,8 @@ def p_direct_declarator(p):
                         '''
     # IDENTIFIER case
     if len(p) == 2:
+        if(symtab.lookup(p[1]) is not None and symtab.lookup(p[1]).kind=="reference"):
+            p[1]= symtab.lookup(p[1]).refsto
         p[0] = Node("direct_declarator", [p[1]])
         p[0].vars.append(p[1])
         # IR
