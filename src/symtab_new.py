@@ -413,6 +413,48 @@ class SymbolTable:
                     return entry
             scope_pointer = scope_pointer.parent
     
+    def get_struct_size(self, name):
+        struct_name = name.split(' ')[-1]
+        root_pointer = self.root
+        child_scope = None
+        for entry in root_pointer.entries:
+            if entry.name == struct_name:
+                child_scope = entry.child
+                break
+
+        if child_scope is None:
+            raise Exception(f"Struct {struct_name} not found in the global scope")
+        
+        size = 0
+        for entry in child_scope.entries:
+            if entry.size is None:
+                continue
+            size += entry.size
+
+        return size
+
+    def get_union_size(self, name):
+        union_name = name.split(' ')[-1]
+        root_pointer = self.root 
+
+        child_scope = None
+        for entry in root_pointer.entries:
+            if entry.name == union_name:
+                child_scope = entry.child 
+                break
+
+        if child_scope is None:
+            raise Exception(f"Union {union_name} not found in the global scope")
+
+        size = 0
+        for entry in child_scope.entries:
+            if entry.size is None:
+                continue
+
+            size += entry.size
+
+        return size
+    
     def get_size(self, name):
         if "*" in name:
             return 8
@@ -428,8 +470,11 @@ class SymbolTable:
             return 4
         elif "int" in name:
             return 4
+        elif "struct" in name:
+            return self.get_struct_size(name)
+        elif "union" in name:
+            return self.get_union_size(name)
 
-        ## handle structs sizes
         return 1
 
     def get_array_size(self, name):
@@ -478,7 +523,7 @@ class SymbolTable:
 
         size = 0
         for entry in child_scope.entries:
-            if entry.kind == "parameter":
+            if entry.kind == "parameter" and entry.size is not None:
                 size += entry.size
 
         return size
@@ -492,6 +537,8 @@ class SymbolTable:
 
         size = 0
         for entry in child_scope.entries:
+            if entry.size is None:
+                continue
             size += entry.size
 
         return size

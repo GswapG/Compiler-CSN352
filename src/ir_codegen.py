@@ -186,6 +186,34 @@ class IRGenerator:
         ir0.code = self.join(ir1.code, ir2.code,gen1, gen2)
         self.debug_print(ir0)
 
+    def pointer_arithmetic_expression(self, ir0, ir1, op, ir2, c1, c2, d_size=None):
+        t_place = self.new_temp() # done if ir2 is an int.
+        ir0.place = self.new_temp()
+        val = 8
+        if c1 != 0: # ir1 is n-dimensional pointer
+            if c1 == 1:
+                val = d_size
+            gen0 = ""
+            if ir2.data_type != 'int': # pointer arithmetic type conversion to int
+                cvt = f"{ir2.data_type}Toint"
+                type_cast_place = self.new_temp()
+                gen0 = f"{type_cast_place} = {cvt} {ir2.place}"
+                ir2.place = type_cast_place
+            gen0 = self.join(gen0 , f"{t_place} = {ir2.place} * {val}")
+            gen1 = f"{ir0.place} = {ir1.place} {op} {t_place}"
+        else:
+            if c2 == 1: # ir2 is n-dimensional pointer
+               val = d_size
+            gen0 = ""
+            if ir1.data_type != 'int':
+                cvt = f"{ir1.data_type}Toint"
+                type_cast_place = self.new_temp()
+                gen0 = f"{type_cast_place} = {cvt} {ir1.place}"
+                ir1.place = type_cast_place
+            gen0 = self.join(gen0, f"{t_place} = {ir1.place} * {val}")
+            gen1 = f"{ir0.place} = {ir2.place} {op} {t_place}"
+        ir0.code = self.join(ir1.code, ir2.code, gen0 , gen1)
+
     def bitwise_expression(self, ir0, ir1, op, ir2):
         ir0.place = self.new_temp()
         gen = f"{ir0.place} = {ir1.place} {op} {ir2.place}"
@@ -237,9 +265,9 @@ class IRGenerator:
         ir0.code = self.join(ir1.code, ir2.code)
         self.debug_print(ir0)
 
-    def function_definition(self,ir0,ir1,ir2,func_name):
+    def function_definition(self,ir0,ir1,ir2,func_name,size):
         gen1 = self.new_label(func_name) + ':'
-        gen2 = "BeginFunc"
+        gen2 = f"BeginFunc {size}"
         gen3 = "EndFunc"
         ir0.code = self.join(gen1,gen2,ir2.code,gen3)
         self.debug_print(ir0)

@@ -6,6 +6,7 @@ import sys
 import tempfile
 import pickle
 from Crypto.Hash import SHA256
+from tqdm import tqdm
 import uuid
 
 HASH_FILE = "hashes.bin"
@@ -90,7 +91,7 @@ def process_file(filename,source_dir=testcase_dir):
     # Create a temporary file for the preprocessed output.
     with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.c') as temp_file:
         preprocess(input_path, temp_file.name)
-        pretty_print_header(f"Compilation Results for: {filename}", text_style="bold underline red", border_style="green")
+        pretty_print_header(f"Compilation Results for: {filename}", text_style="bold underline blue", border_style="blue")
         print(f"Preprocessed: {filename} -> {temp_file.name}")
 
     # Pass the temporary file to the parser.
@@ -98,7 +99,7 @@ def process_file(filename,source_dir=testcase_dir):
 
     add_file(input_path)
     return temp_file.name
-    
+
 def process_directory(source_dir=testcase_dir):
     """
     For all .c files in source_dir, run preprocessor on them to create a temp file and pass it onto the parser.
@@ -114,15 +115,28 @@ def process_directory(source_dir=testcase_dir):
     if not os.path.isdir(source_dir):
         raise Exception(f"Error: {source_dir} is not a valid directory.")
     temp_files = []
-    for filename in os.listdir(source_dir):
-        ret = process_file(filename)
-        temp_files.append(ret)
+    for filename in tqdm(os.listdir(source_dir)):
+        ret = None
+        try:
+            ret = process_file(filename)
+            pretty_print_test_output("Compiled Successfully", "green")
+        except Exception as e:
+            pretty_print_test_output("Compilation Error!", "red")
+            print(e)
+        finally:
+            temp_files.append(ret)
 
     for temp_file in temp_files:
+        if temp_file is None:
+            continue
         if os.path.exists(temp_file):
             os.remove(temp_file)
     with open(HASH_FILE, 'wb') as file:
         pickle.dump(hashes, file)
 
 if __name__ == "__main__":
-    process_directory()
+    try:
+        process_directory()
+        pretty_print_test_output("All files processed successfully!", "yellow")
+    except Exception as e:
+        pass

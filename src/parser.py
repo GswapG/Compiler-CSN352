@@ -7,7 +7,6 @@ from .tree import *
 from .symtab_new import *
 from .ir import *
 from .ir_codegen import *
-
 datatypeslhs=[]
 returns = set()
 constants = defaultdict(lambda: None)
@@ -468,7 +467,7 @@ def p_unary_expression(p):
         if p[1].name == "array":
             var = p[1].vars[0]
             if var[-1] != ']':
-                if symtab.lookup(var) is not None and "1D-array" in symtab.lookup(var).kind:
+                if symtab.lookup(var) is not None and "D-array" in symtab.lookup(var).kind:
                     p[0].return_type = "*" + p[1].return_type 
             else:
                 braces_count = var.count("]")
@@ -489,6 +488,16 @@ def p_unary_expression(p):
             var = p[1].vars[0]
             if var[-1] == ']':
                 p[0].return_type = p[0].return_type[1:]
+
+        if('[' in p[0].vars[0]):
+            braces_count = var.count("]")
+            new_var = var[:-2 * braces_count]
+            base_type = symtab.lookup(new_var).type
+            print("                                         ",base_type)
+            if(base_type[0]=='*'):
+                base_type = base_type[1:]
+            type_size = symtab.get_size(base_type)
+            IrGen.unary_array(p[0].ir,p[1].ir,p[0].vars[0].split('[')[0],type_size)
 
     elif len(p) == 3:
         p[0] = Node("unary_expression", [p[1], p[2]])
@@ -760,8 +769,12 @@ def p_additive_expression(p):
                 p[0].return_type = p[1].return_type
             else:
                 p[0].return_type = p[3].return_type
-
-        IrGen.arithmetic_expression(p[0].ir, p[1].ir, p[2], p[3].ir)
+        c1 = "*" in p[1].return_type
+        c2 = "*" in p[3].return_type
+        if c1 ^ c2:
+            IrGen.pointer_arithmetic_expression(p[0].ir,p[1].ir, p[2], p[3].ir,p[1].return_type.count("*"),p[3].return_type.count("*"),get_size_from_type(p[1].return_type.lstrip('*')))
+        else:
+            IrGen.arithmetic_expression(p[0].ir, p[1].ir, p[2], p[3].ir)
 
         p[0].name = "expression"
         p[0].lvalue = False
@@ -1096,7 +1109,7 @@ def p_assignment_expression(p):
                 right_type = p[3].return_type
 
                 if implicit_type_compatibility(left_type, right_type, True):
-                    raise Exception("Invalid Assignment")
+                    raise Exception(f"Invalid Assignment|{left_type}|{right_type}|")
             else:
                 left_type = p[1].return_type
                 notarray = (p[3].return_type == array_type_decay(p[3].return_type))
@@ -1915,6 +1928,11 @@ def p_parameter_declaration(p):
                 base_type += dtype
                 base_type += " "
             base_type = base_type[:-1]
+            if p[0].vars[0].endswith(']'):
+                #Only adding support of 1d array like input in functions 
+                #will ensure type is correctly added
+                base_type = '*' + base_type
+                p[0].vars[0] = p[0].vars[0][:-2]
             param_sym = SymbolEntry(
                 name=str(p[0].vars[0]), #check gang
                 type=str(base_type),
@@ -2117,6 +2135,8 @@ def p_labeled_statement(p):
     elif len(p) == 5:
         # case
         p[0] = Node("labeled_statement", [p[1], p[2], p[4]])
+        if implicit_type_compatibility(p[2].return_type,"int") :
+            raise TypeError("Case labels must be primitive types")
         IrGen.switch_labeled_statement(p[0].ir,p[2].ir,p[4].ir)
 
     elif len(p) == 4:
@@ -2221,13 +2241,19 @@ def p_selection_statement(p):
 
     elif p[1] == 'switch':
         p[0] = Node("selection_statement", [p[1], p[3], p[5]])
-        p[0].break_count = False
-        p[0].continue_count = False
+        
 
         if p[0].default_count > 1:
             raise Exception("Switch statements expect 1 default case")
-    
+        
+        if p[0].continue_count:
+            raise Exception("Switch statements dont support continue statements")
+
+        if implicit_type_compatibility(p[3].return_type,"int") :
+            raise TypeError("Switch statements expect int type")
         p[0].default_count = 0
+        p[0].break_count = False
+        p[0].continue_count = False
 
         IrGen.switch_selection_statement(p[0].ir,p[3].ir,p[5].ir)
 
@@ -2316,7 +2342,9 @@ def p_function_definition(p):
         p[0] = Node("function_definition", [p[1], p[2], p[3], p[4]])
     else:
         p[0] = Node("function_definition", [p[1], p[2], p[3]])
-        IrGen.function_definition(p[0].ir, p[2].ir, p[3].ir, p[2].vars[0])
+        size = symtab.func_scope_size(p[2].vars[0])
+        params = symtab.func_params_size(p[2].vars[0])
+        IrGen.function_definition(p[0].ir, p[2].ir, p[3].ir, p[2].vars[0],size - params)
 
     ## because child scope was created earlier and attached already.
     symtab.to_add_child = False
@@ -2387,13 +2415,34 @@ def p_error(p):
 
     pointer = " " * (col - 1) + "^"
     print(pointer)
-    exit(0)
+    raise Exception("Syntax Error")
+    # exit(0)
     
 # Build parser
 parser = yacc.yacc(debug=False)
 
+def clearGlobal():
+    print("CLEARING GLOBALS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+    global symtab
+    global typedef_names
+    global lexer
+    global datatypeslhs
+    global returns 
+    global lines
+    global constants
+    global input_text
+    symtab.clear()
+    typedef_names.clear()
+    lexer.lineno = 0
+    datatypeslhs = []
+    returns = set()
+    lines = []
+    constants = defaultdict(lambda : None)
+    input_text = ""
+
 def parseFile(filename, ogfilename, treedir, symtabdir, irtreedir, graphgen=False,irgen=True):
     global IrGen
+    clearGlobal()
     IrGen = IRGenerator(irgen)
     IrGen.set_out_file(ogfilename)
     
@@ -2405,7 +2454,7 @@ def parseFile(filename, ogfilename, treedir, symtabdir, irtreedir, graphgen=Fals
 
     root = parser.parse(data)
 
-    pretty_print_header("Final Symbol Table", text_style="bold underline red")
+    pretty_print_header("Final Symbol Table", text_style="bold underline magenta" , border_style="bold magenta")
     print(symtab)
 
     if graphgen:
@@ -2426,6 +2475,4 @@ def parseFile(filename, ogfilename, treedir, symtabdir, irtreedir, graphgen=Fals
         
     print("\n")
 
-    symtab.clear()
-    typedef_names.clear()
-    lexer.lineno = 0
+    

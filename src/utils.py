@@ -221,4 +221,32 @@ def argument_param_match(argument_list, func_params):
 
         else:
             raise Exception("Invalid Function Parameter Length")
-        
+
+def get_size_from_type(c_type):
+    modifiers = ["const", "static", "volatile", "register", "extern", "auto", "restrict"]
+    clean_type = c_type.lower()
+    
+    for modifier in modifiers:
+        clean_type = clean_type.replace(modifier, "").strip()
+    if "char" in clean_type:
+        return 1
+    elif "short" in clean_type or "int16_t" in clean_type:
+        return 2
+    elif "int" in clean_type or "int32_t" in clean_type:
+        return 4
+    elif "long long" in clean_type or "int64_t" in clean_type:
+        return 8
+    elif "long" in clean_type:
+        return 8  
+    elif "float" in clean_type:
+        return 4
+    elif "double" in clean_type:
+        if "long" in clean_type:
+            return 16 
+        return 8
+    elif "bool" in clean_type or "_Bool" in clean_type:
+        return 1
+    elif "void" == clean_type:
+        return 0
+    
+    raise ValueError(f"Unknown type for size calculation: {c_type}")

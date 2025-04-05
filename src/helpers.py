@@ -41,6 +41,10 @@ def pretty_print_header(header, text_style = "white", border_style = "white"):
 def pretty_print_box(data, title):
     console.print(Panel(data, title=title, box=DOUBLE, expand=False))
 
+
+def pretty_print_test_output(data , color): 
+    console.print(Panel(data, style=color, expand=False))
+
 def spaced(word):
     new_word = ""
     for i in range(len(word)):

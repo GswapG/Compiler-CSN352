@@ -358,6 +358,10 @@ def addition_compatibility(type1, type2):
     type2 = trim_value(type2, "signed")
     type2 = trim_value(type2, "static")
 
+    if "*" in type1 and not implicit_type_compatibility(type2, "int"):
+        # pointers can always be added to an integer type
+        return type1
+
     if "*" in type1:
         type1 = type1.lstrip("*")
 

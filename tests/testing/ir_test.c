@@ -1,6 +1,18 @@
-#include <stdio.h>
+int func(char x, char y, int z, ...);
+char what(int x, int b);
+
+char what(int a, int b) {
+    
+}
+
+int func(char x, char y, int f, ...) {
+    x = 10;
+    float z = 10;
+    return z;
+}
+
+
 
 int main() {
-    int a = 10, b = 3;
-    float max = (a > b) ? a : b;
+    int a = func('a', 'b', 5, 'a');
 }
