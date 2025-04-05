@@ -284,15 +284,16 @@ class IRGenerator:
     def parameter_init(self, ir0, ir1):
         ir0.parameters = [ir1.place]
 
-    def function_call(self, ir0, ir1, ir2, ret):
+    def function_call(self, ir0, ir1, ir2, ret,param_size):
         if ir2 is not None:
             # arguments
+            gen3 = f"pop params {param_size}"
             if ret == 'void':
                 gen1 = ""
                 for param  in ir2.parameters:
                     gen1 = self.join(gen1, f"param {param}")
                 gen2 = f"call {ir1.place}, {str(len(ir2.parameters))}"
-                ir0.code = self.join(ir2.code, gen1, gen2)
+                ir0.code = self.join(ir2.code, gen1, gen2,gen3)
             else:
                 ir0.place = self.new_temp()
                 gen1 = ""
@@ -300,7 +301,7 @@ class IRGenerator:
                 for param  in ir2.parameters:
                     gen1 = self.join(gen1, f"param {param}")
                 gen2 = f"{ir0.place} = call {ir1.place}, {str(len(ir2.parameters))}"
-                ir0.code = self.join(ir2.code, gen1, gen2)
+                ir0.code = self.join(ir2.code, gen1, gen2,gen3)
         else:
             if ret == 'void':
                 ir0.code = "call " + ir1.place
