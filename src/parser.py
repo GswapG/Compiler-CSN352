@@ -490,9 +490,9 @@ def p_unary_expression(p):
             var = p[1].vars[0]
             if var[-1] == ']':
                 p[0].return_type = p[0].return_type[1:]
-        if(len(p[0].vars)>0 and '[' in p[0].vars[0]):
-            braces_count = var.count("]")
-            new_var = var[:-2 * braces_count]
+        if(len(p[0].vars)>0 and p[1].vars[0][0] != '"'and '[' in p[1].vars[0]):
+            new_var = (p[1].vars[0]).split('[')[0]
+            print(new_var)
             base_type = symtab.lookup(new_var).type
             print("                                         ",base_type)
             if(base_type[0]=='*'):
@@ -2345,10 +2345,6 @@ def p_function_definition(p):
         p[0] = Node("function_definition", [p[1], p[2], p[3], p[4]])
     else:
         p[0] = Node("function_definition", [p[1], p[2], p[3]])
-        print(p[2].vars[0])
-        size = symtab.func_scope_size(p[2].vars[0])
-        params = symtab.func_params_size(p[2].vars[0])
-        IrGen.function_definition(p[0].ir, p[2].ir, p[3].ir, p[2].vars[0],size - params)
 
     ## because child scope was created earlier and attached already.
     symtab.to_add_child = False
@@ -2379,6 +2375,12 @@ def p_function_definition(p):
     # Enter FUNCTION SCOPE (for parameters/local vars)
     # symtab.enter_scope(func_name)
     # symtab.exit_scope()
+    # IR
+    if len(p) == 4:
+        print(p[2].vars[0])
+        size = symtab.func_scope_size(func_name)
+        params = symtab.func_params_size(func_name)
+        IrGen.function_definition(p[0].ir, p[2].ir, p[3].ir, func_name,size - params)
 
 def p_declaration_list(p):
     '''declaration_list : declaration
