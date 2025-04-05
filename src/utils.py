@@ -37,7 +37,7 @@ def validate_relational_operands(left_vars, right_vars, symtab, allow_int_float)
 
         d, r, clean_var = count_deref_ref(var)
         if symtab.lookup(clean_var) is None:
-            raise ValueError(f"No symbol '{clean_var}' in the symbol table")
+            raise CompileValueError(f"No symbol '{clean_var}' in the symbol table")
     
     # Compare types between left and right operands.
     for var in left_vars:
@@ -47,7 +47,7 @@ def validate_relational_operands(left_vars, right_vars, symtab, allow_int_float)
             d2, r2, clean_var2 = count_deref_ref(var2)
             right_type = get_type_from_var(clean_var2, d2, r2, symtab)
             if implicit_type_compatibility(left_type, right_type, allow_int_float):
-                raise ValueError(f"Incompatible relational op with '{clean_var}' and '{clean_var2}'")
+                raise CompileValueError(f"Incompatible relational op with '{clean_var}' and '{clean_var2}'")
 
 def get_type_from_var(var, deref_count, ref_count, symtab, kind_check=None):
     braces_count = 0
@@ -72,7 +72,7 @@ def get_type_from_var(var, deref_count, ref_count, symtab, kind_check=None):
             type_ = var_.type
 
             if kind_check is not None and not any(fnmatch.fnmatch(var_.kind, pattern) for pattern in kind_check):
-                raise TypeError("Value can only be assigned to variable/param types!")
+                raise CompileTypeError("Value can only be assigned to variable/param types!")
         
         else:
             struct_scope, identifier = var.rsplit(".", 1)
@@ -89,14 +89,14 @@ def get_type_from_var(var, deref_count, ref_count, symtab, kind_check=None):
         type_ = var_.type
 
         if kind_check is not None and not any(fnmatch.fnmatch(var_.kind, pattern) for pattern in kind_check):
-            raise TypeError("Value can only be assigned to variable/param types!")
+            raise CompileTypeError("Value can only be assigned to variable/param types!")
 
     # Process dereference operations: remove leading '*' for each '@'
     for _ in range(deref_count):
         if isinstance(type_, str) and type_.startswith('*'):
             type_ = type_[1:]
         else:
-            raise TypeError("Invalid Deref Op")
+            raise CompileTypeError("Invalid Deref Op")
 
     # Process reference operations: add a '*' for each '!'
     for _ in range(ref_count):
@@ -120,7 +120,7 @@ def implicit_type_check_list(vars_list, expected_type, op_name, symtab, allow_in
         if implicit_type_compatibility(type_, expected_type, allow_int_float) and (
             (isinstance(clean_var, str) and ' ' in clean_var) or symtab.lookup(clean_var).kind != "function"
         ):
-            raise ValueError(f"Incompatible {op_name} op with '{clean_var}'")
+            raise CompileValueError(f"Incompatible {op_name} op with '{clean_var}'")
 
 def clean_var(var):
     if isinstance(var, str) and ' ' in var:
@@ -136,12 +136,12 @@ def lookup_symbol(var, symtab):
         struct_name, field_name = data
         entry = symtab.search_struct(struct_name, field_name)[0]
         if entry is None:
-            raise ValueError(f"identifier {field_name} does not exist in the struct {struct_name}")
+            raise CompileValueError(f"identifier {field_name} does not exist in the struct {struct_name}")
         return entry
     else:
         entry = symtab.lookup(data)
         if entry is None:
-            raise ValueError(f"No symbol '{data}' in the symbol table")
+            raise CompileValueError(f"No symbol '{data}' in the symbol table")
         return entry
 
 def effective_type(entry_type, deref_count, ref_count, remove_const=False):
@@ -156,7 +156,7 @@ def effective_type(entry_type, deref_count, ref_count, remove_const=False):
         if isinstance(base_type, str) and base_type.startswith('*'):
             base_type = base_type[1:]
         else:
-            raise TypeError("Invalid deref operation")
+            raise CompileTypeError("Invalid deref operation")
     # Apply reference operations: add a '*' per '!'
     for _ in range(ref_count):
         if isinstance(base_type, str):
@@ -191,11 +191,11 @@ def validate_assignment(lhs_effective_type, operator, rhs_vars, symtab, allow_in
 
         # Compare after stripping trailing spaces.
         if implicit_type_compatibility(rhs_effective, lhs_effective_type, allow_int_float):
-            raise ValueError(f"Type mismatch in assignment\n {lhs_effective_type} vs {rhs_effective}")
+            raise CompileValueError(f"Type mismatch in assignment\n {lhs_effective_type} vs {rhs_effective}")
 
         if no_float:
             if get_label(rhs_effective) == "float" or get_label(lhs_effective_type) == "float":
-                raise ValueError(f"Cannot use {operator} operator with floating type")
+                raise CompileValueError(f"Cannot use {operator} operator with floating type")
 
 def argument_param_match(argument_list, func_params):
     argument_ptr = 0
@@ -249,4 +249,4 @@ def get_size_from_type(c_type):
     elif "void" == clean_type:
         return 0
     
-    raise ValueError(f"Unknown type for size calculation: {c_type}")
+    raise CompileValueError(f"Unknown type for size calculation: {c_type}")

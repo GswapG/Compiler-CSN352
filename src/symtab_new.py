@@ -45,7 +45,7 @@ class SymbolEntryNode:
 
     def add_entry(self, entry):
         if not isinstance(entry, SymbolEntry):
-            raise ValueError("Incorrect Use of add_entry method")
+            raise CompileValueError("Incorrect Use of add_entry method")
         
         entry.offset = self.size
         self.size += entry.size
@@ -189,11 +189,11 @@ class SymbolTable:
 
     def add_function_symbol(self, symbol):
         if not isinstance(symbol, SymbolEntry):
-            raise ValueError("Incorrect type of object")
+            raise CompileValueError("Incorrect type of object")
         
         if symbol.kind != "function":
             if "void" in (symbol.type).split(" "):
-                raise ValueError("void type is not allowed for variables")
+                raise CompileValueError("void type is not allowed for variables")
         
         isDefinition = False
         definitionScope = None
@@ -204,14 +204,14 @@ class SymbolTable:
                 if entry.kind != "constant":
                     if entry.kind == "function":
                         if not entry.isFunctionDefinition:
-                            raise ValueError(f"Duplicate symbol '{symbol.name}' in scope {self.current_scope_name}")
+                            raise CompileValueError(f"Duplicate symbol '{symbol.name}' in scope {self.current_scope_name}")
                         else:
                             isDefinition = True
                             definitionSymbol = entry 
                             definitionScope = entry.child
                             break
                     else:
-                        raise ValueError(f"Duplicate symbol '{symbol.name}' in scope {self.current_scope_name}")
+                        raise CompileValueError(f"Duplicate symbol '{symbol.name}' in scope {self.current_scope_name}")
 
                 else:
                     return
@@ -252,10 +252,10 @@ class SymbolTable:
                     def_entry.append(entry)
 
             if strict_unqualified_compatibility(definitionSymbol.type, symbol.type):
-                raise ValueError(f"function redefinition return type mismatches\nfunction definition = {definitionSymbol.type}\nfunction redefinition = {symbol.type}")
+                raise CompileValueError(f"function redefinition return type mismatches\nfunction definition = {definitionSymbol.type}\nfunction redefinition = {symbol.type}")
 
             if len(def_entry) != len(self.parameters):
-                raise ValueError(f"function redefinition parameter list type mismatches\nfunction definition len = {len(def_entry)}\nfunction redefinition len = {len(self.parameters)}")
+                raise CompileValueError(f"function redefinition parameter list type mismatches\nfunction definition len = {len(def_entry)}\nfunction redefinition len = {len(self.parameters)}")
 
             table_entry_iterator = iter(self.table_entries)
 
@@ -264,7 +264,7 @@ class SymbolTable:
                     for entry, old_entry in zip(self.parameters, def_entry):
                         param_entry = next(table_entry_iterator)
                         if strict_unqualified_compatibility(entry.type, old_entry.type):
-                            raise TypeError(f"function redefinition parameter type mismatches => {entry.type} | {old_entry.type}")
+                            raise CompileTypeError(f"function redefinition parameter type mismatches => {entry.type} | {old_entry.type}")
                         else:
                             if entry.name != old_entry.name:
                                 old_entry.name = entry.name
@@ -292,7 +292,7 @@ class SymbolTable:
         """
 
         if not isinstance(symbol, SymbolEntry):
-            raise ValueError("Incorrect type of object")
+            raise CompileValueError("Incorrect type of object")
         
         dimension = 0
         size = 0
@@ -318,12 +318,12 @@ class SymbolTable:
         
         if symbol.kind != "function":
             if "void" in (symbol.type).split(" "):
-                raise ValueError("void type is not allowed for variables")
+                raise CompileValueError("void type is not allowed for variables")
 
         for entry in self.current_scope.entries:
             if strict_equal(entry.name, symbol.name):
                 if entry.kind != "constant" and entry.kind != "enumerator":
-                    raise ValueError(f"Duplicate symbol '{symbol.name}' in scope {self.current_scope_name}")
+                    raise CompileValueError(f"Duplicate symbol '{symbol.name}' in scope {self.current_scope_name}")
                 else:
                     return
                 
@@ -352,7 +352,7 @@ class SymbolTable:
             for entry in self.parameters:
                 if strict_equal(entry.name, symbol.name):
                     if entry.kind != "constant":
-                        raise ValueError(f"Duplicate symbol '{symbol.name}' in scope {self.current_scope_name}")
+                        raise CompileValueError(f"Duplicate symbol '{symbol.name}' in scope {self.current_scope_name}")
                     else:
                         return
             self.parameters.append(symbol)

@@ -251,16 +251,16 @@ def p_postfix_expression(p):
         if isinstance(p[2], str):
             if p[2] == "++" or p[2] == "--":
                 if get_label(p[1].return_type) != "int" and p[1].return_type[0] != "*":
-                    raise ValueError(f"{p[2]} operator is incompatible with the operand of type {p[1].return_type}")
+                    raise CompileValueError(f"{p[2]} operator is incompatible with the operand of type {p[1].return_type}")
 
                 if p[1].lvalue is not True and p[1].rvalue is not False:
-                    raise ValueError(f"Operator {p[2]} can only be applied to modifyable lvalues")
+                    raise CompileValueError(f"Operator {p[2]} can only be applied to modifyable lvalues")
 
                 if p[1].name == "function" or p[1].name == "struct" or p[1].name == "union" or p[1].name == "array" or p[1].name == "constant":
-                    raise ValueError(f"Operator {p[2]} can only be applied to modifyable lvalues")
+                    raise CompileValueError(f"Operator {p[2]} can only be applied to modifyable lvalues")
 
                 if symtab.lookup(p[1].vars[0]) is not None and "const" in symtab.lookup(p[1].vars[0]).type:
-                    raise ValueError("Cannot modify constant values")
+                    raise CompileValueError("Cannot modify constant values")
 
                 p[0].name = "expression"
 
@@ -309,7 +309,7 @@ def p_postfix_expression(p):
 
         type = symtab.lookup(struct_object).type
         if "*" not in type or not ("struct" in type or "union" in type):
-            raise TypeError(f"Arrow Operators are used on pointers to object of types structs or unions")
+            raise CompileTypeError(f"Arrow Operators are used on pointers to object of types structs or unions")
 
         p[0].vars = [f"{struct_object}.{field_identifier}"]
         p[0].return_type = symtab.search_struct(struct_object, field_identifier)[0]
@@ -362,7 +362,7 @@ def p_postfix_expression(p):
 
             for c in p[3].vars:
                 if not(symtab.lookup(c).type == "int" and symtab.lookup(c).kind == "constant")and not(symtab.lookup(c).type == "int" and symtab.lookup(c).kind == "variable"):
-                    raise TypeError("Array size must be an integer constant or integer variable")
+                    raise CompileTypeError("Array size must be an integer constant or integer variable")
 
             p[0].expression = p[1].expression + "[" + p[3].expression + "]"
             p[0].vars = p[1].vars
@@ -507,10 +507,10 @@ def p_unary_expression(p):
 
         if isinstance(p[1], Node) and p[1].operator == '&':
             if p[2].lvalue is not True and p[2].rvalue is not False:
-                raise TypeError("Operand for & operator should be an lvalue")
+                raise CompileTypeError("Operand for & operator should be an lvalue")
             
             if p[2].name == "constant" or p[2].name == "string_literal":
-                raise TypeError("Operand for * operator is not valid")
+                raise CompileTypeError("Operand for * operator is not valid")
             
             p[0].is_address = True
             for i in range(0,len(p[0].vars)):
@@ -528,10 +528,10 @@ def p_unary_expression(p):
         if isinstance(p[1], Node) and p[1].operator == '*':
             if p[2].lvalue is not True and p[2].rvalue is not False:
                 if "*" not in p[2].return_type:
-                    raise TypeError("Operand for * operator should be an lvalue")
+                    raise CompileTypeError("Operand for * operator should be an lvalue")
                 
             if p[2].name == "constant" or p[2].name == "string_literal":
-                raise TypeError("Operand for * operator is not valid")
+                raise CompileTypeError("Operand for * operator is not valid")
             
             for i in range(0,len(p[0].vars)):
                 p[0].vars[i] = '@' + p[0].vars[i]
@@ -548,36 +548,36 @@ def p_unary_expression(p):
         
         if isinstance(p[1], Node) and p[1].operator == "~": 
             if get_label(p[2].return_type) != "int":
-                raise ValueError(f"~ operation cannot be used on {p[2].return_type}")
+                raise CompileValueError(f"~ operation cannot be used on {p[2].return_type}")
             
             p[0].name = "expression"
 
 
         if isinstance(p[1], Node) and p[1].operator == '!':
             if (get_label(p[2].return_type) != "int") and (p[2].return_type[0] != '*'):
-                raise ValueError(f"! operation cannot be used on {p[2].return_type}")
+                raise CompileValueError(f"! operation cannot be used on {p[2].return_type}")
             
             p[0].name = "expression"
 
         if isinstance(p[1], Node) and (p[1].operator == '+' or p[1].operator == '-'):
             if get_label(p[2].return_type) is None:
-                raise ValueError(f"Operator {p[1].operator} cannot be applied to type {p[2].return_type}")
+                raise CompileValueError(f"Operator {p[1].operator} cannot be applied to type {p[2].return_type}")
             
             p[0].name = "expression"
 
         if isinstance(p[1], str):
             if p[1] == "++" or p[1] == "--":
                 if p[2].lvalue is not True and p[2].rvalue is not False:
-                    raise ValueError(f"Operator {p[1]} can only be applied to modifyable lvalues")
+                    raise CompileValueError(f"Operator {p[1]} can only be applied to modifyable lvalues")
 
                 if get_label(p[2].return_type) != "int":
-                    raise ValueError(f"{p[1]} operation cannot be used on {p[2].return_type}")
+                    raise CompileValueError(f"{p[1]} operation cannot be used on {p[2].return_type}")
 
                 if symtab.lookup(p[2].vars[0]) is not None and "const" in symtab.lookup(p[2].vars[0]).type:
-                    raise ValueError("Cannot modify constant values")
+                    raise CompileValueError("Cannot modify constant values")
 
                 if p[2].name == "function" or p[2].name == "struct" or p[2].name == "union" or p[2].name == "array" or p[2].name == "constant":
-                    raise ValueError(f"Operator {p[1]} can only be applied to modifyable lvalues")
+                    raise CompileValueError(f"Operator {p[1]} can only be applied to modifyable lvalues")
 
             p[0].name = "expression"
 
@@ -685,10 +685,10 @@ def p_multiplicative_expression(p):
         p[0].iscall = p[1].iscall + p[3].iscall
 
         if "struct" == p[1].name or "union" == p[1].name or "function" == p[1].name:
-            raise TypeError(f"Invalid Operator {p[2]} for {p[1].name}")
+            raise CompileTypeError(f"Invalid Operator {p[2]} for {p[1].name}")
 
         if "struct" == p[3].name or "union" == p[3].name or "function" == p[3].name:
-            raise TypeError(f"Invalid Operator {p[2]} for {p[3].name}")
+            raise CompileTypeError(f"Invalid Operator {p[2]} for {p[3].name}")
 
         # ISO C99: 6.5.5: 2: Each of the operands shall have arithmetic type. The operands of the % operator shall have integer type.
         if "*" in p[1].return_type or "*" in p[3].return_type:
@@ -696,7 +696,7 @@ def p_multiplicative_expression(p):
         
         if isinstance(p[2], str) and p[2] == "%":
             if get_label(p[1].return_type) == "float" or get_label(p[3].return_type) == "float":
-                raise ValueError(f"Floating type expressions incompatible with mod operation")
+                raise CompileValueError(f"Floating type expressions incompatible with mod operation")
 
         d, r, var0 = count_deref_ref(p[1].vars[0])
         var_type = get_type_from_var(var0, d, r, symtab)
@@ -738,10 +738,10 @@ def p_additive_expression(p):
         p[0].iscall = p[1].iscall + p[3].iscall
 
         if "struct" == p[1].name or "union" == p[1].name or "function" == p[1].name:
-            raise TypeError(f"Invalid Operator {p[2]} for {p[1].name}")
+            raise CompileTypeError(f"Invalid Operator {p[2]} for {p[1].name}")
 
         if "struct" == p[3].name or "union" == p[3].name or "function" == p[3].name:
-            raise TypeError(f"Invalid Operator {p[2]} for {p[3].name}")
+            raise CompileTypeError(f"Invalid Operator {p[2]} for {p[3].name}")
 
         if "*" in p[1].return_type or "*" in p[3].return_type:
             if p[2] == '+':
@@ -792,10 +792,10 @@ def p_shift_expression(p):
         p[0] = Node("shift_expression", [p[1], p[2], p[3]])
 
         if "struct" == p[1].name or "union" == p[1].name or "function" == p[1].name or "string_literal" == p[1].name:
-            raise TypeError(f"Invalid Operator {p[2]} for {p[1].name}")
+            raise CompileTypeError(f"Invalid Operator {p[2]} for {p[1].name}")
 
         if "struct" == p[3].name or "union" == p[3].name or "function" == p[3].name or "string_literal" == p[3].name:
-            raise TypeError(f"Invalid Operator {p[2]} for {p[3].name}")
+            raise CompileTypeError(f"Invalid Operator {p[2]} for {p[3].name}")
 
         dtype1 = None
         if len(p[1].vars) > 0:
@@ -808,7 +808,7 @@ def p_shift_expression(p):
             raise CompileException(f"Invalid Operands of type {p[1].return_type} and {p[3].return_type} to the operator {p[2]}")
 
         if get_label(p[1].return_type) != "int" or get_label(p[3].return_type) != "int":
-            raise ValueError(f"Incompatible types {p[1].return_type} and {p[3].return_type} with shift operations")
+            raise CompileValueError(f"Incompatible types {p[1].return_type} and {p[3].return_type} with shift operations")
 
         if dominating_type(p[1].return_type, p[3].return_type):
             p[0].return_type = p[1].return_type
@@ -833,10 +833,10 @@ def p_relational_expression(p):
         p[0] = Node("relational_expression", [p[1], p[2], p[3]])
 
         if "struct" == p[1].name or "union" == p[1].name or "function" == p[1].name or "string_literal" == p[1].name:
-            raise TypeError(f"Invalid Operator {p[2]} for {p[1].name}")
+            raise CompileTypeError(f"Invalid Operator {p[2]} for {p[1].name}")
 
         if "struct" == p[3].name or "union" == p[3].name or "function" == p[3].name or "string_literal" == p[3].name:
-            raise TypeError(f"Invalid Operator {p[2]} for {p[3].name}")
+            raise CompileTypeError(f"Invalid Operator {p[2]} for {p[3].name}")
 
         # Validate that the symbols in the left and right operands have compatible types.
         validate_relational_operands(p[1].vars, p[3].vars, symtab, True)
@@ -860,7 +860,7 @@ def p_equality_expression(p):
         p[0] = Node("equality_expression", [p[1], p[2], p[3]])
         for var in p[1].vars:
             if symtab.lookup(var) == None:
-                raise ValueError(f"No symbol '{var}' in the symbol table")
+                raise CompileValueError(f"No symbol '{var}' in the symbol table")
             
         dtype1 = None
         if len(p[1].vars) > 0:
@@ -887,10 +887,10 @@ def p_and_expression(p):
         p[0] = Node("and_expression", [p[1], p[2], p[3]])
 
         if "struct" == p[1].name or "union" == p[1].name or "function" == p[1].name or "string_literal" == p[1].name:
-            raise TypeError(f"Invalid Operator {p[2]} for {p[1].name}")
+            raise CompileTypeError(f"Invalid Operator {p[2]} for {p[1].name}")
 
         if "struct" == p[3].name or "union" == p[3].name or "function" == p[3].name or "string_literal" == p[3].name:
-            raise TypeError(f"Invalid Operator {p[2]} for {p[3].name}")
+            raise CompileTypeError(f"Invalid Operator {p[2]} for {p[3].name}")
 
         dtype1 = None
         if len(p[1].vars) > 0:
@@ -900,7 +900,7 @@ def p_and_expression(p):
         implicit_type_check_list(p[3].vars, dtype1, p[2], symtab, False)
 
         if get_label(p[1].return_type) != "int" or get_label(p[3].return_type) != "int":
-            raise ValueError(f"Incompatible types {p[1].return_type} and {p[3].return_type} with {p[2]} operator")
+            raise CompileValueError(f"Incompatible types {p[1].return_type} and {p[3].return_type} with {p[2]} operator")
         
         p[0].lvalue = False
         p[0].rvalue = True
@@ -920,10 +920,10 @@ def p_exclusive_or_expression(p):
         p[0] = Node("exclusive_or_expression", [p[1], p[2], p[3]])
 
         if "struct" == p[1].name or "union" == p[1].name or "function" == p[1].name or "string_literal" == p[1].name:
-            raise TypeError(f"Invalid Operator {p[2]} for {p[1].name}")
+            raise CompileTypeError(f"Invalid Operator {p[2]} for {p[1].name}")
 
         if "struct" == p[3].name or "union" == p[3].name or "function" == p[3].name or "string_literal" == p[3].name:
-            raise TypeError(f"Invalid Operator {p[2]} for {p[3].name}")
+            raise CompileTypeError(f"Invalid Operator {p[2]} for {p[3].name}")
 
         dtype1 = None
         if len(p[1].vars) > 0:
@@ -933,7 +933,7 @@ def p_exclusive_or_expression(p):
         implicit_type_check_list(p[3].vars, dtype1, p[2], symtab, False)
 
         if get_label(p[1].return_type) != "int" or get_label(p[3].return_type) != "int":
-            raise ValueError(f"Incompatible types {p[1].return_type} and {p[3].return_type} with {p[2]} operator")
+            raise CompileValueError(f"Incompatible types {p[1].return_type} and {p[3].return_type} with {p[2]} operator")
 
         p[0].lvalue = False
         p[0].rvalue = True
@@ -952,10 +952,10 @@ def p_inclusive_or_expression(p):
         p[0] = Node("inclusive_or_expression", [p[1], p[2], p[3]])
 
         if "struct" == p[1].name or "union" == p[1].name or "function" == p[1].name or "string_literal" == p[1].name:
-            raise TypeError(f"Invalid Operator {p[2]} for {p[1].name}")
+            raise CompileTypeError(f"Invalid Operator {p[2]} for {p[1].name}")
 
         if "struct" == p[3].name or "union" == p[3].name or "function" == p[3].name or "string_literal" == p[3].name:
-            raise TypeError(f"Invalid Operator {p[2]} for {p[3].name}")
+            raise CompileTypeError(f"Invalid Operator {p[2]} for {p[3].name}")
 
         dtype1 = None
         if len(p[1].vars) > 0:
@@ -965,7 +965,7 @@ def p_inclusive_or_expression(p):
         implicit_type_check_list(p[3].vars, dtype1, p[2], symtab, False)
 
         if get_label(p[1].return_type) != "int" or get_label(p[3].return_type) != "int":
-            raise ValueError(f"Incompatible types {p[1].return_type} and {p[3].return_type} with {p[2]} operator")
+            raise CompileValueError(f"Incompatible types {p[1].return_type} and {p[3].return_type} with {p[2]} operator")
 
         p[0].lvalue = False
         p[0].rvalue = True
@@ -984,10 +984,10 @@ def p_logical_and_expression(p):
         p[0] = Node("logical_and_expression", [p[1], p[2], p[3]])
 
         if "struct" == p[1].name or "union" == p[1].name or "function" == p[1].name or "string_literal" == p[1].name:
-            raise TypeError(f"Invalid Operator {p[2]} for {p[1].name}")
+            raise CompileTypeError(f"Invalid Operator {p[2]} for {p[1].name}")
 
         if "struct" == p[3].name or "union" == p[3].name or "function" == p[3].name or "string_literal" == p[3].name:
-            raise TypeError(f"Invalid Operator {p[2]} for {p[3].name}")
+            raise CompileTypeError(f"Invalid Operator {p[2]} for {p[3].name}")
 
         dtype1 = None
         if len(p[1].vars) > 0:
@@ -997,7 +997,7 @@ def p_logical_and_expression(p):
         implicit_type_check_list(p[3].vars, dtype1, p[2], symtab, False)
 
         if get_label(p[1].return_type) != "int" or get_label(p[3].return_type) != "int":
-            raise ValueError(f"Incompatible types {p[1].return_type} and {p[3].return_type} with {p[2]} operator")
+            raise CompileValueError(f"Incompatible types {p[1].return_type} and {p[3].return_type} with {p[2]} operator")
 
         p[0].lvalue = False
         p[0].rvalue = True
@@ -1016,10 +1016,10 @@ def p_logical_or_expression(p):
         p[0] = Node("logical_or_expression", [p[1], p[2], p[3]])
 
         if "struct" == p[1].name or "union" == p[1].name or "function" == p[1].name or "string_literal" == p[1].name:
-            raise TypeError(f"Invalid Operator {p[2]} for {p[1].name}")
+            raise CompileTypeError(f"Invalid Operator {p[2]} for {p[1].name}")
 
         if "struct" == p[3].name or "union" == p[3].name or "function" == p[3].name or "string_literal" == p[3].name:
-            raise TypeError(f"Invalid Operator {p[2]} for {p[3].name}")
+            raise CompileTypeError(f"Invalid Operator {p[2]} for {p[3].name}")
 
         dtype1 = None
         if len(p[1].vars) > 0:
@@ -1029,7 +1029,7 @@ def p_logical_or_expression(p):
         implicit_type_check_list(p[3].vars, dtype1, p[2], symtab, False)
 
         if get_label(p[1].return_type) != "int" or get_label(p[3].return_type) != "int":
-            raise ValueError(f"Incompatible types {p[1].return_type} and {p[3].return_type} with {p[2]} operator")
+            raise CompileValueError(f"Incompatible types {p[1].return_type} and {p[3].return_type} with {p[2]} operator")
 
         p[0].lvalue = False
         p[0].rvalue = True
@@ -1048,7 +1048,7 @@ def p_conditional_expression(p):
         p[0] = Node("conditional_expression", [p[1], p[3], p[5]])
 
         if ternary_type_compatibility(p[1].return_type, p[3].return_type, p[5].return_type):
-            raise ValueError(f"Incompatible types {p[3].return_type} and {p[5].return_type} in ternary operator")
+            raise CompileValueError(f"Incompatible types {p[3].return_type} and {p[5].return_type} in ternary operator")
         
         if dominating_type(p[3].return_type, p[5].return_type):
             p[0].return_type = p[3].return_type
@@ -1070,7 +1070,7 @@ def p_assignment_expression(p):
         p[0] = Node("assignment_expression", [p[1], p[2], p[3]])
 
         if p[1].lvalue is not True and p[1].rvalue is not False:
-            raise TypeError(f"Left hand Operand is not an lvalue and cannot be used in an assignment expression")
+            raise CompileTypeError(f"Left hand Operand is not an lvalue and cannot be used in an assignment expression")
         
         if p[1].name == "reference" or p[1].name == "function" or p[1].name == "function_call" or p[1].name == "constant" or p[1].name == "string_literal" :
             raise CompileException(f"{p[1].name} cannot appear on the left hand side")
@@ -1346,7 +1346,7 @@ def p_init_declarator(p):
                     type_ = get_type_from_var(rhs_var, deref_count, ref_count, symtab)
 
                     if symtab.lookup(rhs_var) is not None and implicit_type_compatibility(base_type, type_, True):
-                        raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs_var}\n| base_type = {base_type} |\n| rhs_type = {type_} |")
+                        raise CompileTypeError(f"Type mismatch in declaration of {p[0].vars[0]} because of {rhs_var}\n| base_type = {base_type} |\n| rhs_type = {type_} |")
                     
                     if checkfunc and symtab.lookup(rhs_var) is not None and symtab.lookup(rhs_var).kind == 'function':
                         raise CompileException("Can't assign value of function")
@@ -1438,7 +1438,7 @@ def p_init_declarator(p):
                         
                 if not (trim_value(base_type, "const").split(" ")[0] == "enum" and type_ == "int"):
                     if implicit_type_compatibility(base_type, type_, True):
-                        raise TypeError(f"Type mismatch in declaration of {p[0].vars[0]}\n| base_type = {base_type} |\n| rhs_type = {type_} |")
+                        raise CompileTypeError(f"Type mismatch in declaration of {p[0].vars[0]}\n| base_type = {base_type} |\n| rhs_type = {type_} |")
             IrGen.assignment(p[0].ir, p[1].ir, p[3].ir)
     
     p[0].is_address = False
@@ -1789,7 +1789,7 @@ def p_direct_declarator(p):
     elif len(p) == 5 and p[2] == '[' and p[3] != '*':
         for c in p[3].vars:
             if not(symtab.lookup(c).type == "int" and symtab.lookup(c).kind == "constant")and not(symtab.lookup(c).type == "int" and symtab.lookup(c).kind == "variable"):
-                raise TypeError("Array size must be an integer constant or integer variable")
+                raise CompileTypeError("Array size must be an integer constant or integer variable")
         p[3].vars = []
         
         p[0] = Node("array_declarator", [p[1], p[3]])
@@ -2140,7 +2140,7 @@ def p_labeled_statement(p):
         # case
         p[0] = Node("labeled_statement", [p[1], p[2], p[4]])
         if implicit_type_compatibility(p[2].return_type,"int") :
-            raise TypeError("Case labels must be primitive types")
+            raise CompileTypeError("Case labels must be primitive types")
         IrGen.switch_labeled_statement(p[0].ir,p[2].ir,p[4].ir)
 
     elif len(p) == 4:
@@ -2254,7 +2254,7 @@ def p_selection_statement(p):
             raise CompileException("Switch statements dont support continue statements")
 
         if implicit_type_compatibility(p[3].return_type,"int") :
-            raise TypeError("Switch statements expect int type")
+            raise CompileTypeError("Switch statements expect int type")
         p[0].default_count = 0
         p[0].break_count = False
         p[0].continue_count = False

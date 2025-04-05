@@ -53,7 +53,7 @@ def validate_c_datatype(data_type, symtab):
         tokens = tokens[1:]
         for c in tokens:
             if c in allowed_keywords:
-                raise ValueError(f"Invalid data type structure '{data_type}'.")
+                raise CompileValueError(f"Invalid data type structure '{data_type}'.")
             
             elif identifier != "enum":
                 if symtab.lookup(c) is None:
@@ -71,7 +71,7 @@ def validate_c_datatype(data_type, symtab):
     # Check for invalid tokens
     for token in tokens:
         if token not in allowed_keywords:
-            raise ValueError(f"Invalid token '{token}' in data type '{data_type}'.")
+            raise CompileValueError(f"Invalid token '{token}' in data type '{data_type}'.")
     
     has_sign = False
     sign = None
@@ -92,12 +92,12 @@ def validate_c_datatype(data_type, symtab):
             valid_type = True
             break
     if not valid_type:
-        raise ValueError(f"Invalid data type structure '{data_type}'.")
+        raise CompileValueError(f"Invalid data type structure '{data_type}'.")
     
     # Check if sign is allowed for the given type
     if has_sign:
         if type_tokens not in allowed_with_sign:
-            raise ValueError(f"Sign specifier '{sign}' not allowed for data type '{data_type}'.")
+            raise CompileValueError(f"Sign specifier '{sign}' not allowed for data type '{data_type}'.")
     
     return True
 
@@ -370,7 +370,7 @@ def addition_compatibility(type1, type2):
             return save_type1
         
         else:
-            raise TypeError(f"Incompatible types {save_type1} {save_type2} for the operation addition")
+            raise CompileTypeError(f"Incompatible types {save_type1} {save_type2} for the operation addition")
 
     if "*" in type2:
         type2 = type2.lstrip("*")
@@ -379,7 +379,7 @@ def addition_compatibility(type1, type2):
             return save_type2
         
         else:
-            raise TypeError(f"Incompatible types {save_type1} {save_type2} for the operation addition")
+            raise CompileTypeError(f"Incompatible types {save_type1} {save_type2} for the operation addition")
 
     raise CompileException(f"This method should only be called when either one of the types is a pointer to an object, but the types passed were: {save_type1} and {save_type2}")
 
@@ -433,7 +433,7 @@ def subtraction_compatibility(type1, type2):
             return save_type1
         
         else:
-            raise TypeError(f"Incompatible types {save_type1} {save_type2} for the operation addition")
+            raise CompileTypeError(f"Incompatible types {save_type1} {save_type2} for the operation addition")
 
     raise CompileException(f"This method should only be called when either one of the types is a pointer to an object, but the types passed were: {save_type1} and {save_type2}")    
 

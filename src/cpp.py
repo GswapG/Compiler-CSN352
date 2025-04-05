@@ -105,7 +105,7 @@ class Preprocessor:
         filename = match.group(1)
         if '<' in line:
             if filename not in STANDARD_LIBS:
-                raise ValueError(f"Unrecognized standard library at line {line_num}: {filename}")
+                raise CompileValueError(f"Unrecognized standard library at line {line_num}: {filename}")
         else:
             path = os.path.join(current_dir, filename)
             if not os.path.exists(path):
