@@ -8,8 +8,3 @@ struct s{
     struct gg h;
     int kk;
 };
-
-int main(){
-    struct s p;
-    p.h.b = 1;
-}
