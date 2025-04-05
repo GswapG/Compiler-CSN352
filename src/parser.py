@@ -277,7 +277,8 @@ def p_postfix_expression(p):
 
         if (p[1].name != "struct" and p[1].name != "struct_member") and (p[1].name != "union" and p[1].name != "union_member"):
             raise CompileException("Dot operators are only allowed on structs or struct members")
-
+        
+        # print("                                                     ",struct_object,field_identifier)
         if symtab.search_struct(struct_object, field_identifier) is None:
             raise CompileException(f"The identifier '{field_identifier}' does not exist in the struct {struct_object}")
         
@@ -1109,7 +1110,7 @@ def p_assignment_expression(p):
             if p[3].name != "compound_literal":
                 left_type = p[1].return_type
                 right_type = p[3].return_type
-
+                print(p[1].vars[0],p[3].vars[0])
                 if implicit_type_compatibility(left_type, right_type, True):
                     raise CompileException(f"Invalid Assignment|{left_type}|{right_type}|")
             else:

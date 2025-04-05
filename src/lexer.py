@@ -7,6 +7,7 @@ line_start_positions = [0]
 # Lexer states
 states = (
     ('mcomment', 'exclusive'),
+    ('mstring', 'exclusive')
 )
 
 # Simple tokens
@@ -45,13 +46,28 @@ def t_KEYWORD(t):
     return t
 
 # String literal matching
-def t_STRING(t):
-    r'\"([^\\\n]|(\\.))*?\"'
-    # t.value = t.value[1:-1]
-    # adding quotes in string literals
-    t.type = 'STRING_LITERAL'
-    t.value = t.value.encode().decode('unicode_escape')
+# def t_STRING(t):
+#     r'\"([^\\\n]|(\\.))*?\"'
+#     # t.value = t.value[1:-1]
+#     # adding quotes in string literals
+#     t.type = 'STRING_LITERAL'
+#     t.value = t.value.encode().decode('unicode_escape')
+#     return t
+def t_mstring_end(t):
+    r'\"'
+    t.value = '"' + t.lexer.lexdata[t.lexer.code_start:t.lexer.lexpos-1] + '"'
+    print(t.value)
+    t.type = "STRING_LITERAL"
+    t.lexer.begin('INITIAL')
     return t
+
+def t_mstring(t):
+    r'\"'
+    t.lexer.begin('mstring')
+    t.lexer.code_start = t.lexer.lexpos
+
+def t_mstring_body(t):
+    r'[^"\n]+'
 
 # Float matching
 def t_FLOAT(t):
@@ -180,13 +196,18 @@ def t_error(t):
     current_line_start = next(pos for pos in reversed(line_start_positions) if pos <= t.lexpos)
     linepos = t.lexpos - current_line_start
     error = f"Illegal character '{t.value[0]}' at line {t.lineno}, position {linepos}"
-    t.lexer.skip(1)
+    raise CompileException(error)
 
 def t_mcomment_error(t):
     current_line_start = next(pos for pos in reversed(line_start_positions) if pos <= t.lexpos)
     linepos = t.lexpos - current_line_start
     error = f"Illegal character '{t.value[0]}' inside comment at line {t.lineno}, position {linepos}"
+    raise CompileException(error)
 
-    t.lexer.skip(1)
+def t_mstring_error(t):
+    current_line_start = next(pos for pos in reversed(line_start_positions) if pos <= t.lexpos)
+    linepos = t.lexpos - current_line_start
+    error = f"Illegal character 'newline' inside string at line {t.lineno}, position {linepos}"
+    raise CompileException(error)
 
 lexer = lex.lex()
