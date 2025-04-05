@@ -2343,7 +2343,8 @@ def p_function_definition(p):
     else:
         p[0] = Node("function_definition", [p[1], p[2], p[3]])
         size = symtab.func_scope_size(p[2].vars[0])
-        IrGen.function_definition(p[0].ir, p[2].ir, p[3].ir, p[2].vars[0],size)
+        params = symtab.func_params_size(p[2].vars[0])
+        IrGen.function_definition(p[0].ir, p[2].ir, p[3].ir, p[2].vars[0],size - params)
 
     ## because child scope was created earlier and attached already.
     symtab.to_add_child = False
