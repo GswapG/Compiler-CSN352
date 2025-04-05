@@ -400,12 +400,12 @@ class IRGenerator:
         gen1 = f"if {ir1.place} == 0 goto {ir0.else_}"
         gen2 = f"goto {ir0.after}"
         gen3 = f"{ir0.else_}:"
-        self.manage_lists(ir0,ir2)
+        self.manage_lists(ir0,ir2,ir3)
         ir0.code = self.join(ir1.code,gen1,ir2.code,gen2,gen3,ir3.code,gen4)
     
     def if_no_else(self, ir0, ir1, ir2):
         ir0.after = self.new_label()
-        ir0.else_ = ir0.after
+        # ir0.else_ = ir0.after
         if ir1.bpneed>0:
             self.resolve_exp(ir1)
         gen1 = f"if {ir1.place} == 0 goto {ir0.after}"
@@ -417,6 +417,10 @@ class IRGenerator:
     def ternary(self,ir0,ir1,ir2,ir3): #1 is condition , 2 is true , 3 is false
         if ir1.bpneed>0:
             self.resolve_exp(ir1)
+        if ir2.bpneed>0:
+            self.resolve_exp(ir2)
+        if ir3.bpneed>0:
+            self.resolve_exp(ir3)
         false = self.new_label()
         after = self.new_label()
         ir0.place = self.new_temp() 
@@ -473,7 +477,7 @@ class IRGenerator:
         mid = self.new_label()
         gen = f"if {ir1.place} != 0 goto {truego}" #first statement true so go inside scope
         gen2 = f"{mid}:"
-        for c in ir1.falselist: #lhs ka true jumpshere
+        for c in ir1.falselist: #lhs ka false jumpshere
             self.backpatch(ir1,c,mid)
         ir0.truelist += [truego] #false hua toh go to net statement
         ir0.truelist += ir1.truelist + ir2.truelist

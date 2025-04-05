@@ -1,14 +1,14 @@
 int main() {
     for(int i=0;i<1000;i++)
     {
-        if(3)
+        if(1>2||2<4 && 7<3)
         {
             int a = 2;
         }
         else
         {
             break;
-            int a =2;
+            int a = 5;
         }
     }
 }
