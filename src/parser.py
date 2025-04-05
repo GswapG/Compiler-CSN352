@@ -2342,7 +2342,8 @@ def p_function_definition(p):
         p[0] = Node("function_definition", [p[1], p[2], p[3], p[4]])
     else:
         p[0] = Node("function_definition", [p[1], p[2], p[3]])
-        IrGen.function_definition(p[0].ir, p[2].ir, p[3].ir, p[2].vars[0])
+        size = symtab.func_scope_size(p[2].vars[0])
+        IrGen.function_definition(p[0].ir, p[2].ir, p[3].ir, p[2].vars[0],size)
 
     ## because child scope was created earlier and attached already.
     symtab.to_add_child = False
@@ -2419,8 +2420,28 @@ def p_error(p):
 # Build parser
 parser = yacc.yacc(debug=False)
 
+def clearGlobal():
+    print("CLEARING GLOBALS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+    global symtab
+    global typedef_names
+    global lexer
+    global datatypeslhs
+    global returns 
+    global lines
+    global constants
+    global input_text
+    symtab.clear()
+    typedef_names.clear()
+    lexer.lineno = 0
+    datatypeslhs = []
+    returns = set()
+    lines = []
+    constants = defaultdict(lambda : None)
+    input_text = ""
+
 def parseFile(filename, ogfilename, treedir, symtabdir, irtreedir, graphgen=False,irgen=True):
     global IrGen
+    clearGlobal()
     IrGen = IRGenerator(irgen)
     IrGen.set_out_file(ogfilename)
     
@@ -2453,6 +2474,4 @@ def parseFile(filename, ogfilename, treedir, symtabdir, irtreedir, graphgen=Fals
         
     print("\n")
 
-    symtab.clear()
-    typedef_names.clear()
-    lexer.lineno = 0
+    

@@ -265,9 +265,9 @@ class IRGenerator:
         ir0.code = self.join(ir1.code, ir2.code)
         self.debug_print(ir0)
 
-    def function_definition(self,ir0,ir1,ir2,func_name):
+    def function_definition(self,ir0,ir1,ir2,func_name,size):
         gen1 = self.new_label(func_name) + ':'
-        gen2 = "BeginFunc"
+        gen2 = f"BeginFunc {size}"
         gen3 = "EndFunc"
         ir0.code = self.join(gen1,gen2,ir2.code,gen3)
         self.debug_print(ir0)

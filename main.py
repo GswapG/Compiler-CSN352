@@ -6,6 +6,7 @@ import sys
 import tempfile
 import pickle
 from Crypto.Hash import SHA256
+from tqdm import tqdm
 import uuid
 
 HASH_FILE = "hashes.bin"
@@ -98,7 +99,7 @@ def process_file(filename,source_dir=testcase_dir):
 
     add_file(input_path)
     return temp_file.name
-    
+
 def process_directory(source_dir=testcase_dir):
     """
     For all .c files in source_dir, run preprocessor on them to create a temp file and pass it onto the parser.
@@ -114,15 +115,16 @@ def process_directory(source_dir=testcase_dir):
     if not os.path.isdir(source_dir):
         raise Exception(f"Error: {source_dir} is not a valid directory.")
     temp_files = []
-    for filename in os.listdir(source_dir):
+    for filename in tqdm(os.listdir(source_dir)):
+        ret = None
         try:
             ret = process_file(filename)
+            pretty_print_test_output("Compiled Successfully", "green")
         except Exception as e:
             pretty_print_test_output("Compilation Error!", "red")
             print(e)
-            ret = None
-            continue
-        temp_files.append(ret)
+        finally:
+            temp_files.append(ret)
 
     for temp_file in temp_files:
         if temp_file is None:
@@ -135,6 +137,6 @@ def process_directory(source_dir=testcase_dir):
 if __name__ == "__main__":
     try:
         process_directory()
-        pretty_print_test_output("All files processed successfully!", "green")
+        pretty_print_test_output("All files processed successfully!", "yellow")
     except Exception as e:
         pass

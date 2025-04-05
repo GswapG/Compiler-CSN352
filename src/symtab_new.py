@@ -492,6 +492,8 @@ class SymbolTable:
 
         size = 0
         for entry in child_scope.entries:
+            if entry.size is None:
+                continue
             size += entry.size
 
         return size
