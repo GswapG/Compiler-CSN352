@@ -310,8 +310,9 @@ class IRGenerator:
                 gen2 = ir0.place + " = call " + ir1.place + str(0)
                 ir0.code = self.join(gen2)
 
-    def label_add(self, ir0, label):
+    def label_add(self, ir0, label,ir1):
         ir0.code = f"{label}:"
+        ir0.code = self.join(ir0.code,ir1.code)
 
     def goto_label(self, ir0, label):
         ir0.code = f"goto {label}"
@@ -491,7 +492,7 @@ class IRGenerator:
         ir1.code = ir1.code.replace(find, target)
 
     def unary_not(self, ir0, ir1, op):
-        ir0.place = ir1.place
+        ir0.place = self.new_temp()
         gen = f"{ir0.place} = {op} {ir1.place}"
         ir0.truelist = ir1.falselist
         ir0.falselist = ir1.truelist

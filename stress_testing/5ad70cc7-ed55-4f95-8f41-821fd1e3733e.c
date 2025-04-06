@@ -1,24 +1,24 @@
-struct point{
+typedef struct {
     int x;
     int y;
-};
+} point;
 
 struct Rectangle {
-    struct point topLeft;
-    struct point bottomRight;
+    point topLeft;
+    point bottomRight;
 };
 
 /* A function that takes a struct as a parameter and returns its area */
-int computeArea(struct point p, struct point q) {
+int computeArea(point p, point q) {
     int width = p.x - q.x;
     int height = p.y - q.y;
     return width * height;
 }
 
 int main(void) {
-    /* Initialize struct points using aggregate initialization */
-    struct point p1 = {10, 100};
-    struct point p2 = {30, 40};
+    /* Initialize points using aggregate initialization */
+    point p1 = {10, 100};
+    point p2 = {30, 40};
 
     // /* Initialize a Rectangle struct using the above points */
     struct Rectangle rect = {p1, p2};

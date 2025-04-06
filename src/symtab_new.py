@@ -537,7 +537,7 @@ class SymbolTable:
 
         size = 0
         for entry in child_scope.entries:
-            if entry.size is None or entry.kind == "constant":
+            if entry.size is None or entry.kind == "constant" or entry.kind == "enum type":
                 continue
             size += entry.size
 

@@ -76,6 +76,8 @@ class Node:
     
     @return_type.setter
     def return_type(self, new_value):
+        if new_value is not None and new_value.split(' ')[0] == 'enum':
+            new_value = 'int'
         self._return_type = new_value
         self.ir.data_type = self._return_type
 

@@ -2203,7 +2203,7 @@ def p_labeled_statement(p):
         # labels
         p[0] = Node("labeled_statement", [p[1], p[3]])
         symtab.add_goto_symbol(p[1], "identifier")
-        IrGen.label_add(p[0].ir,p[1])
+        IrGen.label_add(p[0].ir,p[1],p[3].ir)
     elif len(p) == 5:
         # case
         p[0] = Node("labeled_statement", [p[1], p[2], p[4]])
