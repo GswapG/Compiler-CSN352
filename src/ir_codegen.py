@@ -305,7 +305,7 @@ class IRGenerator:
                 gen0 = ""
                 j = 0
                 for i in range(0,len(ir2.parameters)):
-                    if argument_list[i] == func_params[j].type or func_params[j] == '...':
+                    if argument_list[i] == func_params[j].type or func_params[j].type == '...':
                         new_param_list.append(ir2.parameters[i])
                     else:
                         _temp = self.new_temp()
@@ -325,7 +325,7 @@ class IRGenerator:
                 gen0 = ""
                 j = 0
                 for i in range(0,len(ir2.parameters)):
-                    if argument_list[i] == func_params[j].type or func_params[j] == '...':
+                    if argument_list[i] == func_params[j].type or func_params[j].type == '...':
                         new_param_list.append(ir2.parameters[i])
                     else:
                         _temp = self.new_temp()
