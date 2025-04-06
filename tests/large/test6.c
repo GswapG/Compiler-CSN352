@@ -1,32 +1,16 @@
 #include <stdio.h>
-#include <stdlib.h>
-typedef int Matrix[3][3];
+
+int recursive_counter(int n) {
+    static int count = 0;
+    count++;
+    if(n <= 0) {
+        printf("Total recursive calls (static): %d\n", count);
+        return 0;
+    }
+    return recursive_counter(n - 1);
+}
 
 int main() {
-    Matrix m = {
-        {1,2,3},
-        {4,5,6},
-        {7,8,9}
-    };
-    
-    int *p = &m[0][0];
-    static int counter = 0;
-    
-    // Print matrix using pointer arithmetic
-    for (int i = 0; i < 3; i++) {
-        for (int j = 0; j < 3; j++) {
-            printf("%d ", *(p + i*3 + j));
-            counter++;
-        }
-        printf("\n");
-    }
-    
-    if(counter != 9) {
-        goto error;
-    }
+    recursive_counter(10);
     return 0;
-    
-error:
-    printf("Error: Matrix traversal failed.\n");
-    return 1;
 }

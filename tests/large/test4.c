@@ -1,38 +1,27 @@
-#include <stdio.h>
-#include <stdlib.h>
+typedef struct {
+    int x;
+    int y;
+} Point;
 
-union Number {
-    int i;
-    float f;
+struct Rectangle {
+    Point topLeft;
+    Point bottomRight;
 };
 
-int main() {
-    FILE *fp = fopen("test.txt", "w+");
-    if (!fp) {
-        printf("Failed to open file.\n");
-        return 1;
-    }
-    
-    int count = 0;
-    // do-while: write numbers to file
-    do {
-        fprintf(fp, "Number: %d\n", count);
-        count++;
-    } while (count < 5);
-    
-    rewind(fp);
-    char line[100];
-    // Custom until loop: read lines until fgets returns NULL
-    do {
-        printf("%s", line);
-    } until(fgets(line, sizeof(line), fp) == NULL);
-    
-    fclose(fp);
-    
-    // Use union for demonstration
-    union Number num;
-    num.f = 3.14;
-    printf("Union holds: %f\n", num.f);
-    
-    return 0;
+/* A function that takes a struct as a parameter and returns its area */
+int computeArea(Point p, Point q) {
+    int width = p.x - q.x;
+    int height = p.y - q.y;
+    return width * height;
+}
+
+int main(void) {
+    /* Initialize Points using aggregate initialization */
+    Point p1 = {10, 100};
+    Point p2 = {30, 40};
+
+    // /* Initialize a Rectangle struct using the above Points */
+    struct Rectangle rect = {p1, p2};
+
+    int area = computeArea(p1, p2);
 }

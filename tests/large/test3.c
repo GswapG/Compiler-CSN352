@@ -1,45 +1,32 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+typedef int Matrix;
 
-typedef char* string;
-
-int main(int argc, char *argv[]) {
-    if(argc < 3) {
-        printf("Usage: %s <word> <repeat>\n", argv[0]);
-        return 1;
-    }
-    string word = argv[1];
-    int repeat = atoi(argv[2]);
-    int len = strlen(word);
+int main() {
+    Matrix m[3][3] = {
+        {1,2,3},
+        {4,5,6},
+        {7,8,9}
+    };
     
-    // Allocate a 2D array: repeat rows of (len+1) chars
-    char **matrix = (char **)malloc(repeat * sizeof(char *));
-    for (int i = 0; i < repeat; i++) {
-        matrix[i] = (char *)malloc((len + 1) * sizeof(char));
-        if (!matrix[i]) { 
-            printf("Allocation failed\n"); 
-            return 1;
+    int *p = &m[0][0];
+    static int counter = 0;
+    
+    // Print matrix using pointer arithmetic
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            printf("%d ", *(p + i*3 + j));
+            counter++;
         }
+        printf("\n");
     }
     
-    // Fill matrix with a pattern: normal in even rows, reversed in odd rows
-    for (int i = 0; i < repeat; i++) {
-        for (int j = 0; j < len; j++) {
-            if(i % 2 == 0)
-                matrix[i][j] = word[j];
-            else
-                matrix[i][j] = word[len - j - 1];
-        }
-        matrix[i][len] = '\0';
+    if(counter != 9) {
+        goto error;
     }
-    
-    // Print and free matrix
-    for (int i = 0; i < repeat; i++) {
-        printf("%s\n", matrix[i]);
-        free(matrix[i]);
-    }
-    free(matrix);
-    
     return 0;
+    
+error:
+    printf("Error: Matrix traversal failed.\n");
+    return 1;
 }

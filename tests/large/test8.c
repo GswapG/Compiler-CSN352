@@ -1,36 +1,20 @@
 #include <stdio.h>
-#include <stdlib.h>
 
-enum Color { RED, GREEN, BLUE };
-
-union Value {
+union Data {
     int i;
-    double d;
+    char c;
 };
 
 int main() {
-    int a = 10;
-    // C++‑style reference variable
-    int &ref = a;
-    ref = 20;
-    printf("a: %d, ref: %d\n", a, ref);
+    union Data data;
+    data.i = 65;
     
-    // Dynamic allocation for union
-    union Value *val = (union Value*)malloc(sizeof(union Value));
-    if(!val) {
-        printf("Allocation failed\n");
-        return 1;
+    switch(data.i) {
+        case 65:
+            printf("Value is 65, as int: %d and as char: %c\n", data.i, data.c);
+            break;
+        default:
+            printf("Other value\n");
     }
-    val->i = 42;
-    printf("Union value as int: %d\n", val->i);
-    free(val);
-    
-    // Using enum
-    enum Color favorite = BLUE;
-    if(favorite == BLUE)
-        printf("Favorite color is blue.\n");
-    else
-        printf("Favorite color is not blue.\n");
-    
     return 0;
 }

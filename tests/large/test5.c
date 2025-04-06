@@ -1,32 +1,37 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 int main() {
-    int arr[10];
-    // Initialize array with a complex arithmetic expression
-    for (int i = 0; i < 10; i++) {
-        arr[i] = i * i - i + 3 * (i + 2) - 5;
+    char str[50];
+    int numbers[5];
+    int sum = 0;
+    
+    printf("Enter a string: ");
+    // scanf("%49s", str);
+    printf("You entered: %s\n", str);
+    
+    int i = 0;
+    while(i < 5) {
+        printf("Enter number %d: ", i+1);
+        // scanf("%d", &numbers[i]);
+        i++;
     }
     
-    // Complex expression to test associativity rules
-    int a = 5, b = 3, c = 2, d = 8;
-    int result = a + b * c - d / (a - b) + (c % d);
-    printf("Result of complex arithmetic: %d\n", result);
-    
-    // Nested loops with break and continue
-    for (int i = 0; i < 10; i++) {
-        for (int j = 0; j < 10; j++) {
-            if(i == j) continue;
-            if(i + j > 15) break;
-            printf("Pair (%d, %d)\n", i, j);
+    i = 0;
+    // do‑while to sum numbers
+    do {
+        if(numbers[i] < 0) {
+            goto negative_error;
         }
-    }
+        sum += numbers[i];
+        i++;
+    } while(i < 5);
     
-    // Demonstrate pointer arithmetic
-    int *ptr = arr;
-    for (int i = 0; i < 10; i++) {
-        printf("arr[%d] = %d (via pointer: %d)\n", i, arr[i], *(ptr + i));
-    }
-    
+    printf("Sum of numbers: %d\n", sum);
     return 0;
+    
+negative_error:
+    printf("Error: Negative number encountered!\n");
+    return 1;
 }
