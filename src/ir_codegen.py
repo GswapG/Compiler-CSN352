@@ -284,7 +284,7 @@ class IRGenerator:
     def parameter_init(self, ir0, ir1):
         ir0.parameters = [ir1.place]
 
-    def function_call(self, ir0, ir1, ir2, ret,param_size):
+    def function_call(self, ir0, ir1, ir2, ret,param_size=0):
         if ir2 is not None:
             # arguments
             gen3 = f"pop params {param_size}"
@@ -580,6 +580,7 @@ class IRGenerator:
         ir0.switchplace = ["default"]
         true= self.new_label()
         ir0.truelist = [true]
+        ir0.falselist += ir1.falselist
         gen1 = f"{true}:"
         ir0.code=self.join(gen1,ir1.code)
 

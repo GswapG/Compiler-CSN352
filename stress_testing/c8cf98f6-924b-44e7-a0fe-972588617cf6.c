@@ -1,15 +1,15 @@
 #include <stdio.h>
 
-int add(int a,int) {
+int add(int a,int b) {
     return a + 3;
 }
 
-int multiply(int a,int b) {
+int multiply(int a) {
     return a * 3;
 }
 
-void operate(int x, int (*func)(int,int)) {
-    int y = func(7);
+void operate(int x, int (*func)(int)) {
+    int x = func(7);
 }
 
 int main() {

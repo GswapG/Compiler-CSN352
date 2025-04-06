@@ -11,6 +11,10 @@ from .exceptions import *
 datatypeslhs=[]
 returns = set()
 constants = defaultdict(lambda: None)
+funcptr = set()
+usesfuncptr = 0
+madefuncptr = 0
+funcswithfuncptr = set()
 
 def table_entry(node):
     compound_dtype = ""
@@ -84,6 +88,13 @@ def p_primary_expression_identifier(p):
         p[1]= symtab.lookup(p[1]).refsto
     p[0] = Node("primary_expression_identifier", [p[1]])
     p[0].vars.append(str(p[1]))
+
+    global usesfuncptr
+    global funcswithfuncptr
+    # print("123123",funcswithfuncptr)
+    if(p[1] in funcswithfuncptr):
+        # print("123123123123",p[1])
+        usesfuncptr=1
 
     p[0].name = "identifier"
     p[0].lvalue = True
@@ -237,6 +248,8 @@ def p_postfix_expression(p):
                          | postfix_expression DEC_OP
                          | LPAREN type_name RPAREN LBRACE initializer_list RBRACE
                          | LPAREN type_name RPAREN LBRACE initializer_list COMMA RBRACE '''
+    
+    global funcptr
     if len(p) == 2:
         p[0] = Node("postfix_expression", [p[1]])
         #IR
@@ -393,11 +406,10 @@ def p_postfix_expression(p):
         p[0].name = "compound_literal"
         p[0].return_type = p[2].return_type
 
-    if len(p) == 5 and p[2] == "(" and len(p[0].vars) > 0:
-
+    if len(p) == 5 and p[2] == "(" and len(p[0].vars) > 0 and ( p[0].vars[0] not in funcptr and p[0].vars[0] not in funcswithfuncptr):
         func_params = symtab.search_params(p[0].vars[0])
         argument_list = p[3].param_list
-        
+        # print(func_params,argument_list)
         argument_param_match(argument_list, func_params)
             
         p[0].vars = [p[0].vars[0]]
@@ -410,6 +422,20 @@ def p_postfix_expression(p):
         p[0].name = "function_call"
 
         ret = symtab.lookup(p[1].vars[0]).type
+        print("1",p[1].vars)
+        param_size = symtab.func_params_size(p[1].vars[0])
+        IrGen.function_call(p[0].ir, p[1].ir, p[3].ir,ret,param_size)
+
+    if len(p) == 5 and p[2] == "(" and len(p[0].vars) > 0 and ( p[0].vars[0] in funcptr or p[0].vars[0] in funcswithfuncptr):
+        p[0].return_type = p[1].return_type[1:]
+        # print("arrrr",p[0].return_type)
+        p[0].vars = [p[0].vars[0]]
+        p[0].lvalue = False
+        p[0].rvalue = True
+        p[0].name = "function_call"
+
+        ret = p[0].return_type
+        print("2",p[1].vars)
         param_size = symtab.func_params_size(p[1].vars[0])
         IrGen.function_call(p[0].ir, p[1].ir, p[3].ir,ret,param_size)
 
@@ -426,8 +452,8 @@ def p_postfix_expression(p):
             raise CompileException("() can be only applied to functions")
         
         p[0].name = "function_call"
-
-        IrGen.function_call(p[0].ir, p[1].ir,None,ret)
+        
+        IrGen.function_call(p[0].ir, p[1].ir,None,ret,0)
 
 def p_postfix_expression_error_1(p):
     '''postfix_expression : LPAREN type_name error LBRACE initializer_list RBRACE
@@ -494,9 +520,9 @@ def p_unary_expression(p):
                 p[0].return_type = p[0].return_type[1:]
         if(len(p[0].vars)>0 and p[1].vars[0][0] != '"'and '[' in p[1].vars[0]):
             new_var = (p[1].vars[0]).split('[')[0]
-            print(new_var)
+            # print(new_var)
             base_type = symtab.lookup(new_var).type
-            print("                                         ",base_type)
+            # print("                                         ",base_type)
             if(base_type[0]=='*'):
                 base_type = base_type[1:]
             type_size = symtab.get_size(base_type)
@@ -718,8 +744,17 @@ def p_multiplicative_expression(p):
     func_id = 0
     for v in p[0].vars:
         if symtab.lookup(v) is not None and symtab.lookup(v).kind == 'function':
+            # print(v)
             func_id += 1
 
+    global usesfuncptr
+    # print("3434",usesfuncptr)
+    # print("func_id", func_id, p[0].iscall,p[0].vars,funcptr,funcswithfuncptr,usesfuncptr)
+    if usesfuncptr==1 and len(p[0].vars)==1 and symtab.lookup(p[0].vars[0]) is not None and symtab.lookup(p[0].vars[0]).kind == 'function':
+        p[0].iscall += 1 
+        usesfuncptr=0
+
+    
     if func_id != p[0].iscall:
         raise CompileException("Invalid Function Call")
     
@@ -1110,7 +1145,7 @@ def p_assignment_expression(p):
             if p[3].name != "compound_literal":
                 left_type = p[1].return_type
                 right_type = p[3].return_type
-                print(p[1].vars[0],p[3].vars[0])
+                # print(p[1].vars[0],p[3].vars[0])
                 if implicit_type_compatibility(left_type, right_type, True):
                     raise CompileException(f"Invalid Assignment|{left_type}|{right_type}|")
             else:
@@ -1839,6 +1874,9 @@ def p_direct_declarator(p):
         validate_c_datatype(base_type, symtab)
 
     if len(p) > 2 and p[2] == '(':
+        # global usesfuncptr
+        # if(usesfuncptr==1):
+        #     usesfuncptr=0
         func_name = p[1].vars[0] #check gang
         base_type = ''
         for dtype in p[1].fdtypes:
@@ -1850,7 +1888,8 @@ def p_direct_declarator(p):
         func_sym = SymbolEntry(
             name=str(func_name),
             type=str(base_type),  # Return type from declaration_specifiers
-            kind="function"
+            kind="function",
+            isForwardable=True
         )
 
         symtab.add_function_symbol(func_sym)
@@ -1944,7 +1983,14 @@ def p_parameter_declaration(p):
                 kind="parameter",
                 isForwardable=True
             )
-            symtab.add_symbol(param_sym)   
+            if(symtab.lookup(p[0].vars[0]) is not None and symtab.lookup(p[0].vars[0]).kind == "function"):
+                global funcptr
+                funcptr.add(p[0].vars[0])
+                global madefuncptr
+                madefuncptr = 1
+                # print(funcptr)
+            else:
+                symtab.add_symbol(param_sym)   
 
             ## if you dont do this it forwards this up and in init_declarator you end up adding all the params again to global scope 
             ## for test case run this on function definition 
@@ -2191,6 +2237,9 @@ def p_exit_scope(p):
 
 def p_function_exit_scope(p):
     'function_exit_scope :'
+    # funcptr.clear()
+    # print(p[0].vars)
+    # funcswithfuncptr.add()
     symtab.function_exit_scope()
 
 def p_compound_statement_error(p):
@@ -2352,6 +2401,13 @@ def p_function_definition(p):
     symtab.to_add_child = False
     symtab.the_child = None
 
+    global madefuncptr
+    if(madefuncptr==1):
+        global funcswithfuncptr
+        funcswithfuncptr.add(p[0].vars[0])
+        # print("123AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",funcswithfuncptr)
+        madefuncptr = 0
+
     # -- Symbol Table Handling --
     # Get function name from declarator (assume p[2] has 'name' attribute)
     func_name = p[2].vars[0] #check gang
@@ -2379,7 +2435,7 @@ def p_function_definition(p):
     # symtab.exit_scope()
     # IR
     if len(p) == 4:
-        print(p[2].vars[0])
+        # print(p[2].vars[0])
         size = symtab.func_scope_size(func_name)
         params = symtab.func_params_size(func_name)
         IrGen.function_definition(p[0].ir, p[2].ir, p[3].ir, func_name,size - params)
@@ -2439,6 +2495,14 @@ def clearGlobal():
     global lines
     global constants
     global input_text
+    global funcptr
+    global usesfuncptr
+    global madefuncptr
+    global funcswithfuncptr
+    funcptr = set()
+    usesfuncptr = 0
+    madefuncptr = 0
+    funcswithfuncptr = set()
     symtab.clear()
     typedef_names.clear()
     lexer.lineno = 0
@@ -2447,9 +2511,9 @@ def clearGlobal():
     lines = []
     constants = defaultdict(lambda : None)
     input_text = ""
+    parser.restart()
 
 def parseFile(filename, ogfilename, treedir, symtabdir, irtreedir, graphgen=False,irgen=True):
-    clearGlobal()
     global IrGen
     IrGen = IRGenerator(irgen)
     IrGen.set_out_file(ogfilename)
@@ -2482,5 +2546,4 @@ def parseFile(filename, ogfilename, treedir, symtabdir, irtreedir, graphgen=Fals
         print(f"Symbol table tree saved as renderedSymbolTables/{ogfilename[:-2]}.png")
         
     print("\n")
-
-    
+    clearGlobal()

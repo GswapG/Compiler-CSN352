@@ -124,7 +124,7 @@ def process_directory(source_dir=testcase_dir):
         try:
             ret = process_file(filename)
             pretty_print_test_output("Compiled Successfully", "light_steel_blue")
-        except CompileException as e:
+        except ValueError as e:
             pretty_print_test_output("Compilation Error!", "red")
             # print(e)
             errors.append((filename,e))
