@@ -338,7 +338,6 @@ def implicit_type_compatibility(type1, type2, allow_int_float=False):
     return True
 
 def addition_compatibility(type1, type2):
-    # print(type1, type2)
     if type1 is None:
         raise CompileException("lvalue is None")
     
@@ -366,7 +365,6 @@ def addition_compatibility(type1, type2):
         type1 = type1.lstrip("*")
 
         if type1 == type2:
-            # print(save_type1)
             return save_type1
         
         else:

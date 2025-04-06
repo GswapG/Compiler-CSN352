@@ -208,7 +208,6 @@ class Preprocessor:
             else:
                 if arg_index < len(args):
                     if spec == 'd':
-                        print(args[arg_index])
                         new_lines.append(f'print_int({args[arg_index]});')
                     elif spec == 'f':
                         new_lines.append(f'print_float({args[arg_index]});')

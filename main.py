@@ -124,7 +124,7 @@ def process_directory(source_dir=testcase_dir):
         try:
             ret = process_file(filename)
             pretty_print_test_output("Compiled Successfully", "light_steel_blue")
-        except ValueError as e:
+        except Exception as e:
             pretty_print_test_output("Compilation Error!", "red")
             # print(e)
             errors.append((filename,e))
@@ -148,9 +148,9 @@ def process_directory(source_dir=testcase_dir):
             print(f"\nIn file : {f}")
             if e.__class__.__name__ == "CompileException":
                 print("COMPILE ERROR: ", end="")
+                print(e)
             else:
-                print("PYTHON ERROR: ", end="")
-            print(e)
+                print("COMPILE ERROR: ", end="You may have used unsupported features!!")
 
 if __name__ == "__main__":
     process_directory()

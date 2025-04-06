@@ -57,7 +57,6 @@ def t_KEYWORD(t):
 def t_mstring_end(t):
     r'\"'
     t.value = '"' + t.lexer.lexdata[t.lexer.code_start:t.lexer.lexpos-1] + '"'
-    print(t.value)
     t.type = "STRING_LITERAL"
     t.lexer.begin('INITIAL')
     return t

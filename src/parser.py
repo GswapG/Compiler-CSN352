@@ -371,7 +371,6 @@ def p_postfix_expression(p):
         p[0] = Node("postfix_expression", [p[1], p[3]])
 
         if p[2] == '[':
-            print(p[1].name)
             if p[1].name != "pointer" and p[1].name != "array" and "_array" not in p[1].name:
                 raise CompileException("[] operator incorrectly applied")
             else:
@@ -440,12 +439,12 @@ def p_postfix_expression(p):
         p[0].name = "function_call"
 
         ret = symtab.lookup(p[1].vars[0]).type
-        print("1",p[1].vars)
         param_size = symtab.func_params_size(p[1].vars[0])
         IrGen.function_call(p[0].ir, p[1].ir, p[3].ir,ret,param_size)
 
     if len(p) == 5 and p[2] == "(" and len(p[0].vars) > 0 and ( p[0].vars[0] in funcptr or p[0].vars[0] in funcswithfuncptr):
-        p[0].return_type = p[1].return_type[1:]
+        if p[1].return_type[0] == '*':
+            p[0].return_type = p[1].return_type[1:]
         # print("arrrr",p[0].return_type)
         p[0].vars = [p[0].vars[0]]
         p[0].lvalue = False
@@ -453,7 +452,6 @@ def p_postfix_expression(p):
         p[0].name = "function_call"
 
         ret = p[0].return_type
-        print("2",p[1].vars)
         param_size = symtab.func_params_size(p[1].vars[0])
         IrGen.function_call(p[0].ir, p[1].ir, p[3].ir,ret,param_size)
 
@@ -540,13 +538,10 @@ def p_unary_expression(p):
             new_var = (p[1].vars[0]).split('[')[0]
             if '.' in new_var:
                 new_var = new_var.split('.')[1]    
-            print(new_var)        
-            print(p[1].name)
             base_type=" "
             if("_array" not in p[1].name):
                 base_type = symtab.lookup(new_var).type
             # else:
-            print(new_var)
             if(base_type[0]=='*'):
                 base_type = base_type[1:]
             type_size = symtab.get_size(base_type)

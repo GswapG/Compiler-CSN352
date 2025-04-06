@@ -298,7 +298,6 @@ class IRGenerator:
             else:
                 ir0.place = self.new_temp()
                 gen1 = ""
-                # print(ir2.parameters)
                 for param  in ir2.parameters:
                     gen1 = self.join(gen1, f"param {param}")
                 gen2 = f"{ir0.place} = call {ir1.place}, {str(len(ir2.parameters))}"

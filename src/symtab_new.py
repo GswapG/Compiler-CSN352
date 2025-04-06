@@ -522,10 +522,8 @@ class SymbolTable:
         child_scope = func_entry.child
 
         size = 0
-        print("name",name)
         for entry in child_scope.entries:
             if entry.kind == "parameter" and entry.size is not None:
-                print(entry.name)
                 size += entry.size
 
         return size
