@@ -2,6 +2,7 @@ from .ir import IR
 import os
 import copy
 from .exceptions import *
+from .utils import get_size_from_type
 from .compatible import dominating_type
 DEFAULT_OUTPUT_DIRECTORY = "generatedIR"
 
@@ -616,7 +617,7 @@ class IRGenerator:
             self.backpatch(ir2,c,temp)
         ir0.code = self.join(ir1.code,gen1,ir2.code,gen3)
 
-    def struct_access(self,ir0,ir1,offset,isArrow=False):
+    def struct_access(self,ir0,ir1,offset,isArrow=False,isArray=False):
         ir0.place = self.new_temp()
         if isArrow:
             gen1 = f"{ir0.place} = {ir1.place}"
@@ -624,7 +625,8 @@ class IRGenerator:
             gen1 = f"{ir0.place} = & {ir1.place}"
         gen2 = f"{ir0.place} = {ir0.place} + {offset}"
         # gen3 = f"*{ir0.place}"
-        ir0.place = '*'+ir0.place
+        if not isArray: 
+            ir0.place = '*'+ir0.place
         ir0.code = self.join(gen1,gen2)
 
     def struct_init_list(self,ir0,ir1,offset_list,init_list):

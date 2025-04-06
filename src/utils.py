@@ -206,6 +206,7 @@ def argument_param_match(argument_list, func_params):
             argument_ptr += 1
             pass
         else:
+            #print(argument_list[argument_ptr],func_params[params_ptr].type)
             if implicit_type_compatibility(func_params[params_ptr].type, argument_list[argument_ptr], True):
                 raise CompileException(f"Invalid Function Parameters => {trim_value(func_params[params_ptr].type, 'const')} | {trim_value(argument_list[argument_ptr], 'const')}")
             else:

@@ -284,6 +284,7 @@ def p_postfix_expression(p):
         IrGen.inc_dec(p[0].ir,p[1].ir,p[2],True)
 
     elif len(p) == 4 and p[2] == ".":
+        # struct member access
         p[0] = Node("postfix_expression", [p[1], p[3]])
         field_identifier = p[3]
         struct_object = p[0].vars[0]
@@ -296,19 +297,28 @@ def p_postfix_expression(p):
             raise CompileException(f"The identifier '{field_identifier}' does not exist in the struct {struct_object}")
         
         p[0].vars = [f"{struct_object}.{field_identifier}"]
-        p[0].return_type = symtab.search_struct(struct_object, field_identifier)[0]
+        # DONT REMOVE TS (search_struct returns 3 items)
+        struct_entry = symtab.search_struct(struct_object, field_identifier)
+        p[0].return_type = struct_entry[0]
+            
 
 
         if "struct" in p[1].name:
             p[0].name = "struct_member"
         elif "union" in p[1].name:
             p[0].name = "union_member"
-
+        # adding array ka label to check if member being accessed is an array
+        member_being_accessed_is_array = False
+        if struct_entry is not None and 'D-array' in struct_entry[2]:
+            p[0].name += "_array"
+            p[0].return_type = '*' + p[0].return_type
+            member_being_accessed_is_array = True
         p[0].lvalue = True
         p[0].rvalue = False
         # IR GENERATION
         f_offset = symtab.search_struct(struct_object, field_identifier)[1]
-        IrGen.struct_access(p[0].ir,p[1].ir,f_offset)
+
+        IrGen.struct_access(p[0].ir,p[1].ir,f_offset,isArray=member_being_accessed_is_array)
 
     elif len(p) == 4 and p[2] == '->':
         p[0] = Node("postfix_expression", [p[1], p[3]])
@@ -326,18 +336,25 @@ def p_postfix_expression(p):
             raise CompileTypeError(f"Arrow Operators are used on pointers to object of types structs or unions")
 
         p[0].vars = [f"{struct_object}.{field_identifier}"]
-        p[0].return_type = symtab.search_struct(struct_object, field_identifier)[0]
-
+        # DO NOT REDEEM
+        struct_entry = symtab.search_struct(struct_object, field_identifier)
+        p[0].return_type = struct_entry[0]
         if "struct" in type:
             p[0].name = "struct_member"
         elif "union" in type:
             p[0].name = "union_member"
+        # adding array ka label to check if member being accessed is an array
+        member_being_accessed_is_array = False
+        if struct_entry is not None and 'D-array' in struct_entry[2]:
+            p[0].name += "_array"
+            p[0].return_type = '*' + p[0].return_type
+            member_being_accessed_is_array = True
 
         p[0].lvalue = True
         p[0].rvalue = False
         #IR GENERATION
         f_offset = symtab.search_struct(struct_object, field_identifier)[1]
-        IrGen.struct_access(p[0].ir,p[1].ir,f_offset,True)
+        IrGen.struct_access(p[0].ir,p[1].ir,f_offset,isArrow=True,isArray=member_being_accessed_is_array)
     elif len(p) == 4:
         p[0] = Node("postfix_expression", [p[1]])
         p[0].iscall = 1
@@ -354,7 +371,8 @@ def p_postfix_expression(p):
         p[0] = Node("postfix_expression", [p[1], p[3]])
 
         if p[2] == '[':
-            if p[1].name != "pointer" and p[1].name != "array":
+            print(p[1].name)
+            if p[1].name != "pointer" and p[1].name != "array" and "_array" not in p[1].name:
                 raise CompileException("[] operator incorrectly applied")
             else:
                 p[0].name = p[1].name
@@ -520,13 +538,21 @@ def p_unary_expression(p):
                 p[0].return_type = p[0].return_type[1:]
         if(len(p[0].vars)>0 and p[1].vars[0][0] != '"'and '[' in p[1].vars[0]):
             new_var = (p[1].vars[0]).split('[')[0]
-            # print(new_var)
-            base_type = symtab.lookup(new_var).type
-            # print("                                         ",base_type)
+            if '.' in new_var:
+                new_var = new_var.split('.')[1]    
+            print(new_var)        
+            print(p[1].name)
+            base_type=" "
+            if("_array" not in p[1].name):
+                base_type = symtab.lookup(new_var).type
+            # else:
+            print(new_var)
             if(base_type[0]=='*'):
                 base_type = base_type[1:]
             type_size = symtab.get_size(base_type)
             IrGen.unary_array(p[0].ir,p[1].ir,p[0].vars[0].split('[')[0],type_size)
+            # else:
+
 
     elif len(p) == 3:
         p[0] = Node("unary_expression", [p[1], p[2]])

@@ -575,7 +575,7 @@ class SymbolTable:
             
         for entry in current_scope.entries:
             if entry.name == identifier:
-                return entry.type ,entry.offset
+                return entry.type ,entry.offset, entry.kind
 
         return None
     def search_struct_attributes(self,struct_name):
