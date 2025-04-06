@@ -1,4 +1,9 @@
+struct point{
+    int x;
+    int y;
+};
 int main(){
-    char * x = "hello
-    ";
+    struct point p;
+    char * x = "hello;";
+    printf("%d %d",p.x,p.y);
 }

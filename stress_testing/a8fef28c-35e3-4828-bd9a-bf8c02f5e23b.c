@@ -1,4 +1,3 @@
 int main(){
-    char * x = "hello
-    hello";
+    char * x = "hello hello";
 }

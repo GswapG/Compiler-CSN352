@@ -427,7 +427,7 @@ def p_postfix_expression(p):
         
         p[0].name = "function_call"
 
-        IrGen.function_call(p[0].ir, p[1].ir,None,ret)
+        IrGen.function_call(p[0].ir, p[1].ir,None,ret,0)
 
 def p_postfix_expression_error_1(p):
     '''postfix_expression : LPAREN type_name error LBRACE initializer_list RBRACE
@@ -2447,9 +2447,9 @@ def clearGlobal():
     lines = []
     constants = defaultdict(lambda : None)
     input_text = ""
+    parser.restart()
 
 def parseFile(filename, ogfilename, treedir, symtabdir, irtreedir, graphgen=False,irgen=True):
-    clearGlobal()
     global IrGen
     IrGen = IRGenerator(irgen)
     IrGen.set_out_file(ogfilename)
@@ -2482,5 +2482,6 @@ def parseFile(filename, ogfilename, treedir, symtabdir, irtreedir, graphgen=Fals
         print(f"Symbol table tree saved as renderedSymbolTables/{ogfilename[:-2]}.png")
         
     print("\n")
+    clearGlobal()
 
     

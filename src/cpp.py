@@ -30,6 +30,7 @@ def splitParams(s):
             if len(stk) == 0:
                 cur_param.strip()
                 params.append(cur_param)
+                cur_param = ""
             else:
                 cur_param += c
         else:
