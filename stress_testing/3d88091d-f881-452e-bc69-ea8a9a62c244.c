@@ -3,6 +3,7 @@ int func(int a , int b , int c){
 }
 
 int main(){
-  int ** ptr;
-  ptr = ptr + 1;
+  double d;
+  float f = 1 + d;
+  int x = d;
 }

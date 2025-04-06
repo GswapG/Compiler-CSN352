@@ -177,12 +177,23 @@ class IRGenerator:
         ir0.place = self.new_temp()
         dom_type = self.dom_type(ir1,ir2)
         gen1 = ""
+        gen0 = ""
         if ir1.data_type != dom_type:
+            if ir1.place.isnumeric() or ir1.place.startswith('"') or ir1.place.startswith("'"):
+                t = ir1.place
+                ir1.place = self.new_temp()
+                gen0 = f"{ir1.place} = {t}"
             cvt = f"{ir1.data_type}To{dom_type}"
             gen1 = f"{ir1.place} = {cvt} {ir1.place}"
+            gen1 = self.join(gen0,gen1)
         if ir2.data_type != dom_type:
+            if ir2.place.isnumeric() or ir2.place.startswith('"') or ir2.place.startswith("'"):
+                t = ir2.place
+                ir2.place = self.new_temp()
+                gen0 = f"{ir2.place} = {t}"
             cvt = f"{ir2.data_type}To{dom_type}"
             gen1 = f"{ir2.place} = {cvt} {ir2.place}"
+            gen1 = self.join(gen0,gen1)
         op = f"({dom_type}){op}"
         gen2 = f"{ir0.place} = {ir1.place} {op} {ir2.place}"
         ir0.code = self.join(ir1.code, ir2.code,gen1, gen2)
@@ -285,21 +296,48 @@ class IRGenerator:
     def parameter_init(self, ir0, ir1):
         ir0.parameters = [ir1.place]
 
-    def function_call(self, ir0, ir1, ir2, ret,param_size=0):
+    def function_call(self, ir0, ir1, ir2, ret,param_size=0,argument_list = [], func_params= []):
         if ir2 is not None:
             # arguments
             gen3 = f"pop params {param_size}"
+            new_param_list = []
             if ret == 'void':
+                gen0 = ""
+                j = 0
+                for i in range(0,len(ir2.parameters)):
+                    if argument_list[i] == func_params[j].type or func_params[j] == '...':
+                        new_param_list.append(ir2.parameters[i])
+                    else:
+                        _temp = self.new_temp()
+                        cvt = f"{argument_list[i]}To{func_params[j].type}"
+                        gen0 = self.join(gen0, f"{_temp} = {cvt} {ir2.parameters[i]}")
+                        new_param_list.append(_temp)
+                    if j < len(func_params)-1:
+                        j += 1                        
                 gen1 = ""
-                for param  in ir2.parameters:
+                for param  in new_param_list:
                     gen1 = self.join(gen1, f"param {param}")
+                gen1 = self.join(gen0, gen1)
                 gen2 = f"call {ir1.place}, {str(len(ir2.parameters))}"
                 ir0.code = self.join(ir2.code, gen1, gen2,gen3)
             else:
                 ir0.place = self.new_temp()
+                gen0 = ""
+                j = 0
+                for i in range(0,len(ir2.parameters)):
+                    if argument_list[i] == func_params[j].type or func_params[j] == '...':
+                        new_param_list.append(ir2.parameters[i])
+                    else:
+                        _temp = self.new_temp()
+                        cvt = f"{argument_list[i]}To{func_params[j].type}"
+                        gen0 = self.join(gen0, f"{_temp} = {cvt} {ir2.parameters[i]}")
+                        new_param_list.append(_temp)
+                    if j < len(func_params)-1:
+                        j += 1                        
                 gen1 = ""
-                for param  in ir2.parameters:
+                for param  in new_param_list:
                     gen1 = self.join(gen1, f"param {param}")
+                gen1 = self.join(gen0, gen1)
                 gen2 = f"{ir0.place} = call {ir1.place}, {str(len(ir2.parameters))}"
                 ir0.code = self.join(ir2.code, gen1, gen2,gen3)
         else:

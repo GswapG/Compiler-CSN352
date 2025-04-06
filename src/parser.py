@@ -440,7 +440,7 @@ def p_postfix_expression(p):
 
         ret = symtab.lookup(p[1].vars[0]).type
         param_size = symtab.func_params_size(p[1].vars[0])
-        IrGen.function_call(p[0].ir, p[1].ir, p[3].ir,ret,param_size)
+        IrGen.function_call(p[0].ir, p[1].ir, p[3].ir,ret,param_size,argument_list=argument_list,func_params=func_params)
 
     if len(p) == 5 and p[2] == "(" and len(p[0].vars) > 0 and ( p[0].vars[0] in funcptr or p[0].vars[0] in funcswithfuncptr):
         if p[1].return_type[0] == '*':
