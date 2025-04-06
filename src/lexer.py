@@ -198,6 +198,7 @@ def t_error(t):
     linepos = t.lexpos - current_line_start
     error = f"Illegal character '{t.value[0]}' at line {t.lineno}, position {linepos}"
     reset(t.lexer)
+    reset(t.lexer)
     raise CompileException(error)
 
 def t_mcomment_error(t):
@@ -205,12 +206,14 @@ def t_mcomment_error(t):
     linepos = t.lexpos - current_line_start
     error = f"Illegal character '{t.value[0]}' inside comment at line {t.lineno}, position {linepos}"
     reset(t.lexer)
+    reset(t.lexer)
     raise CompileException(error)
 
 def t_mstring_error(t):
     current_line_start = next(pos for pos in reversed(line_start_positions) if pos <= t.lexpos)
     linepos = t.lexpos - current_line_start
     error = f"Illegal character 'newline' inside string at line {t.lineno}, position {linepos}"
+    reset(t.lexer)
     reset(t.lexer)
     raise CompileException(error)
 

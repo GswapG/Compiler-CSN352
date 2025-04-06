@@ -2512,6 +2512,7 @@ def clearGlobal():
     constants = defaultdict(lambda : None)
     input_text = ""
     parser.restart()
+    parser.restart()
 
 def parseFile(filename, ogfilename, treedir, symtabdir, irtreedir, graphgen=False,irgen=True):
     global IrGen
