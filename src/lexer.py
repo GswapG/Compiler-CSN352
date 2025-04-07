@@ -1,4 +1,4 @@
-import ply.lex as lex 
+from .ply import lex 
 from .tokens import *
 from .exceptions import *
 typedef_names = set()

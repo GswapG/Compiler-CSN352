@@ -1,6 +1,5 @@
-import ply.yacc as yacc
+from .ply import yacc 
 import os
-from ply import yacc
 from .utils import *
 from .lexer import *
 from .tree import *
@@ -2533,9 +2532,9 @@ def clearGlobal():
     constants = defaultdict(lambda : None)
     input_text = ""
     parser.restart()
-    parser.restart()
 
 def parseFile(filename, ogfilename, treedir, symtabdir, irtreedir, graphgen=False,irgen=True):
+    clearGlobal()
     global IrGen
     IrGen = IRGenerator(irgen)
     IrGen.set_out_file(ogfilename)
@@ -2568,4 +2567,4 @@ def parseFile(filename, ogfilename, treedir, symtabdir, irtreedir, graphgen=Fals
         print(f"Symbol table tree saved as renderedSymbolTables/{ogfilename[:-2]}.png")
         
     print("\n")
-    clearGlobal()
+    

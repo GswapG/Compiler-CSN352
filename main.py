@@ -90,7 +90,7 @@ def add_file(filepath):
 
 def process_file(filename,source_dir=testcase_dir):
     if not (filename.endswith('.c') or filename.endswith('.C')):
-        return
+        return -1
     input_path = os.path.join(source_dir, filename)
     # Create a temporary file for the preprocessed output.
     with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.c') as temp_file:
@@ -119,11 +119,14 @@ def process_directory(source_dir=testcase_dir):
     if not os.path.isdir(source_dir):
         raise CompileException(f"Error: {source_dir} is not a valid directory.")
     temp_files = []
+    num_of_files = 0
     for filename in (os.listdir(source_dir)):
         ret = None
         try:
             ret = process_file(filename)
             pretty_print_test_output("Compiled Successfully", "light_steel_blue")
+            if ret != -1:
+                num_of_files += 1
         except Exception as e:
             pretty_print_test_output("Compilation Error!", "red")
             # print(e)
@@ -141,9 +144,9 @@ def process_directory(source_dir=testcase_dir):
     
     # Report errors
     if len(errors) == 0:
-        pretty_print_test_output("All files processed successfully!", "green")
+        pretty_print_test_output(f"{num_of_files}/{num_of_files} files processed successfully!", "green")
     else:
-        pretty_print_test_output("All files processed, some have errors!", "orange_red1")
+        pretty_print_test_output(f"All files processed, {len(errors)} files have errors!", "orange_red1")
         for f, e in errors:
             print(f"\nIn file : {f}")
             if e.__class__.__name__ == "CompileException":
