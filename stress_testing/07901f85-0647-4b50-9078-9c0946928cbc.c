@@ -1,6 +1,6 @@
 int glb;
 int glb1 = 10;
-// int printf(char *);
+
 static int glb2;
 struct foo
 {
@@ -54,8 +54,7 @@ jump:
 a = 1;
     struct foo newS;
     printf("Final = %d", newS.b + ret);
-    if (b[2] == 0){
+    if (b[2] == 0)
         goto jump;
-	}
-    bar(1, *b);
+    bar(1, b[0]);
 }

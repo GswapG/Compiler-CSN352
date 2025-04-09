@@ -915,12 +915,28 @@ def p_equality_expression(p):
     else:
         p[0] = Node("equality_expression", [p[1], p[2], p[3]])
         for var in p[1].vars:
-            if symtab.lookup(var) == None:
-                raise CompileValueError(f"No symbol '{var}' in the symbol table")
+            new_var = var
+            if var[-1] == ']':
+                braces = var.count('[')
+                new_var = var[:-2 * braces]
+
+            if new_var[0] == '@':
+                _ = new_var.count('@')
+                new_var = new_var[_:]
+
+            if new_var[0] == '!':
+                _ = new_var.count('!')
+                new_var = new_var[_:]
+
+            if symtab.lookup(new_var) == None:
+                raise CompileValueError(f"No symbol '{new_var}' in the symbol table")
             
         dtype1 = None
+        print(p[1].vars)
         if len(p[1].vars) > 0:
+            print(p[1].vars[0])
             d, r, var0 = count_deref_ref(p[1].vars[0])
+            print(d, r)
             dtype1 = get_type_from_var(var0, d, r, symtab)
 
         implicit_type_check_list(p[3].vars, dtype1, p[2], symtab, True)

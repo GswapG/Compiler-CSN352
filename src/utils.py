@@ -46,6 +46,8 @@ def validate_relational_operands(left_vars, right_vars, symtab, allow_int_float)
         for var2 in right_vars:
             d2, r2, clean_var2 = count_deref_ref(var2)
             right_type = get_type_from_var(clean_var2, d2, r2, symtab)
+            print(left_type)
+            print(right_type)
             if implicit_type_compatibility(left_type, right_type, allow_int_float):
                 raise CompileValueError(f"Incompatible relational op with '{clean_var}' and '{clean_var2}'")
 
@@ -84,7 +86,7 @@ def get_type_from_var(var, deref_count, ref_count, symtab, kind_check=None):
     else:
         if symtab.lookup(var) is None:
             raise CompileException(f"{var} does not exist in the scope")
-        
+        print(var)
         var_ = symtab.lookup(var)
         type_ = var_.type
 
@@ -93,9 +95,11 @@ def get_type_from_var(var, deref_count, ref_count, symtab, kind_check=None):
 
     # Process dereference operations: remove leading '*' for each '@'
     for _ in range(deref_count):
-        if isinstance(type_, str) and type_.startswith('*'):
+        if isinstance(type_, str) and (type_.startswith('*')):
             type_ = type_[1:]
         else:
+            if decay:
+                continue
             raise CompileTypeError("Invalid Deref Op")
 
     # Process reference operations: add a '*' for each '!'

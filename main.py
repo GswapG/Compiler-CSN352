@@ -131,6 +131,7 @@ def process_directory(source_dir=testcase_dir):
             pretty_print_test_output("Compilation Error!", "red")
             # print(e)
             errors.append((filename,e))
+            raise e
         finally:
             temp_files.append(ret)
 
@@ -153,7 +154,8 @@ def process_directory(source_dir=testcase_dir):
                 print("COMPILE ERROR: ", end="")
                 print(e)
             else:
-                print("COMPILE ERROR: ", end="You may have used unsupported features!!")
+                print("COMPILE ERROR: ", end="")
+                print(e)
 
 if __name__ == "__main__":
     process_directory()

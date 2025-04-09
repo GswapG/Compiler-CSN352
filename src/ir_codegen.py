@@ -126,6 +126,14 @@ class IRGenerator:
     def dom_type(self, ir1, ir2):
         return ir1.data_type if dominating_type(ir1.data_type,ir2.data_type) else ir2.data_type
     
+    def convert(self,t1,t2):
+        print(t1,t2)
+        t1 = t1.replace(' ', '_')
+        t2 = t2.replace(' ', '_')
+        print(t1,t2)
+        cvt = f"{t1}To{t2}"
+        return cvt
+    
     # Functions for actual IR rules
     def identifier(self, ir0, id):
         ir0.place = str(id)
@@ -144,7 +152,7 @@ class IRGenerator:
             self.resolve_exp(ir2)
         gen = f"{ir1.place} = {ir2.place}"
         if ir1.data_type != ir2.data_type:
-            cvt = f"{ir2.data_type}To{ir1.data_type}"
+            cvt = self.convert(ir2.data_type,ir1.data_type)
             gen =  f"{ir1.place} = {cvt} {ir2.place}"
         ir0.code = self.join(ir1.code, ir2.code, gen)
         self.debug_print(ir0)
@@ -157,10 +165,10 @@ class IRGenerator:
         dom_type = self.dom_type(ir1,ir2)
         gen1 = ""
         if ir1.data_type != dom_type:
-            cvt = f"{ir1.data_type}To{dom_type}"
+            cvt = self.convert(ir1.data_type,dom_type)
             gen1 = f"{ir1.place} = {cvt} {ir1.place}"
         if ir2.data_type != dom_type:
-            cvt = f"{ir2.data_type}To{dom_type}"
+            cvt = self.convert(ir1.data_type,dom_type)
             gen1 = f"{ir2.place} = {cvt} {ir2.place}"
         if op.endswith('='):
             op = op[:-1]
@@ -168,7 +176,7 @@ class IRGenerator:
         gen2 = f"{ir1.place} = {ir1.place} {op} {ir2.place}"
         gen3 = ""
         if gen1 != "":
-            cvt = f"{dom_type}To{ir1.data_type}"
+            cvt = self.convert(dom_type,ir1.data_type)
             gen3 = f"{ir1.place} = {cvt} {ir1.place}"
         ir0.code = self.join(ir2.code, gen1, gen2,gen3)
         self.debug_print(ir0)
@@ -179,19 +187,17 @@ class IRGenerator:
         gen1 = ""
         gen0 = ""
         if ir1.data_type != dom_type:
-            if ir1.place.isnumeric() or ir1.place.startswith('"') or ir1.place.startswith("'"):
-                t = ir1.place
-                ir1.place = self.new_temp()
-                gen0 = f"{ir1.place} = {t}"
-            cvt = f"{ir1.data_type}To{dom_type}"
+            t = ir1.place
+            ir1.place = self.new_temp()
+            gen0 = f"{ir1.place} = {t}"
+            cvt = self.convert(ir1.data_type,dom_type)
             gen1 = f"{ir1.place} = {cvt} {ir1.place}"
             gen1 = self.join(gen0,gen1)
         if ir2.data_type != dom_type:
-            if ir2.place.isnumeric() or ir2.place.startswith('"') or ir2.place.startswith("'"):
-                t = ir2.place
-                ir2.place = self.new_temp()
-                gen0 = f"{ir2.place} = {t}"
-            cvt = f"{ir2.data_type}To{dom_type}"
+            t = ir2.place
+            ir2.place = self.new_temp()
+            gen0 = f"{ir2.place} = {t}"
+            cvt = self.convert(ir2.data_type,dom_type)
             gen1 = f"{ir2.place} = {cvt} {ir2.place}"
             gen1 = self.join(gen0,gen1)
         op = f"({dom_type}){op}"
@@ -238,10 +244,10 @@ class IRGenerator:
         dom_type = self.dom_type(ir1,ir2)
         gen1 = ""
         if ir1.data_type != dom_type:
-            cvt = f"{ir1.data_type}To{dom_type}"
+            cvt = self.convert(ir1.data_type,dom_type)
             gen1 = f"{ir1.place} = {cvt} {ir1.place}"
         if ir2.data_type != dom_type:
-            cvt = f"{ir2.data_type}To{dom_type}"
+            cvt = self.convert(ir2.data_type,dom_type)
             gen1 = f"{ir2.place} = {cvt} {ir2.place}"
         op = f"({ir0.data_type}){op}"
         gen2 = f"{ir0.place} = {ir1.place} {op} {ir2.place}"
@@ -309,7 +315,7 @@ class IRGenerator:
                         new_param_list.append(ir2.parameters[i])
                     else:
                         _temp = self.new_temp()
-                        cvt = f"{argument_list[i]}To{func_params[j].type}"
+                        cvt = self.convert(argument_list[i],func_params[j].type)
                         gen0 = self.join(gen0, f"{_temp} = {cvt} {ir2.parameters[i]}")
                         new_param_list.append(_temp)
                     if j < len(func_params)-1:
@@ -329,7 +335,7 @@ class IRGenerator:
                         new_param_list.append(ir2.parameters[i])
                     else:
                         _temp = self.new_temp()
-                        cvt = f"{argument_list[i]}To{func_params[j].type}"
+                        cvt = self.convert(argument_list[i],func_params[j].type)
                         gen0 = self.join(gen0, f"{_temp} = {cvt} {ir2.parameters[i]}")
                         new_param_list.append(_temp)
                     if j < len(func_params)-1:
@@ -681,6 +687,6 @@ class IRGenerator:
         ir0.place = self.new_temp()
         gen = ""
         if cast_type != ir1.data_type:
-            cvt = f"{ir1.data_type}To{cast_type}"
+            cvt = self.convert(ir1.data_type,cast_type)
             gen = f"{ir0.place} = {cvt} {ir1.place}"
         ir0.code = self.join(ir1.code,gen)

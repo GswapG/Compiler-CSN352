@@ -54,8 +54,7 @@ jump:
 a = 1;
     struct foo newS;
     printf("Final = %d", newS.b + ret);
-    if (b[2] == 0){
+    if (b[2] == 0)
         goto jump;
-	}
     bar(1, *b);
 }

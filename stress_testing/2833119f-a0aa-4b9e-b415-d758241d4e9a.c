@@ -1,21 +1,21 @@
 int glb;
 int glb1 = 10;
-// int printf(char *);
-static int glb2;
-struct foo
-{
-    int a;
-    int b;
-    // struct foo *next;
-};
 
-static int bar(int a, float b)
+static int glb2;
+// struct foo
+// {
+//     int a;
+//     int b;
+//     struct foo *next;
+// };
+
+/*static*/ int bar(int a, float b)
 {
     static int lcl = 10;
     while (b)
     {
         // b--;
-		// b = b - 1;
+		b = b-1;
     }
     if (a == 0){
         return 0;
@@ -51,11 +51,9 @@ int main()
     }
     int *c = b + ret; // change to *
 jump:
-a = 1;
-    struct foo newS;
-    printf("Final = %d", newS.b + ret);
-    if (b[2] == 0){
+    // struct foo newS[5];
+    // printf("Final = %d", newS[3].b + ret);
+    if (b[2] == 0)
         goto jump;
-	}
-    bar(1, *b);
+    bar(1, b[0]);
 }
