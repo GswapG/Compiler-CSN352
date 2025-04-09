@@ -6,3 +6,6 @@ class CompileValueError(CompileException):
 
 class CompileTypeError(CompileException):
     pass
+
+class CompileFileNotFound(CompileException):
+    pass
