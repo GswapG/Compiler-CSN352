@@ -351,7 +351,7 @@ class IRGenerator:
                 ir0.code = "call " + ir1.place
             else:
                 ir0.place = self.new_temp()
-                gen2 = ir0.place + " = call " + ir1.place + str(0)
+                gen2 = ir0.place + " = call " + ir1.place + ', ' + str(0)
                 ir0.code = self.join(gen2)
 
     def label_add(self, ir0, label,ir1):

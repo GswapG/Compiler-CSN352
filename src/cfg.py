@@ -3,9 +3,6 @@ from exceptions import *
 from graphviz import Digraph
 import re
 
-goto_pattern = r"goto (.+)"
-label_to_index = {}
-
 class BasicBlock:
     def __init__(self,id):
         self.block_id = id
@@ -32,55 +29,8 @@ class BasicBlock:
             ret += '\n'
         return ret
 
-def ir_cleanup(IR):
-    """
-    1. Removes trailing and leading spaces from each line
-    2. Merges labels pointing to same instruction (makes necessary changes to IR)
-    3. Flattens labels to next line (currently label pointing to line n is present at line n-1)
-    """
-    ret_contents = []
-    _labels = {}
-    curr_labels = []
-    for i, line in enumerate(IR):
-        line = line.strip()
-        if line[0] == '$':
-            label = ""
-            i = 0; 
-            while(line[i]!=':'):
-                label += line[i]
-                i += 1
-            curr_labels.append(label)
-        else:
-            if len(curr_labels) != 0:
-                for label in curr_labels:
-                    _labels[label] = curr_labels[0]
-            curr_labels = []       
-        if len(curr_labels) <= 1:
-            ret_contents.append(line)
 
-    for i, line in enumerate(ret_contents):
-        def replace_match(match):
-            label = match.group(1)
-            return f"goto {_labels.get(label,label)}"
-        line = re.sub(goto_pattern,replace_match, line)
-        ret_contents[i] = line
-
-
-    i = 0
-    res_IR = []
-    while(i<(len(ret_contents)-1)):
-        if ret_contents[i][0] == '$' or ret_contents[i][0] == '.':
-            # general label
-            res_IR.append(ret_contents[i] + " " + ret_contents[i+1])
-            label_to_index[ret_contents[i][:-1]] = len(res_IR)-1
-            i += 1
-        else:
-            res_IR.append(ret_contents[i])
-        i += 1
-    return res_IR
-
-
-def ir_input(ir_path):
+def ir_input(ir_path:str)->list:
     """
     Takes input, validates it and processes it for cfg generation
     """
@@ -93,64 +43,114 @@ def ir_input(ir_path):
 
     with open(ir_path,"r") as file:
         contents = file.readlines()
+    print(type(contents))
     return contents
         
 
-def assign_leaders(IR):
-    """
-    Assigns leaders to ir string, returns set of leader indices
-    """
-    ## Possible cases
-    # goto.. (unconditional jump) (where this points to is a leader)
-    # if .. (conditional jump) (this is leader, as well as where this points to)
-    # .label (function) (this is leader)
-    # call .. (function call) (this is leader)
-    # <var> = call .. (function call) (this is leader)
-    leaders = set()
-    n = len(IR)
-    if n > 0:
-        leaders.add(0)
-    branch_pattern = re.compile(r'\bgoto\b\s+(.+)')
-    cond_branch_pattern = re.compile(r'\bif\b.*\bgoto\b\s+(.+)')
-
-    for i, line in enumerate(IR):
-        m_branch = branch_pattern.search(line)
-
-        if m_branch:
-            target_label = m_branch.group(1)
-            if target_label in label_to_index:
-                print("making target of goto a leader")
-                leaders.add(label_to_index[target_label])
-            if i + 1 < n:
-                if not branch_pattern.search(IR[i+1]):
-                    print("making next statement of if goto a label")
-                    leaders.add(i+1)
-        
-        if cond_branch_pattern.search(line):
-            print("making if goto a label")
-            leaders.add(i)
-    return leaders
-
 class CFG:
-    def __init__(self,IR,label_to_index):
+    def __init__(self,IR):
         self.IR = IR
         self.basic_blocks = [] # list of BasicBlock objects
-        self.label_to_index = label_to_index
         self.block_map = {}
         self.curr_id = 0
+        self.label_to_index = {}
+        self.ir_cleanup()
         self._create_basic_blocks()
         self.construct_graph()
-        self.visualize_cfg('cfg')
     
     def add_block(self,block):
         self.basic_blocks.append(block)
+
+    def ir_cleanup(self):
+        """
+        1. Removes trailing and leading spaces from each line
+        2. Merges labels pointing to same instruction (makes necessary changes to IR)
+        3. Flattens labels to next line (currently label pointing to line n is present at line n-1)
+        """
+        ret_contents = []
+        _labels = {}
+        curr_labels = []
+        goto_pattern = r"goto (.+)"
+        for i, line in enumerate(self.IR):
+            line = line.strip()
+            if line[0] == '$':
+                label = ""
+                i = 0; 
+                while(line[i]!=':'):
+                    label += line[i]
+                    i += 1
+                curr_labels.append(label)
+            else:
+                if len(curr_labels) != 0:
+                    for label in curr_labels:
+                        _labels[label] = curr_labels[0]
+                curr_labels = []       
+            if len(curr_labels) <= 1:
+                ret_contents.append(line)
+
+        for i, line in enumerate(ret_contents):
+            def replace_match(match):
+                label = match.group(1)
+                return f"goto {_labels.get(label,label)}"
+            line = re.sub(goto_pattern,replace_match, line)
+            ret_contents[i] = line
+
+
+        i = 0
+        res_IR = []
+        while(i<(len(ret_contents)-1)):
+            if ret_contents[i][0] == '$' or ret_contents[i][0] == '.':
+                # general label
+                res_IR.append(ret_contents[i] + " " + ret_contents[i+1])
+                self.label_to_index[ret_contents[i][:-1]] = len(res_IR)-1
+                i += 1
+            else:
+                res_IR.append(ret_contents[i])
+            i += 1
+        self.IR = res_IR
+    
+    def assign_leaders(self):
+        """
+        Assigns leaders to ir string, returns set of leader indices
+        """
+        ## Possible cases
+        # goto.. (unconditional jump) (where this points to is a leader)
+        # if .. (conditional jump) (this is leader, as well as where this points to)
+        # .label (function) (this is leader)
+        # call .. (function call) (this is leader)
+        # <var> = call .. (function call) (this is leader)
+        leaders = set()
+        n = len(self.IR)
+        if n > 0:
+            leaders.add(0)
+        branch_pattern = re.compile(r'\bgoto\b\s+(.+)')
+        cond_branch_pattern = re.compile(r'\bif\b.*\bgoto\b\s+(.+)')
+
+        for i, line in enumerate(self.IR):
+            m_branch = branch_pattern.search(line)
+
+            if m_branch:
+                target_label = m_branch.group(1)
+                if target_label in self.label_to_index:
+                    print("making target of goto a leader")
+                    leaders.add(self.label_to_index[target_label])
+                if i + 1 < n:
+                    if not branch_pattern.search(self.IR[i+1]):
+                        print("making next statement of goto a leader")
+                        leaders.add(i+1)
+            
+            if cond_branch_pattern.search(line):
+                print("making if goto a leader")
+                leaders.add(i)
+        return leaders
 
     def _create_basic_blocks(self):
         """
         Partition instructions into basic blocks using leader indices.
         """
-        leaders = assign_leaders(self.IR)
+        leaders = self.assign_leaders()
         leaders = sorted(leaders)
+        print(leaders)
         label_regex = re.compile(r'^.+:')
         curr_block = None
         for i,inst in enumerate(self.IR):
@@ -163,9 +163,11 @@ class CFG:
                 if curr_block is not None:
                     self.add_block(curr_block)
                 curr_block = BasicBlock(self.curr_id)
-                curr_block.add_inst(inst)
+                if inst.strip():  # skip if instruction is empty
+                    curr_block.add_inst(inst)
             else:
-                curr_block.add_inst(inst)
+                if inst.strip():  # skip if instruction is empty
+                    curr_block.add_inst(inst)
             # yahan firse isiliye hai coz upar curr_id might get updated, so cant do this before 
             if m_groups:
                 self.block_map[m_groups[0][:-1]] = self.curr_id
@@ -191,11 +193,14 @@ class CFG:
                         block.add_successor(block.block_id+1)
             print(block, block.successors)
 
-    def visualize_cfg(cfg, output_path='cfg'):
-        graph = Digraph(comment="Control Flow Graph (Pretty)")
-        graph.attr('node', shape='plaintext', fontname='Helvetica')
-        graph.attr('edge', arrowhead='vee', arrowsize='0.5')
-        graph.attr('graph', rankdir='TB', splines='ortho')
+    def visualize_cfg(self, graph=None, cluster_name=None):
+        new_graph = False
+        if graph is None:
+            graph = Digraph(comment="Control Flow Graph")
+            graph.attr('graph', rankdir='TB', splines='ortho')
+            graph.attr('node', shape='plaintext', fontname='Helvetica')
+            graph.attr('edge', arrowhead='vee', arrowsize='0.5')
+            new_graph = True
 
         def escape_html(text):
             if text is None:
@@ -206,29 +211,49 @@ class CFG:
                     .replace('>', '&gt;'))
 
         def format_inst_list(instructions):
-            """Return instructions as HTML-style table rows"""
             rows = []
             for inst in instructions:
                 escaped = escape_html(inst)
                 rows.append(f'<tr><td align="left" port="code"><font face="Courier">{escaped}</font></td></tr>')
             return rows
 
-        # Create a table for each basic block
-        for block in cfg.basic_blocks:
-            label = ['<<table border="0" cellborder="1" cellspacing="0" cellpadding="4">']
-            label.append(f'<tr><td bgcolor="#dce6f1" align="center"><b>Block {block.block_id}</b></td></tr>')
-            label.extend(format_inst_list(block.instructions))
-            label.append('</table>>')
+        if cluster_name:
+            with graph.subgraph(name=f'cluster_{cluster_name}') as sub:
+                sub.attr(label=f'Function: {cluster_name}', style='filled', color='lightgrey', fontname='Helvetica')
 
-            graph.node(str(block.block_id), '\n'.join(label))
+                for block in self.basic_blocks:
+                    label = ['<<table border="0" cellborder="1" cellspacing="0" cellpadding="4">']
+                    label.append(f'<tr><td bgcolor="#dce6f1" align="center"><b>Block {block.block_id}</b></td></tr>')
+                    label.extend(format_inst_list(block.instructions))
+                    label.append('</table>>')
+                    node_id = f"{cluster_name}_b{block.block_id}"
+                    sub.node(node_id, '\n'.join(label))
 
-        # Add edges for successors
-        for block in cfg.basic_blocks:
-            for succ in block.successors:
-                graph.edge(str(block.block_id), str(succ))
 
-        # Render and return
-        graph.render(output_path, format='png', cleanup=True)
+                for block in self.basic_blocks:
+                    for succ in block.successors:
+                        from_node = f"{cluster_name}_b{block.block_id}"
+                        to_node = f"{cluster_name}_b{succ}"
+                        sub.edge(from_node, to_node)
+
+        else:
+            for block in self.basic_blocks:
+                label = ['<<table border="0" cellborder="1" cellspacing="0" cellpadding="4">']
+                label.append(f'<tr><td bgcolor="#dce6f1" align="center"><b>Block {block.block_id}</b></td></tr>')
+                label.extend(format_inst_list(block.instructions))
+                label.append('</table>>')
+                graph.node(str(block.block_id), '\n'.join(label))
+
+            for block in self.basic_blocks:
+                for succ in block.successors:
+                    graph.edge(str(block.block_id), str(succ))
+
+        if new_graph:
+            graph.render('cfg', format='png', cleanup=True)
+
+        return graph
+
+
     
 class CFF:
     """
@@ -236,23 +261,59 @@ class CFF:
     For each procedure, it runs cleanup and constructs the cfgs
     Finally visualizes the cfgs 
     """
-    def __init__(self,ir_path):
-        self.IR = ir_input(ir_path)
+    def __init__(self,IR):
+        self.IR = IR
+        self.func_irs = [] # list of separated IRs 
         self.cfgs = [] # list of cfg objects
+        self._separate_procedures()
+        self.print_irs()
+        self._construct_graphs()
 
-    def separate_procedures(self):
+    def _separate_procedures(self):
         """
         Separates IR into list of list of instructions belonging to separate procedures 
         Runs cleanup on these separated procedures
         """
-        pass
+        curr = []
+        for line in self.IR:
+            if "EndFunc" in line:
+                curr.append(line)
+                self.func_irs.append(curr)
+                curr = []
+            else:
+                curr.append(line)
+    
+    def _construct_graphs(self):
+        """
+        Constructs graphs for separated procedures
+        """
+        for ir in self.func_irs:
+            self.cfgs.append(CFG(ir))
+
+    def print_irs(self):
+        """
+        Helper to print separated irs for debugging
+        """
+        for j,ir in enumerate(self.func_irs):
+            print(f"Ir {j}")
+            for i, line in enumerate(ir):
+                print(i, line)
+        
+    def visualize_all_cfgs(self, output_path='combined_cfg'):
+        graph = Digraph(comment="All Function CFGs")
+        graph.attr('graph', rankdir='TB', splines='ortho')
+        graph.attr('node', shape='plaintext', fontname='Helvetica')
+        graph.attr('edge', arrowhead='vee', arrowsize='0.5')
+
+        for i, cfg in enumerate(self.cfgs):
+            func_name = f'func_{i}'
+            cfg.visualize_cfg(graph=graph, cluster_name=func_name)
+
+        graph.render(output_path, format='png', cleanup=True)
 
 if __name__ == "__main__":
     ir_path = '../generatedIR/ir_test.tac'
     IR = ir_input(ir_path)
-    print(label_to_index)
-    for i, lin in enumerate(IR):
-        print(i,lin)
-    cfg = CFG(IR,label_to_index)
-    print(cfg.block_map)
+    cff = CFF(IR)
+    cff.visualize_all_cfgs()
     # cfg.print_blocks()
