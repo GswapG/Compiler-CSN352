@@ -204,7 +204,7 @@ class CFG:
         new_graph = False
         if graph is None:
             graph = Digraph(comment="Control Flow Graph")
-            graph.attr('graph', rankdir='TB', splines='ortho')
+            graph.attr('graph', rankdir='TB', splines='true')
             graph.attr('node', shape='plaintext', fontname='Helvetica')
             graph.attr('edge', arrowhead='vee', arrowsize='0.5')
             new_graph = True
@@ -230,30 +230,65 @@ class CFG:
 
                 for block in self.basic_blocks:
                     label = ['<<table border="0" cellborder="1" cellspacing="0" cellpadding="4">']
-                    label.append(f'<tr><td bgcolor="#dce6f1" align="center"><b>Block {block.block_id}</b></td></tr>')
+                    header_style = 'bgcolor="#dce6f1"'
+
+                    # Check if it's the last block in the function
+                    is_last = (block == self.basic_blocks[-1])
+                    if is_last:
+                        header_style = 'bgcolor="#fdd9d9"'  # Light red with dark text
+
+                    label.append(f'<tr><td {header_style} align="center"><b>Block {block.block_id}</b></td></tr>')
                     label.extend(format_inst_list(block.instructions))
                     label.append('</table>>')
+
                     node_id = f"{cluster_name}_b{block.block_id}"
                     sub.node(node_id, '\n'.join(label))
 
 
                 for block in self.basic_blocks:
                     for succ in block.successors:
+                        last_inst = block.instructions[-1] if block.instructions else ""
+                        style = 'solid'
+                        color = 'black'
+                        if last_inst.startswith("if"):
+                            color = 'blue'
+                        elif last_inst.startswith("goto"):
+                            color = 'darkgreen'
+
                         from_node = f"{cluster_name}_b{block.block_id}"
                         to_node = f"{cluster_name}_b{succ}"
-                        sub.edge(from_node, to_node)
+                        sub.edge(from_node, to_node, color=color, style=style)
 
         else:
             for block in self.basic_blocks:
                 label = ['<<table border="0" cellborder="1" cellspacing="0" cellpadding="4">']
-                label.append(f'<tr><td bgcolor="#dce6f1" align="center"><b>Block {block.block_id}</b></td></tr>')
+                header_style = 'bgcolor="#dce6f1"'
+
+                # Check if it's the last block in the function
+                is_last = (block == self.basic_blocks[-1])
+                if is_last:
+                    header_style = 'bgcolor="#fdd9d9"'  # Light red with dark text
+
+                label.append(f'<tr><td {header_style} align="center"><b>Block {block.block_id}</b></td></tr>')
                 label.extend(format_inst_list(block.instructions))
                 label.append('</table>>')
-                graph.node(str(block.block_id), '\n'.join(label))
+
+                node_id = f"{cluster_name}_b{block.block_id}"
+                graph.node(node_id, '\n'.join(label))
 
             for block in self.basic_blocks:
                 for succ in block.successors:
-                    graph.edge(str(block.block_id), str(succ))
+                    last_inst = block.instructions[-1] if block.instructions else ""
+                    style = 'solid'
+                    color = 'black'
+                    if last_inst.startswith("if"):
+                        color = 'blue'
+                    elif last_inst.startswith("goto"):
+                        color = 'darkgreen'
+
+                    from_node = f"{cluster_name}_b{block.block_id}"
+                    to_node = f"{cluster_name}_b{succ}"
+                    graph.edge(from_node, to_node, color=color, style=style)
 
         if new_graph:
             graph.render('cfg', format='png', cleanup=True)
@@ -270,30 +305,47 @@ class CFF:
     """
     def __init__(self,IR):
         self.IR = IR
-        self.func_irs = [] # list of separated IRs 
+        self.func_irs = [] # list of separated IRs
+        self.func_names = []
+        self.global_ir = [] 
         self.cfgs = [] # list of cfg objects
         self._separate_procedures()
         self.print_irs()
+        print(self.func_names)
+        print(self.global_ir)
         self._construct_graphs()
 
     def _separate_procedures(self):
         """
-        Separates IR into list of list of instructions belonging to separate procedures 
-        Runs cleanup on these separated procedures
+        Separates IR into list of instructions belonging to each procedure.
+        Also handles global instructions outside any function.
         """
         curr = []
-        for line in self.IR:
-            if "EndFunc" in line:
+        inside_func = False
+
+        for i, line in enumerate(self.IR):
+            if "BeginFunc" in line:
+                self.func_names.append(self.IR[i-1].strip()[1:-1])
+                inside_func = True
+                curr = [line]  
+            elif "EndFunc" in line:
                 curr.append(line)
                 self.func_irs.append(curr)
                 curr = []
+                inside_func = False
             else:
-                curr.append(line)
+                if inside_func:
+                    curr.append(line)
+                else:
+                    self.global_ir.append(line)
+
     
     def _construct_graphs(self):
         """
         Constructs graphs for separated procedures
         """
+        if self.global_ir:
+            self.cfgs.append(CFG(self.global_ir))
         for ir in self.func_irs:
             self.cfgs.append(CFG(ir))
 
@@ -308,15 +360,20 @@ class CFF:
         
     def visualize_all_cfgs(self, output_path='combined_cfg'):
         graph = Digraph(comment="All Function CFGs")
-        graph.attr('graph', rankdir='TB', splines='ortho')
+        graph.attr('graph', rankdir='TB', splines='ortho') 
         graph.attr('node', shape='plaintext', fontname='Helvetica')
         graph.attr('edge', arrowhead='vee', arrowsize='0.5')
 
         for i, cfg in enumerate(self.cfgs):
-            func_name = f'func_{i}'
+            if self.global_ir and i == 0:
+                func_name = 'global'
+            else:
+                func_name = self.func_names[i-1] if self.global_ir else self.func_names[i]
+
             cfg.visualize_cfg(graph=graph, cluster_name=func_name)
 
         graph.render(output_path, format='png', cleanup=True)
+
 
 if __name__ == "__main__":
     ir_path = '../generatedIR/ir_test.tac'
