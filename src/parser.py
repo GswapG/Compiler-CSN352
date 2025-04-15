@@ -109,6 +109,8 @@ def p_primary_expression_identifier(p):
     check = symtab.lookup(cpy)
     ir_entry = p[1]
     if check is not None:
+        if check.scope_name is not None:
+            ir_entry += get_scope_number(check.scope_name)
         if "function" == check.kind:
             p[0].name = "function"
         elif "D-array" in check.kind:
@@ -145,10 +147,10 @@ def p_primary_expression_identifier(p):
 
         p[0].dtypes = check.type
         p[0].return_type = check.type
-
     if(symtab.lookup(p[1]) is not None and symtab.lookup(p[1]).kind=="reference"):
         IrGen.identifier(p[0].ir, symtab.lookup(p[1]).refsto)
     else:
+        print(ir_entry)
         IrGen.identifier(p[0].ir, ir_entry)
 
 def p_primary_expression_error(p):
@@ -528,7 +530,10 @@ def p_unary_expression(p):
                     p[0].return_type = entry.type
                 base_type = symtab.lookup(new_var).type
                 type_size = symtab.get_size(base_type)
-                IrGen.unary_array(p[0].ir,p[1].ir,p[0].vars[0].split('[')[0],type_size)
+                arr_name = p[0].vars[0].split('[')[0]
+                if symtab.lookup(arr_name) is not None:
+                    arr_name += get_scope_number(symtab.lookup(arr_name).scope_name)
+                IrGen.unary_array(p[0].ir,p[1].ir,arr_name,type_size)
         elif p[1].name == "pointer":
             var = p[1].vars[0]
             if var[-1] == ']':
@@ -544,7 +549,10 @@ def p_unary_expression(p):
             if(base_type[0]=='*'):
                 base_type = base_type[1:]
             type_size = symtab.get_size(base_type)
-            IrGen.unary_array(p[0].ir,p[1].ir,p[0].vars[0].split('[')[0],type_size)
+            arr_name = p[0].vars[0].split('[')[0]
+            if symtab.lookup(arr_name) is not None:
+                arr_name += get_scope_number(symtab.lookup(arr_name).scope_name)
+            IrGen.unary_array(p[0].ir,p[1].ir,arr_name,type_size)
             # else:
 
 
@@ -1834,11 +1842,11 @@ def p_direct_declarator(p):
     # IDENTIFIER case
     if len(p) == 2:
         if(symtab.lookup(p[1]) is not None and symtab.lookup(p[1]).kind=="reference"):
-            p[1]= symtab.lookup(p[1]).refsto
+            p[1] = symtab.lookup(p[1]).refsto
         p[0] = Node("direct_declarator", [p[1]])
         p[0].vars.append(p[1])
         # IR
-        IrGen.identifier(p[0].ir, p[1])
+        IrGen.identifier(p[0].ir, p[1]+get_scope_number(symtab.current_scope_name))
     elif len(p) == 3:
         #REF
         p[0] = Node("direct_declarator",[p[1],p[2]])

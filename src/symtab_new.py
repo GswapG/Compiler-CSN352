@@ -6,7 +6,7 @@ def strict_equal(a, b):
     return type(a) is type(b) and a == b
 
 class SymbolEntry:
-    def __init__(self, name, type, kind, child = None, node = None, isForwardable = False, refsto = None, size = 0, offset = 0,value=None):
+    def __init__(self, name, type, kind, child = None, node = None, isForwardable = False, refsto = None, size = 0, offset = 0,value=None,scope_name=None):
         """
             name        -> identifier
             type        -> data type
@@ -26,6 +26,7 @@ class SymbolEntry:
         self.size = size 
         self.offset = offset
         self.value = value
+        self.scope_name = scope_name
 
 class SymbolEntryNode:
     def __init__(self, scope_level, scope_name, parent=None):
@@ -109,6 +110,8 @@ class SymbolTable:
         self.function_symbol = None
 
         self.parameters = []
+        self.scope_id_counter = 1  #DONE TO DISAMBIGUATE THE IR//MAKES CHANGES IN SCOPE NAMES
+        #NO LOGICAL CHANGES DUE TO THE ABOVE VAR
 
     def clear(self):
         self.root = SymbolEntryNode(0, "global")
@@ -116,10 +119,12 @@ class SymbolTable:
         self.current_scope_name = self.root.scope_name
         self.current_scope_level = self.root.scope_level
         self.table_entries = []
+        self.scope_id_counter = 1
 
     def function_enter_scope(self):
         self.current_scope_level += 1
-        self.current_scope_name = f"block@{self.current_scope_level}"
+        self.scope_id_counter +=1
+        self.current_scope_name = f"block@{self.scope_id_counter}"
 
         if not self.function_definition:
             scope_node = SymbolEntryNode(self.current_scope_level, self.current_scope_name, self.current_scope)
@@ -140,7 +145,8 @@ class SymbolTable:
 
     def enter_scope(self):
         self.current_scope_level += 1
-        self.current_scope_name = f"block@{self.current_scope_level}"
+        self.scope_id_counter +=1
+        self.current_scope_name = f"block@{self.scope_id_counter}"
 
         if self.function_definition:
             self.function_definition = False
@@ -198,7 +204,6 @@ class SymbolTable:
         isDefinition = False
         definitionScope = None
         definitionSymbol = None
-
         for entry in self.current_scope.entries:
             if strict_equal(entry.name, symbol.name):
                 if entry.kind != "constant":
@@ -218,8 +223,8 @@ class SymbolTable:
 
         symbol.node = self.current_scope
         symbol.isFunctionDefinition = True
-        
-        child_scope = SymbolEntryNode(self.current_scope_level + 1, f"block@{self.current_scope_level + 1}", self.current_scope)
+        self.scope_id_counter +=1
+        child_scope = SymbolEntryNode(self.current_scope_level + 1, f"block@{self.scope_id_counter}", self.current_scope)
         symbol.child = child_scope
 
         if not isDefinition:
@@ -297,6 +302,7 @@ class SymbolTable:
         dimension = 0
         size = 0
         size_list = ""
+        symbol.scope_name = self.current_scope_name
         if isinstance(symbol.name, str) and symbol.name[-1] == ']':
             while symbol.name[-1] == ']':
                 dimension += 1
@@ -396,9 +402,9 @@ class SymbolTable:
 
         if type == "identifier":
             # print(f"{name} when identifier:")
-            symbol = SymbolEntry(name, "label_exist", "label", node = scope_pointer)
+            symbol = SymbolEntry(name, "label_exist", "label", node = scope_pointer,scope_name=self.current_scope_name)
         else:
-            symbol = SymbolEntry(name, "label_defined", "label", node = scope_pointer)
+            symbol = SymbolEntry(name, "label_defined", "label", node = scope_pointer,scope_name=self.current_scope_name)
         scope_pointer.add_entry(symbol)
 
         if type == "identifier":

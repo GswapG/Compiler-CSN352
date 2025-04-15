@@ -255,3 +255,12 @@ def get_size_from_type(c_type):
         return 0
     
     raise CompileValueError(f"Unknown type for size calculation: {c_type}")
+def get_scope_number(scope_name):
+    if scope_name == "global":
+        return '0'
+    if '@' in scope_name:
+        try:
+            return scope_name.split('@')[-1]
+        except ValueError:
+            pass
+    raise CompileException(f"Invalid scope name format: {scope_name}")
