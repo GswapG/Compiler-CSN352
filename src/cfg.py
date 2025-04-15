@@ -71,6 +71,7 @@ class CFG:
         _labels = {}
         curr_labels = []
         goto_pattern = r"goto (.+)"
+        print(self.IR)
         for i, line in enumerate(self.IR):
             line = line.strip()
             if line[0] == '$':
@@ -107,6 +108,9 @@ class CFG:
             else:
                 res_IR.append(ret_contents[i])
             i += 1
+        if(i < len(ret_contents)):
+            res_IR.append(ret_contents[i])
+        
         self.IR = res_IR
     
     def assign_leaders(self):
@@ -125,7 +129,7 @@ class CFG:
             leaders.add(0)
         branch_pattern = re.compile(r'\bgoto\b\s+(.+)')
         cond_branch_pattern = re.compile(r'\bif\b.*\bgoto\b\s+(.+)')
-
+        print(self.IR)
         for i, line in enumerate(self.IR):
             m_branch = branch_pattern.search(line)
 
@@ -154,6 +158,7 @@ class CFG:
         label_regex = re.compile(r'^.+:')
         curr_block = None
         for i,inst in enumerate(self.IR):
+            print("PARSING INSTR: ", inst)
             m_groups = label_regex.search(inst) 
             print(i,inst)
             if m_groups: 
@@ -164,9 +169,11 @@ class CFG:
                     self.add_block(curr_block)
                 curr_block = BasicBlock(self.curr_id)
                 if inst.strip():  # skip if instruction is empty
+                    print("ADDING INSTR: ", inst)
                     curr_block.add_inst(inst)
             else:
                 if inst.strip():  # skip if instruction is empty
+                    print("ADDING INSTR: ", inst)
                     curr_block.add_inst(inst)
             # yahan firse isiliye hai coz upar curr_id might get updated, so cant do this before 
             if m_groups:
@@ -180,7 +187,7 @@ class CFG:
         
     def construct_graph(self):
         branch_pattern = re.compile(r'\bgoto\b\s+(.+)')
-        for block in self.basic_blocks:
+        for block_idx, block in enumerate(self.basic_blocks):
             for i, inst in enumerate(block.instructions):
                 m_blocks = branch_pattern.search(inst)
                 # adding jump of goto
@@ -189,7 +196,7 @@ class CFG:
                 # if last instruction is not goto, add next block as successor
                 if i == (len(block.instructions)-1):
                     # print('at last inst')
-                    if not inst.startswith('goto'):
+                    if (not inst.startswith('goto')) and (block_idx < (len(self.basic_blocks)-1)):
                         block.add_successor(block.block_id+1)
             print(block, block.successors)
 
@@ -315,5 +322,5 @@ if __name__ == "__main__":
     ir_path = '../generatedIR/ir_test.tac'
     IR = ir_input(ir_path)
     cff = CFF(IR)
-    cff.visualize_all_cfgs()
+    cff.visualize_all_cfgs('../generatedCFG/ir_test.tac')
     # cfg.print_blocks()
