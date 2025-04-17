@@ -36,3 +36,11 @@ This document outlines the key assumptions and specifications implemented in our
    ```c
    int fun(int arr[], ...);
    ```
+8. **Padding:**
+   We do padding according to max size of struct members.
+
+9. **Argument passing**
+   All parameters are pushed to stack.
+
+10. **Stack frame allignment**
+   All stack frames are allocated in multiples of 16

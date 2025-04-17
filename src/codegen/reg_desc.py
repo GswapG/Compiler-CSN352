@@ -20,8 +20,8 @@ class RegisterDescriptor:
   
   def get_registers_having(self,value):
     reg_set = []
-    for register in self.registers:
-      if value in register:
+    for register, vals in self.registers.items():
+      if value in vals:
         reg_set.append(register)
     return reg_set
   
