@@ -29,7 +29,7 @@ class RegisterAllocator:
         """
         pass
 
-    def spill(self, var: str):
+    def spill(self, var: str) -> Register:
         """
         Spills register corresponding to given var.
         Updates descriptors accordingly
@@ -40,4 +40,6 @@ class RegisterAllocator:
         
         reg = regs[0]
         self.reg_desc.clear(reg)
-        
+        self.add_desc.discard_reg_for_var(var, reg)
+        return reg
+

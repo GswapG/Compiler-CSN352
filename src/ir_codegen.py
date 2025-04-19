@@ -162,17 +162,17 @@ class IRGenerator:
         self.debug_print(ir0)
 
     def op_assign(self, ir0, ir1, ir2, op):
-        dom_type = self.dom_type(ir1,ir2)
+        dom_type = self.dom_type(ir1,ir2).replace(' ','_')
         gen1 = ""
-        if ir1.data_type != dom_type:
+        if ir1.data_type.replace(' ','_') != dom_type:
             cvt = self.convert(ir1.data_type,dom_type)
             gen1 = f"{ir1.place} = {cvt} {ir1.place}"
-        if ir2.data_type != dom_type:
+        if ir2.data_type.replace(' ','_') != dom_type:
             cvt = self.convert(ir1.data_type,dom_type)
             gen1 = f"{ir2.place} = {cvt} {ir2.place}"
         if op.endswith('='):
             op = op[:-1]
-        op = f"({dom_type}){op}"
+        op = f"({dom_type}) {op}"
         gen2 = f"{ir1.place} = {ir1.place} {op} {ir2.place}"
         gen3 = ""
         if gen1 != "":
@@ -183,24 +183,24 @@ class IRGenerator:
 
     def arithmetic_expression(self, ir0, ir1, op, ir2):
         ir0.place = self.new_temp()
-        dom_type = self.dom_type(ir1,ir2)
+        dom_type = self.dom_type(ir1,ir2).replace(' ','_')
         gen1 = ""
         gen0 = ""
-        if ir1.data_type != dom_type:
+        if ir1.data_type.replace(' ','_') != dom_type:
             t = ir1.place
             ir1.place = self.new_temp()
             gen0 = f"{ir1.place} = {t}"
             cvt = self.convert(ir1.data_type,dom_type)
             gen1 = f"{ir1.place} = {cvt} {ir1.place}"
             gen1 = self.join(gen0,gen1)
-        if ir2.data_type != dom_type:
+        if ir2.data_type.replace(' ','_') != dom_type:
             t = ir2.place
             ir2.place = self.new_temp()
             gen0 = f"{ir2.place} = {t}"
             cvt = self.convert(ir2.data_type,dom_type)
             gen1 = f"{ir2.place} = {cvt} {ir2.place}"
             gen1 = self.join(gen0,gen1)
-        op = f"({dom_type}){op}"
+        op = f"({dom_type}) {op}"
         gen2 = f"{ir0.place} = {ir1.place} {op} {ir2.place}"
         ir0.code = self.join(ir1.code, ir2.code,gen1, gen2)
         self.debug_print(ir0)
@@ -241,15 +241,15 @@ class IRGenerator:
     
     def relational_expression(self, ir0, ir1, op, ir2):
         ir0.place = self.new_temp()
-        dom_type = self.dom_type(ir1,ir2)
+        dom_type = self.dom_type(ir1,ir2).replace(' ','_')
         gen1 = ""
-        if ir1.data_type != dom_type:
+        if ir1.data_type.replace(' ','_') != dom_type:
             cvt = self.convert(ir1.data_type,dom_type)
             gen1 = f"{ir1.place} = {cvt} {ir1.place}"
-        if ir2.data_type != dom_type:
+        if ir2.data_type(' ','_') != dom_type:
             cvt = self.convert(ir2.data_type,dom_type)
             gen1 = f"{ir2.place} = {cvt} {ir2.place}"
-        op = f"({ir0.data_type}){op}"
+        op = f"({ir0.data_type}) {op}"
         gen2 = f"{ir0.place} = {ir1.place} {op} {ir2.place}"
         ir0.code = self.join(ir1.code, ir2.code, gen1,gen2)
         self.debug_print(ir0)    

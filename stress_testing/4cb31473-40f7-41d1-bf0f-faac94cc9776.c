@@ -1,11 +1,10 @@
-#define int long long
 void func(int a){
 	a = 1;
 }
 int func1(int a){
 	return a;
 }
-signed main(){
+int main(){
 	int x = 1;
 	int y = 2;
 	int z;

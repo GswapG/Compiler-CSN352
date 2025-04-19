@@ -26,6 +26,14 @@ class AddressDescriptor:
                 self.address[var][0].append(reg)
         else:
             self.create_entry(self, var)
+            
+    def discard_reg_for_var(self, var: str, reg: Register):
+        """
+        Removes single specified reg from list of assigned registers
+        """
+        if var not in self.address.keys():
+            raise CompileException(f"No matching Address Descriptor entry found for {var}")
+        self.address[var].remove(reg)
 
     def set_entry_to_reg(self, var: str, reg: Register):
         """
