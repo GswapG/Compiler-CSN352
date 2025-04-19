@@ -1,8 +1,8 @@
 import os
-from exceptions import *
+from ..exceptions import *
 from graphviz import Digraph
 import re
-
+print(__package__)
 class BasicBlock:
     def __init__(self,id):
         self.block_id = id
@@ -376,8 +376,8 @@ class CFF:
 
 
 if __name__ == "__main__":
-    ir_path = '../generatedIR/ir_test.tac'
+    ir_path = './generatedIR/ir_test.tac'
     IR = ir_input(ir_path)
     cff = CFF(IR)
-    cff.visualize_all_cfgs('../generatedCFG/ir_test.tac')
+    cff.visualize_all_cfgs('./generatedCFG/ir_test.tac')
     # cfg.print_blocks()

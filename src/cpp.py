@@ -3,7 +3,6 @@ import re
 import sys
 import shutil
 import tempfile
-
 from .exceptions import *
 
 STANDARD_LIBS = {'stdio.h', 'stdlib.h', 'math.h', 'string.h', 'ctype.h'}
