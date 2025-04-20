@@ -1,5 +1,6 @@
 from .add_desc import *
 from .reg_desc import *
+from .codegenerator import *
 
 class RegisterAllocator:
     """
@@ -7,12 +8,13 @@ class RegisterAllocator:
     Gives out available registers for operands
     Updates Register and Address Descriptors
     """
-    def __init___(self):
+    def __init___(self, registers: list[Register], code_generator: CodeGenerator):
         """
         Create address and register descriptor
         """
         self.add_desc = AddressDescriptor()
-        self.reg_desc = RegisterDescriptor()
+        self.reg_desc = RegisterDescriptor(registers)
+        self.code_generator = code_generator
 
     def get_register(self,inst: str):
         """
@@ -25,6 +27,7 @@ class RegisterAllocator:
         """
         Selects register to spill based on heuristic (least uses)
         Spills the selected register
+        Emits required instructions using self.code_generator
         Returns the selected register
         """
         pass

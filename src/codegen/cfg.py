@@ -2,7 +2,7 @@ import os
 from ..exceptions import *
 from graphviz import Digraph
 import re
-print(__package__)
+
 class BasicBlock:
     def __init__(self,id):
         self.block_id = id

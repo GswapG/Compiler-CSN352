@@ -1,4 +1,5 @@
 from .register_allocator import *
+from .cfg import *
 
 class Instruction:
     def __init__(self, inst):
@@ -51,5 +52,39 @@ class Instruction:
                 self.is_operation = True
         
 class CodeGenerator:
-    def __init__(self):
+    def __init__(self, cfg: CFG, output_stream):
+        self.cfg = cfg
+        self.out = output_stream
+        self.reg_allocator = RegisterAllocator(init_gpr())
+    
+    def generate_code(self):
+        """
+        Iterates through blocks from cfg,
+        Iterates through inst in block and calls the repective function based on type of instruction
+        """
         pass
+
+    def get_arithmetic_instruction(self, op: str) -> str:
+        """
+        Map arithmetic operator to assembly instruction.
+        """
+        return {
+            '+': 'add',
+            '-': 'sub',
+            '*': 'imul',   
+            '/': 'idiv',   
+            '%': 'idiv'    # Modulo uses the same idiv, result in rdx
+        }.get(op, None)
+
+    def get_jump_instruction(self, relop: str) -> str:
+        """
+        Map relational operator to assembly jump instruction.
+        """
+        return {
+            '<': 'jl',
+            '<=': 'jle',
+            '>': 'jg',
+            '>=': 'jge',
+            '==': 'je',
+            '!=': 'jne'
+        }.get(relop, 'jmp')
