@@ -74,7 +74,7 @@ class CFG:
         print(self.IR)
         for i, line in enumerate(self.IR):
             line = line.strip()
-            if line[0] == '$':
+            if ':' in line:
                 label = ""
                 i = 0; 
                 while(line[i]!=':'):
@@ -100,7 +100,7 @@ class CFG:
         i = 0
         res_IR = []
         while(i<(len(ret_contents)-1)):
-            if ret_contents[i][0] == '$' or ret_contents[i][0] == '.':
+            if ':' in ret_contents[i]:
                 # general label
                 res_IR.append(ret_contents[i] + " " + ret_contents[i+1])
                 self.label_to_index[ret_contents[i][:-1]] = len(res_IR)-1
