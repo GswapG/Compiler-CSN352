@@ -1,5 +1,6 @@
-from .register_allocator import *
+from .register_allocator import RegisterAllocator
 from .cfg import *
+from .register import init_gpr
 
 class Instruction:
     def __init__(self, inst):

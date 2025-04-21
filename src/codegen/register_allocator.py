@@ -42,7 +42,7 @@ class RegisterAllocator:
             raise CompileException(f"No register contains var, yet an attempt was made to spill it")
         
         reg = regs[0]
-        self.reg_desc.clear(reg)
+        self.reg_desc.clear_register(reg)
         self.add_desc.discard_reg_for_var(var, reg)
         return reg
 
