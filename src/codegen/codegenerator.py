@@ -59,7 +59,8 @@ class CodeGenerator:
     def __init__(self, cfg: CFG, output_stream):
         self.cfg = cfg
         self.out = output_stream
-        self.reg_allocator = RegisterAllocator(init_gpr())
+        self.reg_allocator = RegisterAllocator(init_gpr(),self)
+        self.curr_alignment = 0
     
     def join(self,*args):
         """
