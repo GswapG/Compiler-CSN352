@@ -43,7 +43,6 @@ def ir_input(ir_path:str)->list:
 
     with open(ir_path,"r") as file:
         contents = file.readlines()
-    print(type(contents))
     return contents
         
 
@@ -71,7 +70,6 @@ class CFG:
         _labels = {}
         curr_labels = []
         goto_pattern = r"goto (.+)"
-        print(self.IR)
         for i, line in enumerate(self.IR):
             line = line.strip()
             if ':' in line:
@@ -129,22 +127,18 @@ class CFG:
             leaders.add(0)
         branch_pattern = re.compile(r'\bgoto\b\s+(.+)')
         cond_branch_pattern = re.compile(r'\bif\b.*\bgoto\b\s+(.+)')
-        print(self.IR)
         for i, line in enumerate(self.IR):
             m_branch = branch_pattern.search(line)
 
             if m_branch:
                 target_label = m_branch.group(1)
                 if target_label in self.label_to_index:
-                    print("making target of goto a leader")
                     leaders.add(self.label_to_index[target_label])
                 if i + 1 < n:
                     if not branch_pattern.search(self.IR[i+1]):
-                        print("making next statement of goto a leader")
                         leaders.add(i+1)
             
             if cond_branch_pattern.search(line):
-                print("making if goto a leader")
                 leaders.add(i)
         return leaders
 
@@ -154,13 +148,10 @@ class CFG:
         """
         leaders = self.assign_leaders()
         leaders = sorted(leaders)
-        print(leaders)
         label_regex = re.compile(r'^.+:')
         curr_block = None
         for i,inst in enumerate(self.IR):
-            print("PARSING INSTR: ", inst)
             m_groups = label_regex.search(inst) 
-            print(i,inst)
             if m_groups: 
                 inst = inst.split(m_groups[0])[1].strip()
             if i in leaders:    
@@ -169,11 +160,9 @@ class CFG:
                     self.add_block(curr_block)
                 curr_block = BasicBlock(self.curr_id)
                 if inst.strip():  # skip if instruction is empty
-                    print("ADDING INSTR: ", inst)
                     curr_block.add_inst(inst)
             else:
                 if inst.strip():  # skip if instruction is empty
-                    print("ADDING INSTR: ", inst)
                     curr_block.add_inst(inst)
             # yahan firse isiliye hai coz upar curr_id might get updated, so cant do this before 
             if m_groups:
@@ -198,7 +187,6 @@ class CFG:
                     # print('at last inst')
                     if (not inst.startswith('goto')) and (block_idx < (len(self.basic_blocks)-1)):
                         block.add_successor(block.block_id+1)
-            print(block, block.successors)
 
     def visualize_cfg(self, graph=None, cluster_name=None):
         new_graph = False
@@ -310,9 +298,6 @@ class CFF:
         self.global_ir = [] 
         self.cfgs = [] # list of cfg objects
         self._separate_procedures()
-        self.print_irs()
-        print(self.func_names)
-        print(self.global_ir)
         self._construct_graphs()
 
     def _separate_procedures(self):

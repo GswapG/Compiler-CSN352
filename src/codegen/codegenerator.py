@@ -1,6 +1,7 @@
 from .register_allocator import RegisterAllocator
 from .cfg import *
-from .register import init_gpr
+from .register import *
+import os
 
 class Instruction:
     def __init__(self, inst):
@@ -134,3 +135,17 @@ class CodeGenerator:
             '==': 'je',
             '!=': 'jne'
         }.get(relop, 'jmp')
+    
+def driver(filename):
+    if filename[-2:] in ('.c','.C'):
+        filename = filename[:-2]
+    filename += '.tac'
+    file_path = os.path.join("./generatedIR/",filename)
+    IR = ir_input(file_path)
+    cff = CFF(IR)
+    for cfg in cff.cfgs:
+        output_path = "./generatedASM/"
+        filename = filename.split('.')[0] + '.asm'
+        output_path = os.path.join(output_path,filename)
+        with open(output_path, 'a') as generated_asm:
+            generator = CodeGenerator(cfg,generated_asm)

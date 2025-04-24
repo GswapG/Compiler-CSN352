@@ -7,6 +7,7 @@ from .symtab_new import *
 from .ir import *
 from .ir_codegen import *
 from .exceptions import *
+from .address_map import *
 datatypeslhs=[]
 returns = set()
 constants = defaultdict(lambda: None)
@@ -2573,7 +2574,12 @@ def parseFile(filename, ogfilename, treedir, symtabdir, irtreedir, graphgen=Fals
 
     pretty_print_header("Final Symbol Table", text_style="bold underline magenta" , border_style="bold magenta")
     print(symtab)
-
+    address_map = AddressMap()
+    for entry in symtab.table_entries:
+        if entry.kind != 'variable':
+            continue
+        na = entry.name + get_scope_number(entry.scope_name)
+        address_map.add_var(na, entry.offset)
     if graphgen:
         treepath = os.path.join(treedir, ogfilename[:-2])
         symtabpath = os.path.join(symtabdir, ogfilename[:-2])
@@ -2591,4 +2597,5 @@ def parseFile(filename, ogfilename, treedir, symtabdir, irtreedir, graphgen=Fals
         print(f"Symbol table tree saved as renderedSymbolTables/{ogfilename[:-2]}.png")
         
     print("\n")
+    return address_map
     

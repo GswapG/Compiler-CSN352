@@ -23,3 +23,9 @@ class AddressMap:
             return self.map[var]
         else:
             raise CompileException("Trying to get address for a variable that is not assigned any!!")
+    
+    def __str__(self):
+        ret = ""
+        for val in self.map:
+            ret += (f'{val}, {self.map[val]}\n')
+        return ret

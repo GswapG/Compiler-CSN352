@@ -80,7 +80,7 @@ class IRGenerator:
         """
         filepath = os.path.join(self.output_directory,self.outfile)
         if ir.code == "":
-            return
+            return None
         with open(filepath, "w") as f:
             for line in ir.code.split('\n'):
                 if line[-1] == ':':
@@ -92,6 +92,7 @@ class IRGenerator:
                 else:
                     line = '\t\t' + line
                     f.write(line + '\n')
+        return filepath
 
     def debug_print(self,ir):
         """

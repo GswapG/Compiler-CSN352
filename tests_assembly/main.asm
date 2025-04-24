@@ -10,7 +10,6 @@ _start:
 
     mov rdi, rax
     call exit
-
 main:
     push rbp
     mov rbp, rsp

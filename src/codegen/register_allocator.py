@@ -8,7 +8,7 @@ class RegisterAllocator:
     Gives out available registers for operands
     Updates Register and Address Descriptors
     """
-    def __init___(self, registers: list[Register], code_generator: CodeGenerator):
+    def __init__(self, registers: list[Register], code_generator: "CodeGenerator"):
         """
         Create address and register descriptor
         """
@@ -17,7 +17,7 @@ class RegisterAllocator:
         self.code_generator = code_generator
         self.regs_on_stack = [] #list of caller saved registers stored on stack (before function call)
 
-    def get_register(self, inst: Instruction) -> list[Register]:
+    def get_register(self, inst: "Instruction") -> list[Register]:
         """
         Parse the inst (tac) to find what variables need registers.
         Returns a list of registers (memory locations)
