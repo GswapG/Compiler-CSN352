@@ -113,28 +113,38 @@ def dominating_type(type1, type2):
                 return True
             else:
                 if "float" not in types1 and "float" not in types2:
-                    if "int" in types1 and "int" in types2:
+                    if "long" in types1 and "long" in types2:
                         return True
+                
                     else:
-                        if "int" not in types1 and "int" not in types2:
-                            if "short" in types1 and "short" in types2:
+                        if "long" not in types1 and "long" not in types2:
+                            if "int" in types1 and "int" in types2:
                                 return True
                             else:
-                                if "short" not in types1 and "short" not in types2:
-                                    if "char" in types1 and "char" in types2:
+                                if "int" not in types1 and "int" not in types2:
+                                    if "short" in types1 and "short" in types2:
                                         return True
                                     else:
-                                        if type1 == type2:
-                                            return True
+                                        if "short" not in types1 and "short" not in types2:
+                                            if "char" in types1 and "char" in types2:
+                                                return True
+                                            else:
+                                                if type1 == type2:
+                                                    return True
+                                                else:
+                                                    raise CompileException(f"Unexpected types received {types1} {types2}")
                                         else:
-                                            raise CompileException(f"Unexpected types received {types1} {types2}")
+                                            if "short" in types1:
+                                                return True
+                                            else:
+                                                return False
                                 else:
-                                    if "short" in types1:
+                                    if "int" in types1:
                                         return True
                                     else:
                                         return False
                         else:
-                            if "int" in types1:
+                            if "long" in types1:
                                 return True
                             else:
                                 return False

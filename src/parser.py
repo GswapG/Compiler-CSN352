@@ -651,6 +651,9 @@ def p_unary_expression(p):
             else:
                 IrGen.unary(p[0].ir, p[2].ir, p[1].operator)
 
+        if p[1] == "sizeof":
+            p[0].return_type = "int"
+
     elif len(p) == 5:
         p[0] = Node("unary_expression", [p[1], p[3]])
         
@@ -783,7 +786,8 @@ def p_multiplicative_expression(p):
         p[0].iscall += 1 
         usesfuncptr=0
 
-    
+    print(func_id)
+    print(p[0].iscall)
     if func_id != p[0].iscall:
         raise CompileException("Invalid Function Call")
     
@@ -1230,7 +1234,9 @@ def p_assignment_expression(p):
             right_type = p[3].return_type
 
             if implicit_type_compatibility(left_type, right_type, True):
-                raise CompileException("Invalid Assignment")
+                ## adding this check to fix this tc: int x; int* p = &x; p += x; p += 1; p -= 1;
+                if get_label(p[3].return_type) != "int" and "*" not in left_type:
+                    raise CompileException("Invalid Assignment")
             
             if p[3].name == "struct" or p[3].name == "union" or p[3].name == "function" or p[3].name == "compound_literal" or p[3].name == "string_literal":
                 raise CompileException(f"Operator {p[2].name} cannot be applied to a {p[3].name}")        
@@ -2402,6 +2408,7 @@ def p_jump_statement(p):
                      | RETURN SEMICOLON
                      | RETURN expression SEMICOLON'''
     global returns
+
     if len(p) == 3:
         p[0] = Node("jump_statement", [p[1]])
         if p[1] =='return':
@@ -2412,14 +2419,15 @@ def p_jump_statement(p):
         if p[1] == 'continue':
             p[0].continue_count = True
             IrGen.continue_jump(p[0].ir)
+
     elif len(p) == 4:
         p[0] = Node("jump_statement", [p[1], p[2]])
         if p[1] == 'return':
             returns.add(p[2].return_type)
-            IrGen.return_jump(p[0].ir,p[2].ir)
+            IrGen.return_jump(p[0].ir, p[2].ir)
+
         if p[1] == 'goto':
             symtab.add_goto_symbol(p[2], "goto")
-
             IrGen.goto_label(p[0].ir,p[2])
 
 
@@ -2509,7 +2517,8 @@ def p_error(p):
         print("SYNTAX ERROR:")
         print("Error: Right Braces '}' mismatch")
         print("========================================")
-        return 
+
+        raise CompileException("Syntax Error")
 
     col = find_column(input_text, p)
 
@@ -2522,10 +2531,9 @@ def p_error(p):
     error_line = lines[p.lineno - 1] if p.lineno - 1 < len(lines) else ""
     print(error_line)
 
-    pointer = " " * (col - 1) + "^"
-    print(pointer)
+    # pointer = " " * (col - 1) + "^"
+    # print(pointer)
     raise CompileException("Syntax Error")
-    # exit(0)
     
 # Build parser
 parser = yacc.yacc(debug=False)
@@ -2544,6 +2552,7 @@ def clearGlobal():
     global usesfuncptr
     global madefuncptr
     global funcswithfuncptr
+
     funcptr = set()
     usesfuncptr = 0
     madefuncptr = 0
@@ -2580,6 +2589,7 @@ def parseFile(filename, ogfilename, treedir, symtabdir, irtreedir, graphgen=Fals
             continue
         na = entry.name + get_scope_number(entry.scope_name)
         address_map.add_var(na, entry.offset)
+
     if graphgen:
         treepath = os.path.join(treedir, ogfilename[:-2])
         symtabpath = os.path.join(symtabdir, ogfilename[:-2])

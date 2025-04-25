@@ -1,21 +1,18 @@
-#define int long long
-void func(int a);
+// Test that we correctly get the size of ++ and -- expressions (and don't evaluate them)
+int main(void) {
+    int i = 0;
+    long l = 0;
+    static char arr[3] = {0, 0, 0};
+    char *ptr = arr;
+    if (sizeof (i++) != 4) {
+        return 1; // fail
+    }
 
-int func1(int a){
-	return a;
-}
-signed main(){
-	int x = 1;
-	int y = x + 2L + 3L;
-	int z;
-	int a = 1.9;
-	label:
-	z = x + y + 1 + a;
-	func(2);
-	z = func1(2);
-	return 0;
-	goto label;
-}
-void func(int a){
-	a = 1;
+    if (sizeof (arr[0]--) != 1) {
+        return 2; // fail
+    }
+
+    if (sizeof (--arr[1]) != 1) {
+        return 4; // fail
+    }
 }

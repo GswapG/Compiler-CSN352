@@ -98,9 +98,9 @@ class IRGenerator:
         """
         For printing intermediate values of ir.code
         """
-        # print("-=====-")
-        # print(ir.code)
-        # print("-=====-")
+        print("-=====-")
+        print(ir.code)
+        print("-=====-")
         pass
 
     def join(self,*args):
@@ -242,12 +242,12 @@ class IRGenerator:
     
     def relational_expression(self, ir0, ir1, op, ir2):
         ir0.place = self.new_temp()
-        dom_type = self.dom_type(ir1,ir2).replace(' ','_')
+        dom_type = self.dom_type(ir1, ir2).replace(' ','_')
         gen1 = ""
         if ir1.data_type.replace(' ','_') != dom_type:
             cvt = self.convert(ir1.data_type,dom_type)
             gen1 = f"{ir1.place} = {cvt} {ir1.place}"
-        if ir2.data_type(' ','_') != dom_type:
+        if ir2.data_type.replace(' ','_') != dom_type:
             cvt = self.convert(ir2.data_type,dom_type)
             gen1 = f"{ir2.place} = {cvt} {ir2.place}"
         op = f"({ir0.data_type}) {op}"

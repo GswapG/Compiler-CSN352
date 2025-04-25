@@ -3,6 +3,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
 from rich.rule import Rule
+from rich import box
 import fnmatch
 import re
 from .exceptions import *

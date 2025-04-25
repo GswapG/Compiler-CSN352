@@ -155,7 +155,8 @@ class Node:
                 ('params', self.ir.parameters),
                 ('else', self.ir.else_),
                 ('initializer_list', self.ir.initializer_list),
-                ('data_type', self.ir.data_type)
+                ('data_type', self.ir.data_type),
+                ('code', self.ir.code)
             ]
             
             for name, value in attrs:

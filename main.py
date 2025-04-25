@@ -51,6 +51,10 @@ irgen = True
 if "--no-ir" in strargv:
     irgen = False
 
+pauseCodeGen = False
+if "--no-asm" in strargv:
+    pauseCodeGen = True
+
 # Utils
 def strip_file(file):
     lines = file.split('\n')
@@ -102,7 +106,9 @@ def process_file(filename,source_dir=testcase_dir):
     address_map = parseFile(temp_file.name,filename,TREE_PATH,SYMBOL_TABLE_PATH,IR_TREE_PATH,graphgen,irgen)
     print(address_map)
     add_file(input_path)
-    CodeGen.driver(filename)
+
+    if not pauseCodeGen:
+        CodeGen.driver(filename)
     return temp_file.name
 
 def process_directory(source_dir=testcase_dir):
@@ -110,7 +116,7 @@ def process_directory(source_dir=testcase_dir):
     For all .c files in source_dir, run preprocessor on them to create a temp file and pass it onto the parser.
     """
     # Check if specific file is to be parsed
-    calc_and_dump_hashes()
+    calc_and_dump_hashes()    
     if specific_filename is not None:
         if not os.path.exists(specific_filename):
             raise CompileException(f"Error: {specific_filename} does not exist. Make sure the path is correct!!")
@@ -135,6 +141,7 @@ def process_directory(source_dir=testcase_dir):
             raise e
         finally:
             temp_files.append(ret)
+            # continue
 
     for temp_file in temp_files:
         if temp_file is None:
