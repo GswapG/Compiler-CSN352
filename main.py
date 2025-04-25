@@ -11,7 +11,7 @@ import uuid
 # from rich.progress import track
 
 HASH_FILE = "hashes.bin"
-STRESS_TESTING = './stress_testing'
+STRESS_TESTING = './new_stress_testing'
 DEFAULT_SOURCE_DIR = './tests/testing'
 TREE_PATH = './renderedTrees'
 SYMBOL_TABLE_PATH = './renderedSymbolTables'
