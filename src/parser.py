@@ -11,10 +11,6 @@ from .address_map import *
 datatypeslhs=[]
 returns = set()
 constants = defaultdict(lambda: None)
-funcptr = set()
-usesfuncptr = 0
-madefuncptr = 0
-funcswithfuncptr = set()
 
 def table_entry(node):
     compound_dtype = ""
@@ -88,13 +84,6 @@ def p_primary_expression_identifier(p):
         p[1]= symtab.lookup(p[1]).refsto
     p[0] = Node("primary_expression_identifier", [p[1]])
     p[0].vars.append(str(p[1]))
-
-    global usesfuncptr
-    global funcswithfuncptr
-    # print("123123",funcswithfuncptr)
-    if(p[1] in funcswithfuncptr):
-        # print("123123123123",p[1])
-        usesfuncptr=1
 
     p[0].name = "identifier"
     p[0].lvalue = True
@@ -250,8 +239,7 @@ def p_postfix_expression(p):
                          | postfix_expression DEC_OP
                          | LPAREN type_name RPAREN LBRACE initializer_list RBRACE
                          | LPAREN type_name RPAREN LBRACE initializer_list COMMA RBRACE '''
-    
-    global funcptr
+
     if len(p) == 2:
         p[0] = Node("postfix_expression", [p[1]])
         #IR
@@ -425,7 +413,7 @@ def p_postfix_expression(p):
         p[0].name = "compound_literal"
         p[0].return_type = p[2].return_type
 
-    if len(p) == 5 and p[2] == "(" and len(p[0].vars) > 0 and ( p[0].vars[0] not in funcptr and p[0].vars[0] not in funcswithfuncptr):
+    if len(p) == 5 and p[2] == "(" and len(p[0].vars) > 0:
         func_params = symtab.search_params(p[0].vars[0])
         argument_list = p[3].param_list
         # print(func_params,argument_list)
@@ -444,18 +432,18 @@ def p_postfix_expression(p):
         param_size = symtab.func_params_size(p[1].vars[0])
         IrGen.function_call(p[0].ir, p[1].ir, p[3].ir,ret,param_size,argument_list=argument_list,func_params=func_params)
 
-    if len(p) == 5 and p[2] == "(" and len(p[0].vars) > 0 and ( p[0].vars[0] in funcptr or p[0].vars[0] in funcswithfuncptr):
-        if p[1].return_type[0] == '*':
-            p[0].return_type = p[1].return_type[1:]
-        # print("arrrr",p[0].return_type)
-        p[0].vars = [p[0].vars[0]]
-        p[0].lvalue = False
-        p[0].rvalue = True
-        p[0].name = "function_call"
+    # if len(p) == 5 and p[2] == "(" and len(p[0].vars) > 0 and ( p[0].vars[0] in funcptr or p[0].vars[0] in funcswithfuncptr):
+    #     if p[1].return_type[0] == '*':
+    #         p[0].return_type = p[1].return_type[1:]
+    #     # print("arrrr",p[0].return_type)
+    #     p[0].vars = [p[0].vars[0]]
+    #     p[0].lvalue = False
+    #     p[0].rvalue = True
+    #     p[0].name = "function_call"
 
-        ret = p[0].return_type
-        param_size = symtab.func_params_size(p[1].vars[0])
-        IrGen.function_call(p[0].ir, p[1].ir, p[3].ir,ret,param_size)
+    #     ret = p[0].return_type
+    #     param_size = symtab.func_params_size(p[1].vars[0])
+    #     IrGen.function_call(p[0].ir, p[1].ir, p[3].ir,ret,param_size)
 
     if len(p) == 4 and p[2] == "(":
         func_params = symtab.search_params(p[0].vars[0])
@@ -776,12 +764,12 @@ def p_multiplicative_expression(p):
             # print(v)
             func_id += 1
 
-    global usesfuncptr
-    # print("3434",usesfuncptr)
-    # print("func_id", func_id, p[0].iscall,p[0].vars,funcptr,funcswithfuncptr,usesfuncptr)
-    if usesfuncptr==1 and len(p[0].vars)==1 and symtab.lookup(p[0].vars[0]) is not None and symtab.lookup(p[0].vars[0]).kind == 'function':
-        p[0].iscall += 1 
-        usesfuncptr=0
+    # global usesfuncptr
+    # # print("3434",usesfuncptr)
+    # # print("func_id", func_id, p[0].iscall,p[0].vars,funcptr,funcswithfuncptr,usesfuncptr)
+    # if usesfuncptr==1 and len(p[0].vars)==1 and symtab.lookup(p[0].vars[0]) is not None and symtab.lookup(p[0].vars[0]).kind == 'function':
+    #     p[0].iscall += 1 
+    #     usesfuncptr=0
 
     
     if func_id != p[0].iscall:
@@ -1933,8 +1921,8 @@ def p_direct_declarator(p):
         func_sym = SymbolEntry(
             name=str(func_name),
             type=str(base_type),  # Return type from declaration_specifiers
-            kind="function",
-            isForwardable=True
+            kind="function"
+            # isForwardable=True
         )
 
         symtab.add_function_symbol(func_sym)
@@ -2028,14 +2016,7 @@ def p_parameter_declaration(p):
                 kind="parameter",
                 isForwardable=True
             )
-            if(symtab.lookup(p[0].vars[0]) is not None and symtab.lookup(p[0].vars[0]).kind == "function"):
-                global funcptr
-                funcptr.add(p[0].vars[0])
-                global madefuncptr
-                madefuncptr = 1
-                # print(funcptr)
-            else:
-                symtab.add_symbol(param_sym)   
+            symtab.add_symbol(param_sym)   
 
             ## if you dont do this it forwards this up and in init_declarator you end up adding all the params again to global scope 
             ## for test case run this on function definition 
@@ -2446,13 +2427,6 @@ def p_function_definition(p):
     symtab.to_add_child = False
     symtab.the_child = None
 
-    global madefuncptr
-    if(madefuncptr==1):
-        global funcswithfuncptr
-        funcswithfuncptr.add(p[0].vars[0])
-        # print("123AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",funcswithfuncptr)
-        madefuncptr = 0
-
     # -- Symbol Table Handling --
     # Get function name from declarator (assume p[2] has 'name' attribute)
     func_name = p[2].vars[0] #check gang
@@ -2540,14 +2514,6 @@ def clearGlobal():
     global lines
     global constants
     global input_text
-    global funcptr
-    global usesfuncptr
-    global madefuncptr
-    global funcswithfuncptr
-    funcptr = set()
-    usesfuncptr = 0
-    madefuncptr = 0
-    funcswithfuncptr = set()
     symtab.clear()
     typedef_names.clear()
     lexer.lineno = 0
@@ -2598,4 +2564,3 @@ def parseFile(filename, ogfilename, treedir, symtabdir, irtreedir, graphgen=Fals
         
     print("\n")
     return address_map
-    
