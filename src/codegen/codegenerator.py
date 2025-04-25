@@ -2,6 +2,7 @@ from .register_allocator import RegisterAllocator
 from .cfg import *
 from .register import *
 import os
+from collections import defaultdict
 
 class Instruction:
     def __init__(self, inst):
@@ -18,7 +19,9 @@ class Instruction:
         self.is_assignment = False
         self.is_cast = False
         self.is_operation = False
+        self.used_vars = []
         self.parse_inst()
+        self.update_use()
 
     def parse_inst(self):
         inst = self.text.split(' ')
@@ -52,6 +55,13 @@ class Instruction:
             else:
                 # some operator
                 self.is_operation = True
+
+    def update_use(self):
+        if '=' in self.inst:
+            rhs = self.inst[2:]
+            for elem in rhs:
+                if elem[0] == '@' or elem[0].isalpha():
+                    self.used_vars.append(elem) 
         
 class CodeGenerator:
     """
@@ -81,10 +91,28 @@ class CodeGenerator:
     def generate_code(self):
         """
         Iterates through blocks from cfg,
-        Iterates through inst in block and calls the repective function based on type of instruction
+        Iterates through inst in block and updates next use info
         """
+        for block in self.cfg.basic_blocks:
+            # calculate next use
+            next_use = defaultdict(int)
+            for i in range(len(block.instructions),0,-1):
+                instr = Instruction(block.instructions[i])
+                for var in instr.used_vars:
+                    next_use[var] += 1
+            # set next use
+            self.reg_allocator.set_next_use(next_use)
+            # actual iteration of instructions
+            for instruction in block.instructions:
+                instr = Instruction(instruction)
+                self.handle_instruction(instr)
         pass
     
+    def handle_instruction(self, inst: Instruction):
+        """
+        Calls different handlers based on different instruction type
+        """
+        pass    
     def handle_goto(self, inst):
         pass
     def handle_if(self, inst):

@@ -6,7 +6,7 @@ int func1(int a){
 }
 signed main(){
 	int x = 1;
-	int y = x + 2L + 3L;
+	int y = 2L;
 	int z;
 	int a = 1.9;
 	label:

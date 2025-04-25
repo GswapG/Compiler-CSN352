@@ -49,7 +49,7 @@ def ir_input(ir_path:str)->list:
 class CFG:
     def __init__(self,IR):
         self.IR = IR
-        self.basic_blocks = [] # list of BasicBlock objects
+        self.basic_blocks : list[BasicBlock] = [] # list of BasicBlock objects
         self.block_map = {}
         self.curr_id = 0
         self.label_to_index = {}

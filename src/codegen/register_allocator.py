@@ -17,6 +17,9 @@ class RegisterAllocator:
         self.code_generator = code_generator
         self.regs_on_stack = [] #list of caller saved registers stored on stack (before function call)
 
+    def set_next_use(self, use: defaultdict):
+        self.next_use = use
+    
     def get_register(self, inst: "Instruction") -> list[Register]:
         """
         Parse the inst (tac) to find what variables need registers.
