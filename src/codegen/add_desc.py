@@ -25,7 +25,7 @@ class AddressDescriptor:
             if reg not in self.address.get(var)[0]: ## REDUNDANT CHECK??
                 self.address[var][0].append(reg)
         else:
-            self.create_entry(self, var)
+            self.create_entry(var)
             
     def discard_reg_for_var(self, var: str, reg: Register):
         """
@@ -43,7 +43,7 @@ class AddressDescriptor:
         if self.address.get(var):
             self.address[var] = [[reg],None]
         else:
-            self.create_entry(self, var)
+            self.create_entry(var)
 
     def get_mem_location(self, var: str):
         """
@@ -57,7 +57,7 @@ class AddressDescriptor:
             else: 
                 return None
         else:
-            self.create_entry(self, var)
+            self.create_entry(var)
 
     def in_mem(self, var:str):
         """
@@ -71,7 +71,7 @@ class AddressDescriptor:
             else: 
                 return False
         else:
-            self.create_entry(self, var)
+            self.create_entry(var)
 
     def get_reg_allocated(self, var:str) -> list[Register] | None:
         """
@@ -85,6 +85,6 @@ class AddressDescriptor:
             else:
                 return None
         else:
-            self.create_entry(self, var)
+            self.create_entry(var)
 
 

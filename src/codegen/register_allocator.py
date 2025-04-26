@@ -26,55 +26,69 @@ class RegisterAllocator:
         Returns a list of registers (memory locations)
         """
         ret = []
+        
+        if inst.is_operation:
+            # t1 = t2 op t3
+            return self.handle_two_var_reg(inst.inst[2], inst.inst[5])
         if inst.is_assignment:
-            if inst.is_function_call:
-                # t = call func, n
-                pass
-            elif inst.is_operation:
-                # t1 = t2 op t3
-                t1 = inst.inst[0]
-                t2 = inst.inst[2]
-                t3 = inst.inst[5]
-                op = inst.inst[4]
-                print(t1,t2,t3,op)
-                # finding R1
-                r = self.add_desc.get_reg_allocated(t2)
-                if r:
-                    # register exists for t2
-                    ret.append(r[0])
-                else:
-                    # load into a free register
-                    ## NEED TO ADD A LOAD INSTRUCTION HERE
-                    r = self.reg_desc.get_free_register()
-                    if r:
-                        ret.append(r)
-                    else:
-                        # need to spill some register
-                        # TODO
-                        pass
-                # finding R2
-                r = self.add_desc.get_reg_allocated(t3)
-                if r:
-                    # reg exists for t3
-                    ret.append(r[0])
-                else:
-                    # load into free register
-                    ## NEED TO ADD A LOAD INSTRUCTION HERE
-                    r = self.reg_desc.get_free_register()
-                    if r:
-                        ret.append(r)
-                    else:
-                        # need to spill some register
-                        # TODO
-                        pass
-            elif inst.is_cast:
-                # t1 = cast t2
-                pass
-            else:
-                # t1 = t2
-                pass
-        return ret
+            # t1 = t2
+            return self.handle_one_var_reg(inst.inst[2])
+        return None
     
+    def handle_one_var_reg(self, var: str) -> Register:
+        """
+        Returns single register for the given variable.
+        Updates the address descriptor and register descriptor accordingly.
+        """
+        # check if var is already in reg
+        reg = self.add_desc.get_reg_allocated(var)
+        if reg:
+            print(1)
+            return reg[0]
+        
+        # get free register
+        reg = self.reg_desc.get_free_register()
+        self.reg_desc.add_var_to_register(reg, var)
+        self.add_desc.set_entry_to_reg(var, reg)
+        if not reg:
+            print(2)
+            # need to spill some register
+            # TODO
+            pass
+        return reg
+    
+    def handle_two_var_reg(self, var1: str, var2: str) -> tuple[Register, Register]:
+        """
+        Returns two registers for the given variables.
+        Updates the address descriptor and register descriptor accordingly.
+        """
+        # check if var1 is already in reg
+        reg1 = self.add_desc.get_reg_allocated(var1)
+        if reg1:
+            reg1 = reg1[0]
+        else:
+            # get free register
+            reg1 = self.reg_desc.get_free_register()
+            if not reg1:
+                # need to spill some register
+                # TODO
+                pass
+        
+        # check if var2 is already in reg
+        reg2 = self.add_desc.get_reg_allocated(var2)
+        if reg2:
+            reg2 = reg2[0]
+        else:
+            # get free register
+            reg2 = self.reg_desc.get_free_register()
+            if not reg2:
+                # need to spill some register
+                # make sure not to spill reg1
+                # TODO
+                pass
+        
+        return (reg1, reg2)
+
     def spill_selector(self,uses: defaultdict):
         """
         Selects register to spill based on heuristic (least uses)

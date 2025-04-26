@@ -17,6 +17,7 @@ class Instruction:
         self.is_begin = False
         self.is_end = False
         self.is_assignment = False
+        self.is_assigned_call = False
         self.is_cast = False
         self.is_operation = False
         self.label = None
@@ -58,9 +59,12 @@ class Instruction:
         else:
             # some operator or call
             if 'call' in inst:
-                self.is_assignment = True
+                self.is_assignment = False
+                self.is_call = False
+                self.is_assigned_call = True
             else:
                 # some operator
+                self.is_assignment = False
                 self.is_operation = True
 
     def update_use(self):
@@ -88,7 +92,7 @@ class CodeGenerator:
         self.out = output_stream
         self.reg_allocator = RegisterAllocator(init_gpr(),self)
         self.curr_alignment = 0
-        
+        self.size_specifiers = ['qword','dword','word','byte','byte']
     
     def join(self,*args):
         """
@@ -133,6 +137,7 @@ class CodeGenerator:
         """
         Calls different handlers based on different instruction type
         """
+        print("Handling instruction: ", inst.text)
         if inst.has_label():
             label = inst.label
             code = f'{label}:'
@@ -180,10 +185,31 @@ class CodeGenerator:
         # check if second element is a variable or a constant
         # if it is a variable, get the register for it
         # if it is a constant, mov instruction is needed
-        pass
+        t2 = inst.inst[2]
+        t1 = inst.inst[0]
+        if t2[0] == '@' or '#' in t2:
+            # variable
+            pass
+        else:
+            # constant, some code is generated for it
+            size = 0
+            if t2.isnumeric():
+                # int constant
+                size = 1
+            elif t2[0] == "'":
+                # char constant
+                size = 3
+            elif t2[0] == '"':
+                # string constant
+                size = 0
+            # get register for t1
+            reg = self.reg_allocator.get_register(inst)
+            code = f'mov {self.size_specifiers[size]} {reg[size]}, {t2}'
+            self.emit(code)
+
     def handle_operation(self, inst):
         pass
-    
+
     def handle_begin(self, inst):
         function_name = self.cfg.func_name
         comment = f'; Function {function_name}'
