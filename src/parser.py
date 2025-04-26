@@ -548,7 +548,7 @@ def p_unary_expression(p):
     elif len(p) == 3:
         p[0] = Node("unary_expression", [p[1], p[2]])
         p[0].return_type = p[2].return_type
-
+        p[0].iscall = p[2].iscall
         if isinstance(p[1], Node) and p[1].operator == '&':
             if p[2].lvalue is not True and p[2].rvalue is not False:
                 raise CompileTypeError("Operand for & operator should be an lvalue")
@@ -760,6 +760,7 @@ def p_multiplicative_expression(p):
         
     func_id = 0
     for v in p[0].vars:
+        v = v.lstrip('@')
         if symtab.lookup(v) is not None and symtab.lookup(v).kind == 'function':
             # print(v)
             func_id += 1

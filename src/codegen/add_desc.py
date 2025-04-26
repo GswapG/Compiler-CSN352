@@ -13,6 +13,10 @@ class AddressDescriptor:
         """
         self.address = defaultdict(list)
     
+    def remove_registers(self, var: str):
+        if var in self.address.keys():
+            self.address[var][0] = []
+
     def create_entry(self, var: str):
         if not var in self.address.keys():
             self.address[var] = [[],None]
@@ -87,4 +91,13 @@ class AddressDescriptor:
         else:
             self.create_entry(var)
 
-
+    def __str__(self):
+        """
+        Returns a string representation of the AddressDescriptor's state.
+        """
+        result = "Address Descriptor State:\n"
+        for var, (registers, mem) in self.address.items():
+            reg_list = ', '.join(str(reg) for reg in registers) if registers else "None"
+            mem_location = mem if mem is not None else "None"
+            result += f"Variable: {var}, Registers: [{reg_list}], Memory: {mem_location}\n"
+        return result

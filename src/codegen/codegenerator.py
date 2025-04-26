@@ -207,7 +207,9 @@ class CodeGenerator:
                 # string constant
                 size = 0
             # get register for t1
+            print(self.reg_allocator.add_desc)
             address = self.address_map.get_address(t1)
+            self.reg_allocator.remove_registers(t1)
             address = address * -1
             code = f'mov {self.size_specifiers[size]} [rbp{address}], {t2}'
             self.emit(code)

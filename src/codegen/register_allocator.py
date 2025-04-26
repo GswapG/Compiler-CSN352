@@ -17,6 +17,12 @@ class RegisterAllocator:
         self.code_generator = code_generator
         self.regs_on_stack = [] #list of caller saved registers stored on stack (before function call)
 
+    def clear_register_entry(self, var: str):
+        pass
+
+    def remove_registers(self, var: str):
+        self.add_desc.remove_registers(var)
+
     def set_next_use(self, use: defaultdict):
         self.next_use = use
     
