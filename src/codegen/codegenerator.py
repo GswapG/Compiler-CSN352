@@ -3,6 +3,7 @@ from .cfg import *
 from .register import *
 import os
 from collections import defaultdict
+from ..address_map import AddressMap
 
 class Instruction:
     def __init__(self, inst):
@@ -87,9 +88,10 @@ class CodeGenerator:
     """
     All handler functions take in inst as input (even if they do not use it)
     """
-    def __init__(self, cfg: CFG, output_stream):
+    def __init__(self, cfg: CFG, output_stream, address_map: AddressMap):
         self.cfg = cfg
         self.out = output_stream
+        self.address_map = address_map
         self.reg_allocator = RegisterAllocator(init_gpr(),self)
         self.curr_alignment = 0
         self.size_specifiers = ['qword','dword','word','byte','byte']
@@ -180,7 +182,9 @@ class CodeGenerator:
     def handle_return(self, inst):
         pass
     def handle_call(self, inst):
-        pass
+        code = f'call {inst.inst[1][:-1]}'
+        self.emit(code)
+
     def handle_assignment(self, inst):
         # check if second element is a variable or a constant
         # if it is a variable, get the register for it
@@ -203,8 +207,9 @@ class CodeGenerator:
                 # string constant
                 size = 0
             # get register for t1
-            reg = self.reg_allocator.get_register(inst)
-            code = f'mov {self.size_specifiers[size]} {reg[size]}, {t2}'
+            address = self.address_map.get_address(t1)
+            address = address * -1
+            code = f'mov {self.size_specifiers[size]} [rbp{address}], {t2}'
             self.emit(code)
 
     def handle_operation(self, inst):
@@ -250,7 +255,7 @@ class CodeGenerator:
             '!=': 'jne'
         }.get(relop, 'jmp')
     
-def driver(filename, graphgen):
+def driver(filename, graphgen, address_map):
     if filename[-2:] in ('.c','.C'):
         filename = filename[:-2]
     filename += '.tac'
@@ -274,6 +279,6 @@ def driver(filename, graphgen):
     for i, cfg in enumerate(cff.cfgs):
         print("In cfg : ", i)
         with open(output_path, 'a') as generated_asm:
-            generator = CodeGenerator(cfg,generated_asm)
+            generator = CodeGenerator(cfg,generated_asm,address_map)
             generator.generate_code()
         print("===================================")

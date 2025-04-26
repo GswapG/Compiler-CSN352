@@ -1217,8 +1217,13 @@ def p_assignment_expression(p):
             left_type = p[1].return_type
             right_type = p[3].return_type
 
+            # if implicit_type_compatibility(left_type, right_type, True):
+            #     raise CompileException("Invalid Assignment")
+            
             if implicit_type_compatibility(left_type, right_type, True):
-                raise CompileException("Invalid Assignment")
+                ## adding this check to fix this tc: int x; int* p = &x; p += x; p += 1; p -= 1;
+                if get_label(p[3].return_type) != "int" and "*" not in left_type:
+                    raise CompileException("Invalid Assignment")
             
             if p[3].name == "struct" or p[3].name == "union" or p[3].name == "function" or p[3].name == "compound_literal" or p[3].name == "string_literal":
                 raise CompileException(f"Operator {p[2].name} cannot be applied to a {p[3].name}")        
@@ -2540,12 +2545,13 @@ def parseFile(filename, ogfilename, treedir, symtabdir, irtreedir, graphgen=Fals
 
     pretty_print_header("Final Symbol Table", text_style="bold underline magenta" , border_style="bold magenta")
     print(symtab)
+    # address map population
     address_map = AddressMap()
     for entry in symtab.table_entries:
         if entry.kind != 'variable':
             continue
         na = entry.name + get_scope_number(entry.scope_name)
-        address_map.add_var(na, entry.offset)
+        address_map.add_var(na, entry.offset + entry.size)
     if graphgen:
         treepath = os.path.join(treedir, ogfilename[:-2])
         symtabpath = os.path.join(symtabdir, ogfilename[:-2])

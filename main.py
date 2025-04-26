@@ -106,7 +106,7 @@ def process_file(filename,source_dir=testcase_dir):
     print(address_map)
     add_file(input_path)
     if not no_asm:
-        CodeGen.driver(filename,graphgen)
+        CodeGen.driver(filename,graphgen,address_map)
     return temp_file.name
 
 def process_directory(source_dir=testcase_dir):

@@ -1,8 +1,9 @@
 // int* g(int x);
-void func(int p) {
+int func(int p) {
 	int y = 1;
 	int z = 10;
 	int x = y + z;
+	return x;
 }
 
 int main(){
