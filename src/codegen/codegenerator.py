@@ -29,8 +29,10 @@ class Instruction:
         self.inst = inst
         if inst[0][-1] == ':':
             # label present
-            self.label = inst[0][:-1]
-            self.inst = inst[1:]
+            # check to make sure label is not function name
+            if not inst[0][0] == '.':
+                self.label = inst[0][:-1]
+                self.inst = inst[1:]
         if 'BeginFunc' in inst:
             self.is_begin = True
         elif 'EndFunc' in inst:
@@ -86,6 +88,7 @@ class CodeGenerator:
         self.out = output_stream
         self.reg_allocator = RegisterAllocator(init_gpr(),self)
         self.curr_alignment = 0
+        
     
     def join(self,*args):
         """
@@ -100,6 +103,7 @@ class CodeGenerator:
         return ret[:-1]
     
     def emit(self,code):
+        self.out.write('\n')
         self.out.write(code)
 
     def generate_code(self):
@@ -129,8 +133,40 @@ class CodeGenerator:
         """
         Calls different handlers based on different instruction type
         """
-        pass    
+        if inst.has_label():
+            label = inst.label
+            code = f'{label}:'
+            self.emit(code)
+        # check for different types of instructions
+        if inst.is_begin:
+            self.handle_begin(inst)
+        elif inst.is_end:
+            self.handle_end(inst)
+        elif inst.is_goto:
+            self.handle_goto(inst)  
+        elif inst.is_if:
+            self.handle_if(inst)
+        elif inst.is_param:
+            self.handle_param(inst)
+        elif inst.is_return:
+            self.handle_return(inst)
+        elif inst.is_function_call:
+            self.handle_call(inst)
+        elif inst.is_assignment:
+            self.handle_assignment(inst)
+        elif inst.is_cast:
+            self.handle_cast(inst)
+        elif inst.is_operation:
+            self.handle_operation(inst)
+        else:
+            return
+            raise Exception("Unknown instruction type")
+        
     def handle_goto(self, inst):
+        code = f'jmp {inst.inst[2]}'
+        self.emit(code)
+
+    def handle_cast(self, inst):
         pass
     def handle_if(self, inst):
         pass
@@ -141,13 +177,20 @@ class CodeGenerator:
     def handle_call(self, inst):
         pass
     def handle_assignment(self, inst):
+        # check if second element is a variable or a constant
+        # if it is a variable, get the register for it
+        # if it is a constant, mov instruction is needed
         pass
     def handle_operation(self, inst):
         pass
+    
     def handle_begin(self, inst):
-        codel1 = f'push rbp'
-        codel2 = f'mov rbp, rsp'
-        code = self.join(codel1, codel2)
+        function_name = self.cfg.func_name
+        comment = f'; Function {function_name}'
+        codel1 = f'{function_name}:'
+        codel2 = f'push rbp'
+        codel3 = f'mov rbp, rsp'
+        code = self.join(comment, codel1, codel2,codel3)
         self.emit(code)
     
     def handle_end(self, inst):
@@ -191,11 +234,19 @@ def driver(filename, graphgen):
     if graphgen:
         graph_path = os.path.join('./generatedCFG', filename)
         cff.visualize_all_cfgs(graph_path)
+    output_path = "./generatedASM/"
+    filename = filename.split('.')[0] + '.asm'
+    output_path = os.path.join(output_path,filename)
+    with open(output_path, 'w') as generated_asm:
+        generated_asm.write("section .text\n")
+        generated_asm.write("global main\n")
+        generated_asm.write("extern printf\n")
+        generated_asm.write("extern scanf\n")
+        generated_asm.write("extern malloc\n")
+        generated_asm.write("extern free\n")
+        generated_asm.write("extern exit\n")
     for i, cfg in enumerate(cff.cfgs):
         print("In cfg : ", i)
-        output_path = "./generatedASM/"
-        filename = filename.split('.')[0] + '.asm'
-        output_path = os.path.join(output_path,filename)
         with open(output_path, 'a') as generated_asm:
             generator = CodeGenerator(cfg,generated_asm)
             generator.generate_code()

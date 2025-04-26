@@ -47,7 +47,11 @@ def ir_input(ir_path:str)->list:
         
 
 class CFG:
-    def __init__(self,IR):
+    def __init__(self,IR,func_name=None):
+        """
+        Takes in IR and constructs the CFG for it   
+        """
+        self.func_name = func_name
         self.IR = IR
         self.basic_blocks : list[BasicBlock] = [] # list of BasicBlock objects
         self.block_map = {}
@@ -331,8 +335,8 @@ class CFF:
         """
         if self.global_ir:
             self.cfgs.append(CFG(self.global_ir))
-        for ir in self.func_irs:
-            self.cfgs.append(CFG(ir))
+        for i, ir in enumerate(self.func_irs):
+            self.cfgs.append(CFG(ir, func_name=self.func_names[i]))
 
     def print_irs(self):
         """

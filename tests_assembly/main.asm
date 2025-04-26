@@ -14,8 +14,9 @@ main:
     push rbp
     mov rbp, rsp
     sub rsp, 16
-    mov rdi, msg
-    call printf
+    mov rax, 0
+    add rax, 1
+    ; call printf
     mov rax, 0
     leave
     ret
