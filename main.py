@@ -6,6 +6,7 @@ import tempfile
 import pickle
 from Crypto.Hash import SHA256
 import src.codegen.codegenerator as CodeGen
+from src.ir_optimize import *
 # from tqdm import tqdm
 import uuid
 # from rich.progress import track
