@@ -4,7 +4,8 @@ from .register import *
 import os
 from collections import defaultdict
 from ..address_map import AddressMap
-
+from ..size_map import SizeMap
+from ..utils import get_size_from_type
 class Instruction:
     def __init__(self, inst):
         self.text = str(inst)
@@ -47,6 +48,8 @@ class Instruction:
             self.is_function_call = True
         elif 'pop' in inst:
             self.is_pop = True
+        elif 'goto' in inst:
+            self.is_goto = True
 
         if '=' not in inst:
             return 
@@ -88,10 +91,11 @@ class CodeGenerator:
     """
     All handler functions take in inst as input (even if they do not use it)
     """
-    def __init__(self, cfg: CFG, output_stream, address_map: AddressMap):
+    def __init__(self, cfg: CFG, output_stream, address_map: AddressMap,size_map: SizeMap):
         self.cfg = cfg
         self.out = output_stream
         self.address_map = address_map
+        self.size_map = size_map
         self.reg_allocator = RegisterAllocator(init_gpr(),self)
         self.curr_alignment = 0
         self.size_specifiers = ['qword','dword','word','byte','byte']
@@ -107,6 +111,32 @@ class CodeGenerator:
             ret += arg
             ret += '\n'
         return ret[:-1]
+    
+    def get_size_idx(self, type=None,size=None):
+        if size:
+            sz = size
+        elif type:
+            sz = get_size_from_type(type)
+        return {
+            8:0,
+            4:1,
+            2:2,
+            1:3
+        }.get(sz)
+    
+    def is_constant(self, t2):
+        if t2.isnumeric():
+            # int constant
+            size = 1
+        elif t2[0] == "'":
+            # char constant
+            size = 3
+        elif t2[0] == '"':
+            # string constant
+            size = 0
+        else:
+            return False
+        return True
     
     def emit(self,code):
         self.out.write('\n')
@@ -170,7 +200,7 @@ class CodeGenerator:
             raise Exception("Unknown instruction type")
         
     def handle_goto(self, inst):
-        code = f'jmp {inst.inst[2]}'
+        code = f'jmp {inst.inst[1]}'
         self.emit(code)
 
     def handle_cast(self, inst):
@@ -192,8 +222,41 @@ class CodeGenerator:
         t2 = inst.inst[2]
         t1 = inst.inst[0]
         if t2[0] == '@' or '#' in t2:
-            # variable
-            pass
+            if t1[0] == '@':
+                # t1 is temp
+                if t2[0] == '@':
+                    # t2 is temp
+                    pass
+                else:
+                    # t2 is named
+                    pass
+            else:
+                # t1 is named
+                if t2[0] == '@':
+                    # t2 is temp
+                    address = self.address_map.get_address(t1)
+                    regs = self.reg_allocator.add_desc.get_reg_allocated(t1)
+                    if regs:
+                        for reg in regs:
+                            self.reg_allocator.reg_desc.discard_from_reg(reg,t1)
+                    self.reg_allocator.add_desc.set_mem(t1)
+                    self.reg_allocator.remove_registers(t1)
+                    reg = self.reg_allocator.get_register(inst)
+                    if reg:
+                        # t2 in reg
+                        reg = reg[0]
+                        size = self.get_size_idx(size=self.size_map.get_size(t1))
+                        code = f'mov {self.size_specifiers[size]} [rbp{address}], {reg}'
+                        self.emit(code)
+                    else:
+                        # memory
+                        t2_address = self.address_map.get_address(t2)
+                        size = self.get_size_idx(size=self.size_map.get_size(t1))
+                        code = f'mov {self.size_specifiers[size]} [rbp{address}], [rbp{t2_address}]'
+                        self.emit(code)
+                else:
+                    # t2 is named
+                    pass
         else:
             # constant, some code is generated for it
             size = 0
@@ -206,16 +269,41 @@ class CodeGenerator:
             elif t2[0] == '"':
                 # string constant
                 size = 0
-            # get register for t1
-            print(self.reg_allocator.add_desc)
-            address = self.address_map.get_address(t1)
-            self.reg_allocator.remove_registers(t1)
-            address = address * -1
-            code = f'mov {self.size_specifiers[size]} [rbp{address}], {t2}'
-            self.emit(code)
+            if t1[0] == '@':
+                # temp
+                reg = self.reg_allocator.get_register(inst)
+                code = f'mov {reg[size]}, {t2}'
+            else:
+                address = self.address_map.get_address(t1)
+                print(self.reg_allocator.add_desc)
+                self.reg_allocator.add_desc.set_mem(t1)
+                self.reg_allocator.remove_registers(t1)
+                print(self.reg_allocator.add_desc)
+                code = f'mov {self.size_specifiers[size]} [rbp{address}], {t2}'
+                self.emit(code)
 
     def handle_operation(self, inst):
-        pass
+        # t1 = t2 (type) op t3
+        t1 = inst.inst[0]
+        t2 = inst.inst[2]
+        t3 = inst.inst[5]
+        op = inst.inst[4]
+        if self.is_constant(t2):
+            inst.inst[5],inst.inst[2] = inst.inst[2], inst.inst[5]
+            t2, t3 = t3, t2 
+        if self.is_constant(t3):
+            reg, = self.reg_allocator.get_register(inst)
+            size = self.get_size_idx(inst.inst[3][1:-1])
+            opcode = self.get_arithmetic_instruction(op)
+            code = f'{opcode} {reg[size]}, {t3}'
+            self.emit(code)
+        else:
+            reg1, reg2 = self.reg_allocator.get_register(inst)
+            size = self.get_size_idx(inst.inst[3][1:-1])
+            opcode = self.get_arithmetic_instruction(op)
+            code = f'{opcode} {reg1[size]}, {reg2[size]}'
+            self.emit(code)
+        print(self.reg_allocator.add_desc)
 
     def handle_begin(self, inst):
         function_name = self.cfg.func_name
@@ -257,7 +345,7 @@ class CodeGenerator:
             '!=': 'jne'
         }.get(relop, 'jmp')
     
-def driver(filename, graphgen, address_map):
+def driver(filename, graphgen, address_map,size_map):
     if filename[-2:] in ('.c','.C'):
         filename = filename[:-2]
     filename += '.tac'
@@ -281,6 +369,6 @@ def driver(filename, graphgen, address_map):
     for i, cfg in enumerate(cff.cfgs):
         print("In cfg : ", i)
         with open(output_path, 'a') as generated_asm:
-            generator = CodeGenerator(cfg,generated_asm,address_map)
+            generator = CodeGenerator(cfg,generated_asm,address_map,size_map)
             generator.generate_code()
         print("===================================")

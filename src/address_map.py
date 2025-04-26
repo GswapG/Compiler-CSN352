@@ -20,7 +20,10 @@ class AddressMap:
 
     def get_address(self, var: str) -> int:
         if var in self.map:
-            return self.map[var]
+            if self.map[var] > 0:
+                return str(self.map[var]*-1)
+            else:
+                return '+' + str(self.map[var])
         else:
             raise CompileException("Trying to get address for a variable that is not assigned any!!")
     

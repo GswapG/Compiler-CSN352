@@ -6,13 +6,9 @@ void func(int p) {
 }
 
 int main(){
-		int y = 2;
-		int z = 10;
-		y = z;
-		int x = y * z + 1;
-		x = y + 2;
+		long long y = 1;
+		long long z = 10;
+		long long x = y + z;
 		func(2);
 		return 0;
-		label:
-		goto label;
 }

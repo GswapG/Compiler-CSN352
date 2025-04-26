@@ -9,7 +9,7 @@ class RegisterDescriptor:
 			self.registers[reg] = list()
 
 	def get_register_values(self, register):
-		return self.registers[register]
+		return self.registers[register].copy()
   
 	def set_register_values(self, register, val):
 		self.registers[register] = [val]
@@ -45,7 +45,7 @@ class RegisterDescriptor:
 		for register, values in self.registers.items():
 			print(f"{register}: {values}")
 		print("Free Registers:", self.free_regs)
-		
+
 #   def get_registers_having(self,value):
 #     reg_set = []
 #     for register, vals in self.registers.items():
