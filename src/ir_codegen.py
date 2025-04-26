@@ -247,7 +247,7 @@ class IRGenerator:
         if ir1.data_type.replace(' ','_') != dom_type:
             cvt = self.convert(ir1.data_type,dom_type)
             gen1 = f"{ir1.place} = {cvt} {ir1.place}"
-        if ir2.data_type(' ','_') != dom_type:
+        if ir2.data_type.replace(' ','_') != dom_type:
             cvt = self.convert(ir2.data_type,dom_type)
             gen1 = f"{ir2.place} = {cvt} {ir2.place}"
         op = f"({ir0.data_type}) {op}"

@@ -152,8 +152,8 @@ class CFG:
         curr_block = None
         for i,inst in enumerate(self.IR):
             m_groups = label_regex.search(inst) 
-            if m_groups: 
-                inst = inst.split(m_groups[0])[1].strip()
+            # if m_groups: 
+            #     inst = inst.split(m_groups[0])[1].strip()
             if i in leaders:    
                 self.curr_id += 1 
                 if curr_block is not None:
@@ -344,6 +344,8 @@ class CFF:
                 print(i, line)
         
     def visualize_all_cfgs(self, output_path='combined_cfg'):
+        if output_path.endswith('.tac'):
+            output_path = output_path[:-4]
         graph = Digraph(comment="All Function CFGs")
         graph.attr('graph', rankdir='TB', splines='ortho') 
         graph.attr('node', shape='plaintext', fontname='Helvetica')
@@ -358,7 +360,8 @@ class CFF:
             cfg.visualize_cfg(graph=graph, cluster_name=func_name)
 
         graph.render(output_path, format='png', cleanup=True)
-
+        filename = os.path.split(output_path)[1] + '.png'
+        print(f"CFGs saved as generatedCFG/{filename}")
 
 if __name__ == "__main__":
     ir_path = './generatedIR/ir_test.tac'

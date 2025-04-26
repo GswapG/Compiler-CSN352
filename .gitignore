@@ -187,5 +187,6 @@ tempCodeRunnerFile*
 **/hashes.bin
 **/generatedIR
 **/generatedCFG
+**/generatedASM
 # Redundant Batch
 driver.bat 

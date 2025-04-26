@@ -2509,7 +2509,7 @@ def p_error(p):
         print("SYNTAX ERROR:")
         print("Error: Right Braces '}' mismatch")
         print("========================================")
-        return 
+        raise CompileException("Syntax Error") 
 
     col = find_column(input_text, p)
 
@@ -2598,4 +2598,3 @@ def parseFile(filename, ogfilename, treedir, symtabdir, irtreedir, graphgen=Fals
         
     print("\n")
     return address_map
-    

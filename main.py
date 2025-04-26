@@ -50,7 +50,9 @@ if "-g" in strargv or "--graph" in strargv:
 irgen = True
 if "--no-ir" in strargv:
     irgen = False
-
+no_asm = False
+if '--no-asm' in strargv:
+    no_asm = True
 # Utils
 def strip_file(file):
     lines = file.split('\n')
@@ -102,7 +104,8 @@ def process_file(filename,source_dir=testcase_dir):
     address_map = parseFile(temp_file.name,filename,TREE_PATH,SYMBOL_TABLE_PATH,IR_TREE_PATH,graphgen,irgen)
     print(address_map)
     add_file(input_path)
-    CodeGen.driver(filename)
+    if not no_asm:
+        CodeGen.driver(filename,graphgen)
     return temp_file.name
 
 def process_directory(source_dir=testcase_dir):

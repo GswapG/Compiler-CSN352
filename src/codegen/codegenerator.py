@@ -19,6 +19,7 @@ class Instruction:
         self.is_assignment = False
         self.is_cast = False
         self.is_operation = False
+        self.label = None
         self.used_vars = []
         self.parse_inst()
         self.update_use()
@@ -26,6 +27,10 @@ class Instruction:
     def parse_inst(self):
         inst = self.text.split(' ')
         self.inst = inst
+        if inst[0][-1] == ':':
+            # label present
+            self.label = inst[0][:-1]
+            self.inst = inst[1:]
         if 'BeginFunc' in inst:
             self.is_begin = True
         elif 'EndFunc' in inst:
@@ -60,8 +65,17 @@ class Instruction:
         if '=' in self.inst:
             rhs = self.inst[2:]
             for elem in rhs:
-                if elem[0] == '@' or elem[0].isalpha():
+                if elem[0] == '@' or '#' in elem:
                     self.used_vars.append(elem) 
+        print(self.used_vars)
+    
+    def has_label(self):
+        if self.label is not None:
+            return True
+        return False
+    
+    def __str__(self):
+        return self.text
         
 class CodeGenerator:
     """
@@ -94,19 +108,22 @@ class CodeGenerator:
         Iterates through inst in block and updates next use info
         """
         for block in self.cfg.basic_blocks:
+            print("In block : ", block.block_id)
             # calculate next use
             next_use = defaultdict(int)
-            for i in range(len(block.instructions),0,-1):
+            for i in range(len(block.instructions)-1,0,-1):
                 instr = Instruction(block.instructions[i])
                 for var in instr.used_vars:
                     next_use[var] += 1
             # set next use
             self.reg_allocator.set_next_use(next_use)
+            print(next_use)
             # actual iteration of instructions
             for instruction in block.instructions:
                 instr = Instruction(instruction)
+                print(instr)
                 self.handle_instruction(instr)
-        pass
+
     
     def handle_instruction(self, inst: Instruction):
         """
@@ -164,16 +181,22 @@ class CodeGenerator:
             '!=': 'jne'
         }.get(relop, 'jmp')
     
-def driver(filename):
+def driver(filename, graphgen):
     if filename[-2:] in ('.c','.C'):
         filename = filename[:-2]
     filename += '.tac'
     file_path = os.path.join("./generatedIR/",filename)
     IR = ir_input(file_path)
     cff = CFF(IR)
-    for cfg in cff.cfgs:
+    if graphgen:
+        graph_path = os.path.join('./generatedCFG', filename)
+        cff.visualize_all_cfgs(graph_path)
+    for i, cfg in enumerate(cff.cfgs):
+        print("In cfg : ", i)
         output_path = "./generatedASM/"
         filename = filename.split('.')[0] + '.asm'
         output_path = os.path.join(output_path,filename)
         with open(output_path, 'a') as generated_asm:
             generator = CodeGenerator(cfg,generated_asm)
+            generator.generate_code()
+        print("===================================")
