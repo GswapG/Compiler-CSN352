@@ -26,7 +26,7 @@ class RegisterAllocator:
     def set_next_use(self, use: defaultdict):
         self.next_use = use
     
-    def get_register(self, inst: "Instruction") -> list[Register]:
+    def get_register(self, inst: "Instruction") -> tuple[Register]:
         """
         Parse the inst (tac) to find what variables need registers.
         Returns a list of registers (memory locations)
@@ -44,37 +44,54 @@ class RegisterAllocator:
             self.reg_desc.set_register_values(ret[0], inst.inst[0])
             self.add_desc.set_entry_to_reg(inst.inst[0],ret[0])
             return ret
+        
         if inst.is_assignment:
             # t1 = t2
             t1 = inst.inst[0]
             t2 = inst.inst[2]
             if self.code_generator.is_constant(t2):
-                return self.handle_one_var_reg(t1, self.code_generator.get_size_idx(inst.inst[3][1:-1]))
+                # this is only called in the case of temp = const
+                return self.get_lhs_register_for_assignment(t1)
             if t1[0] == '@':
                 # t1 is temp
-                if t2[0] == '@':
-                    # t2 is temp
-                    pass
-                else:
-                    # t2 is named
-                    pass
+                reg1, = self.get_lhs_register_for_assignment(t1) 
+                return reg1 + self.get_rhs_register_for_assignment(t2, reg1)
             else:
                 # t1 is named
-                if t2[0] == '@':
-                    return self.get_rhs_register_for_assignment(t2)
-                else:
-                    # t2 is named
-                    pass
+                return self.get_rhs_register_for_assignment(t2)
         return None
     
     def get_lhs_register_for_assignment(self, var: str) -> tuple[Register]:
-        pass
-
-    def get_rhs_register_for_assignment(self, var: str) -> tuple[Register]:
         reg = self.add_desc.get_reg_allocated(var)
         if reg is not None:
             return (reg[0],)
-        return None
+        # get free register
+        reg = self.reg_desc.get_free_register()
+        if reg is None:
+            # need to spill some register
+            # TODO : spill and get reg
+            pass
+        self.reg_desc.set_register_values(reg, var)
+        self.add_desc.set_entry_to_reg(var, reg)
+        return (reg,)
+
+    def get_rhs_register_for_assignment(self, var: str, reg_to_not_spill = None) -> tuple[Register]:
+        regs = self.add_desc.get_reg_allocated(var)
+        if regs is not None:
+            return (regs[0],)
+        # get free register
+        reg = self.reg_desc.get_free_register()
+        if reg is None:
+            # need to spill some register
+            # TODO : spill and get reg
+            pass   
+        size = self.code_generator.get_size_idx(size=self.code_generator.size_map.get_size(var))
+        code = f'mov {reg[size]}, {self.code_generator.size_specifiers[size]} [rbp{self.code_generator.address_map.get_address(var)}]'
+        self.code_generator.emit(code)
+        self.reg_desc.set_register_values(reg, var)
+        self.add_desc.add_reg_to_entry(var, reg)
+        return (reg,)
+
 
     def handle_one_var_reg(self, var: str,size = 0) -> tuple[Register]:
         """
@@ -93,10 +110,10 @@ class RegisterAllocator:
         # get free register
         reg = self.reg_desc.get_free_register()
         self.reg_desc.add_var_to_register(reg, var)
-        self.add_desc.set_entry_to_reg(var, reg)
+        # self.add_desc.set_entry_to_reg(var, reg)
         # emit code for loading register
         address = self.code_generator.address_map.get_address(var)
-        code = f'mov {self.code_generator.size_specifiers[size]} {reg[size]}, [rbp{address}]'
+        code = f'mov {reg[size]}, {self.code_generator.size_specifiers[size]} [rbp{address}]'
         self.code_generator.emit(code)
         if not reg:
             print(2)
@@ -123,7 +140,7 @@ class RegisterAllocator:
                 pass
             # emit code for loading var1 to reg1
             address = self.code_generator.address_map.get_address(var1)
-            code = f'mov {self.code_generator.size_specifiers[size]} {reg1[size]}, [rbp{address}]'
+            code = f'mov {reg1[size]}, {self.code_generator.size_specifiers[size]} [rbp{address}]'
             self.code_generator.emit(code)
         # check if var2 is already in reg
         reg2 = self.add_desc.get_reg_allocated(var2)
@@ -139,7 +156,7 @@ class RegisterAllocator:
                 pass
             # emit code for loading var2 to reg2
             address = self.code_generator.address_map.get_address(var2)
-            code = f'mov {self.code_generator.size_specifiers[size]} {reg2[size]}, [rbp{address}]'
+            code = f'mov {reg2[size]}, {self.code_generator.size_specifiers[size]} [rbp{address}]'
             self.code_generator.emit(code)
         return (reg1, reg2)
 

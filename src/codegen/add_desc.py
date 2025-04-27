@@ -120,9 +120,11 @@ class AddressDescriptor:
         """
         Returns a string representation of the AddressDescriptor's state.
         """
-        result = "Address Descriptor State:\n"
+        result = "=====Address Descriptor State:\n"
         for var, (registers, mem) in self.address.items():
             reg_list = ', '.join(str(reg) for reg in registers) if registers else "None"
             mem_location = mem if mem is not None else "None"
             result += f"Variable: {var}, Registers: [{reg_list}], Memory: {mem_location}\n"
+        if len(self.address) == 0:
+            result += "No entries in Address Descriptor."
         return result

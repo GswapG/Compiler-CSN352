@@ -78,9 +78,17 @@ class IROptimizer:
         self.optimized_ir.append(line)
 
   def write_optimized_ir(self):
-    with open(self.ir_path,'w') as file:
+    with open(self.ir_path,'w') as f:
       for line in self.optimized_ir:
-        file.write(line+'\n')
+        if line[-1] == ':':
+            if line[0] == '.':
+                f.write(line + '\n')
+            else:
+                line = '\t' + line
+                f.write(line + '\n')
+        else:
+            line = '\t\t' + line
+            f.write(line + '\n')
   
   def is_var(self,instruction_entry:str):
     if instruction_entry.startswith('@') or '#' in instruction_entry:

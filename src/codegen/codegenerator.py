@@ -195,9 +195,11 @@ class CodeGenerator:
             self.handle_cast(inst)
         elif inst.is_operation:
             self.handle_operation(inst)
-        else:
-            return
-            raise Exception("Unknown instruction type")
+        # else:
+        #     return
+        #     raise Exception("Unknown instruction type")
+        print(self.reg_allocator.add_desc)
+        print(self.reg_allocator.reg_desc)
         
     def handle_goto(self, inst):
         code = f'jmp {inst.inst[1]}'
@@ -224,39 +226,27 @@ class CodeGenerator:
         if t2[0] == '@' or '#' in t2:
             if t1[0] == '@':
                 # t1 is temp
-                if t2[0] == '@':
-                    # t2 is temp
-                    pass
-                else:
-                    # t2 is named
-                    pass
+                reg1, reg2 = self.reg_allocator.get_register(inst)
+                # dono register me hai to inke bas register aur address descriptors update karne hain, no code emitted
+                # reg2 ko t1 ke reg ke liye use karna hai
+                self.reg_allocator.add_desc.set_entry_to_reg(t1, reg2)
+                self.reg_allocator.reg_desc.add_var_to_register(reg2, t1)
             else:
                 # t1 is named
-                if t2[0] == '@':
-                    # t2 is temp
-                    address = self.address_map.get_address(t1)
-                    regs = self.reg_allocator.add_desc.get_reg_allocated(t1)
-                    if regs:
-                        for reg in regs:
-                            self.reg_allocator.reg_desc.discard_from_reg(reg,t1)
-                    self.reg_allocator.add_desc.set_mem(t1)
-                    self.reg_allocator.remove_registers(t1)
-                    reg = self.reg_allocator.get_register(inst)
-                    if reg:
-                        # t2 in reg
-                        reg = reg[0]
-                        size = self.get_size_idx(size=self.size_map.get_size(t1))
-                        code = f'mov {self.size_specifiers[size]} [rbp{address}], {reg}'
-                        self.emit(code)
-                    else:
-                        # memory
-                        t2_address = self.address_map.get_address(t2)
-                        size = self.get_size_idx(size=self.size_map.get_size(t1))
-                        code = f'mov {self.size_specifiers[size]} [rbp{address}], [rbp{t2_address}]'
-                        self.emit(code)
-                else:
-                    # t2 is named
-                    pass
+                address = self.address_map.get_address(t1)
+                regs = self.reg_allocator.add_desc.get_reg_allocated(t1)
+                if regs:
+                    for reg in regs:
+                        self.reg_allocator.reg_desc.discard_from_reg(reg,t1)
+                self.reg_allocator.add_desc.set_mem(t1)
+                self.reg_allocator.remove_registers(t1)
+                reg = self.reg_allocator.get_register(inst)
+                if reg:
+                    # t2 in reg
+                    reg = reg[0]
+                    size = self.get_size_idx(size=self.size_map.get_size(t1))
+                    code = f'mov {self.size_specifiers[size]} [rbp{address}], {reg[size]}'
+                    self.emit(code)
         else:
             # constant, some code is generated for it
             size = 0
@@ -266,29 +256,31 @@ class CodeGenerator:
             elif t2[0] == "'":
                 # char constant
                 size = 3
+                t2 = ord(t2[1])
             elif t2[0] == '"':
                 # string constant
                 size = 0
             if t1[0] == '@':
                 # temp
-                reg = self.reg_allocator.get_register(inst)
+                reg, = self.reg_allocator.get_register(inst)
                 code = f'mov {reg[size]}, {t2}'
+                self.emit(code)
             else:
                 address = self.address_map.get_address(t1)
-                print(self.reg_allocator.add_desc)
                 self.reg_allocator.add_desc.set_mem(t1)
                 self.reg_allocator.remove_registers(t1)
-                print(self.reg_allocator.add_desc)
                 code = f'mov {self.size_specifiers[size]} [rbp{address}], {t2}'
                 self.emit(code)
 
     def handle_operation(self, inst):
         # t1 = t2 (type) op t3
+        # at least one of the two operands is a variable (constant folding)
         t1 = inst.inst[0]
         t2 = inst.inst[2]
         t3 = inst.inst[5]
         op = inst.inst[4]
         if self.is_constant(t2):
+            # swap t2 and t3 if t2 is constant
             inst.inst[5],inst.inst[2] = inst.inst[2], inst.inst[5]
             t2, t3 = t3, t2 
         if self.is_constant(t3):
@@ -303,7 +295,6 @@ class CodeGenerator:
             opcode = self.get_arithmetic_instruction(op)
             code = f'{opcode} {reg1[size]}, {reg2[size]}'
             self.emit(code)
-        print(self.reg_allocator.add_desc)
 
     def handle_begin(self, inst):
         function_name = self.cfg.func_name
