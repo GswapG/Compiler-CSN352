@@ -138,9 +138,15 @@ class CodeGenerator:
             return False
         return True
     
-    def emit(self,code):
-        self.out.write('\n')
-        self.out.write(code)
+    def emit(self, code):
+        """
+        Writes the given code to the output stream with proper indentation.
+        Labels are not indented, while other instructions are indented with a tab.
+        """
+        if code.endswith(':') or code[0] == ';':  # Check if the code is a label
+            self.out.write(f'{code}\n')  # No indentation for labels
+        else:
+            self.out.write(f'\t{code}\n')  # Add a tab for instructions
 
     def generate_code(self):
         """
@@ -302,14 +308,16 @@ class CodeGenerator:
         codel1 = f'{function_name}:'
         codel2 = f'push rbp'
         codel3 = f'mov rbp, rsp'
-        code = self.join(comment, codel1, codel2,codel3)
-        self.emit(code)
+        self.emit(comment)
+        self.emit(codel1)
+        self.emit(codel2)
+        self.emit(codel3)
     
     def handle_end(self, inst):
         codel1 = f'leave'
         codel2 = f'ret'
-        code = self.join(codel1, codel2)
-        self.emit(code)
+        self.emit(codel1)
+        self.emit(codel2)
 
     def get_arithmetic_instruction(self, op: str) -> str:
         """
