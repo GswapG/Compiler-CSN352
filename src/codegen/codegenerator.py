@@ -4,8 +4,10 @@ from .register import *
 import os
 from collections import defaultdict
 from ..address_map import AddressMap
+from ..param_map import ParameterMap
 from ..size_map import SizeMap
 from ..utils import get_size_from_type
+
 class Instruction:
     def __init__(self, inst):
         self.text = str(inst)
