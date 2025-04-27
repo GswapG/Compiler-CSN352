@@ -1,6 +1,6 @@
 from collections import defaultdict
-from exceptions import *
-from utils import get_size_from_type
+from .exceptions import *
+from .utils import get_size_from_type
 
 class ParameterMap:
   def __init__(self):

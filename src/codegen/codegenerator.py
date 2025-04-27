@@ -278,6 +278,13 @@ class CodeGenerator:
         pass
 
 
+    def handle_array(self,inst):
+        '''Parsing of this is left!!'''
+        #3AC of arr can be of 2 forms:
+        # t1[t2] = t3
+        # t1 = t2[t3]
+        pass
+
     def handle_if_SET(self, inst):
         # if t1 == 0 goto L5
         # if t1 !=0 goto L6
