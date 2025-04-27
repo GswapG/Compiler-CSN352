@@ -3,7 +3,7 @@ int main(){
 		int y = 2;
 		// int k = x < y;
 		for(int i = 0; i < 10; i+=1){
-			if (x < y || x> 10){
+			if (x < y || i> 10){
 				x = x + 1;
 			}
 			else{

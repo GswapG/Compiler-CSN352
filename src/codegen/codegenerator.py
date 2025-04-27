@@ -22,20 +22,67 @@ class Instruction:
         self.is_assigned_call = False
         self.is_cast = False
         self.is_operation = False
+        self.is_relop = False
         self.label = None
         self.used_vars = []
         self.parse_inst()
         self.update_use()
 
+    def split_instruction(self, text: str) -> list:
+        """
+        Splits instruction on whitespace while preserving string literals.
+        Args:
+            text: The instruction text to split
+        Returns:
+            list: List of instruction components
+        """
+        result = []
+        current = []
+        in_string = False
+        quote_char = None
+        
+        for char in text:
+            if char in ['"', "'"]:
+                if not in_string:
+                    # Start of string
+                    in_string = True
+                    quote_char = char
+                    current.append(char)
+                elif char == quote_char:
+                    # End of string
+                    in_string = False
+                    current.append(char)
+                    result.append(''.join(current))
+                    current = []
+                    quote_char = None
+                else:
+                    # Quote character inside string
+                    current.append(char)
+            elif char.isspace():
+                if in_string:
+                    current.append(char)
+                elif current:
+                    result.append(''.join(current))
+                    current = []
+            else:
+                current.append(char)
+                
+        if current:
+            result.append(''.join(current))
+            
+        return result
+
     def parse_inst(self):
         inst = self.text.split(' ')
         self.inst = inst
+        self.map = ('==','!=','<=','>=','<','>')
         if inst[0][-1] == ':':
             # label present
             # check to make sure label is not function name
             if not inst[0][0] == '.':
                 self.label = inst[0][:-1]
                 self.inst = inst[1:]
+                inst = self.inst
         if 'BeginFunc' in inst:
             self.is_begin = True
         elif 'EndFunc' in inst:
@@ -48,6 +95,8 @@ class Instruction:
             self.is_function_call = True
         elif 'pop' in inst:
             self.is_pop = True
+        elif 'if' in inst:
+            self.is_if = True
         elif 'goto' in inst:
             self.is_goto = True
 
@@ -70,7 +119,14 @@ class Instruction:
                 # some operator
                 self.is_assignment = False
                 self.is_operation = True
-
+                
+        for elem in inst:
+            if elem in self.map:
+                self.is_relop = True
+                self.is_assignment = False # maybe not needed because of order of calls but just to be sure
+                self.is_operation = False
+                break
+                
     def update_use(self):
         if '=' in self.inst:
             rhs = self.inst[2:]
@@ -99,6 +155,7 @@ class CodeGenerator:
         self.reg_allocator = RegisterAllocator(init_gpr(),self)
         self.curr_alignment = 0
         self.size_specifiers = ['qword','dword','word','byte','byte']
+        self.last_rel_op = None
     
     def join(self,*args):
         """
@@ -185,16 +242,20 @@ class CodeGenerator:
             self.handle_begin(inst)
         elif inst.is_end:
             self.handle_end(inst)
+        elif inst.is_if:
+            self.handle_if_SET(inst)
+            # self.handle_if(inst)
         elif inst.is_goto:
             self.handle_goto(inst)  
-        elif inst.is_if:
-            self.handle_if(inst)
         elif inst.is_param:
             self.handle_param(inst)
         elif inst.is_return:
             self.handle_return(inst)
         elif inst.is_function_call:
             self.handle_call(inst)
+        elif inst.is_relop:
+            # self.handle_relop_SET(inst)
+            self.handle_relop(inst)
         elif inst.is_assignment:
             self.handle_assignment(inst)
         elif inst.is_cast:
@@ -213,8 +274,46 @@ class CodeGenerator:
 
     def handle_cast(self, inst):
         pass
-    def handle_if(self, inst):
+
+
+    def handle_if_SET(self, inst):
+        # if t1 == 0 goto L5
+        # if t1 !=0 goto L6
+        t1 = inst.inst[1]
+        jmp_label = inst.inst[5]
+        size = self.get_size_idx(type='int')
+        reg2_list = self.reg_allocator.add_desc.get_reg_allocated(t1)
+        if reg2_list:
+            reg2 = reg2_list[0]
+            self.emit(f'cmp {reg2[size]}, 0')
+        else:
+            address = self.address_map.get_address(t1)
+            self.emit(f'cmp {self.size_specifiers[size]} [rbp{address}], 0')
+
+        if inst.inst[2] is '==':
+            self.emit(f'je {jmp_label}')
+        else:
+            self.emit(f'jne {jmp_label}')
         pass
+
+    def handle_if(self, inst):
+        '''Granth ka backpatching in someplaces messes with this logic, this is a failsafe use SET version instead'''
+        '''get the required relop instruction'''
+        # if @t1 == 0 goto $L6
+        # or if @t1 != 0 goto $L6
+        if self.last_rel_op is None:
+            raise CompileException("No relop found for if statement")
+        
+        t1 = inst.inst[1]
+        op = inst.inst[2]
+        jump_label = inst.inst[5]
+        if op == '==':
+            code = f'{self.get_inverse_jump_instruction(self.last_rel_op)} {jump_label}'
+            self.emit(code)
+        else:
+            code = f'{self.get_jump_instruction(self.last_rel_op)} {jump_label}'
+            self.emit(code)
+
     def handle_param(self, inst):
         pass
     def handle_return(self, inst):
@@ -222,6 +321,104 @@ class CodeGenerator:
     def handle_call(self, inst):
         code = f'call {inst.inst[1][:-1]}'
         self.emit(code)
+
+
+    
+    def handle_relop(self, inst):
+        # t1 = t2 (type) relop t3
+        self.last_rel_op = inst.inst[4]
+        t1 = inst.inst[0]
+        t2 = inst.inst[2]
+        t3 = inst.inst[5]
+        
+        t2_is_const = self.is_constant(t2)
+        t3_is_const = self.is_constant(t3)
+        
+        type = inst.inst[3][1:-1]
+        size = self.get_size_idx(type=type)
+        '''
+        size = self.get_size_idx(type=self.size_map.get_size(t2)) if not t2_is_const else \
+            self.get_size_idx(size=self.size_map.get_size(t3)) if not t3_is_const else \
+            1  # Default size if both are constants
+        '''
+        
+        if t2_is_const and t3_is_const:
+            # Both are constants - compare directly
+            self.emit(f'cmp {t2}, {t3}')
+        elif t2_is_const:
+            # t2 is constant, t3 is variable
+            reg3_list = self.reg_allocator.add_desc.get_reg_allocated(t3)
+            if reg3_list:
+                # t3 is in register
+                reg3 = reg3_list[0]
+                self.emit(f'cmp {t2}, {reg3[size]}')
+            elif t3 in self.address_map.addr_desc:
+                # t3 is in memory
+                address = self.address_map.get_address(t3)
+                self.emit(f'cmp {self.size_specifiers[size]} [rbp{address}], {t2}')
+            else:
+                raise CompileException(f"Variable {t3} not found in registers or memory")
+        elif t3_is_const:
+            # t3 is constant, t2 is variable
+            reg2_list = self.reg_allocator.add_desc.get_reg_allocated(t2)
+            if reg2_list:
+                # t2 is in register
+                reg2 = reg2_list[0]
+                self.emit(f'cmp {reg2[size]}, {t3}')
+            else:
+                # t2 is in memory
+                address = self.address_map.get_address(t2)
+                self.emit(f'cmp {self.size_specifiers[size]} [rbp{address}], {t3}')
+        else:
+            # Both are variables
+            reg2_list = self.reg_allocator.add_desc.get_reg_allocated(t2)
+            reg3_list = self.reg_allocator.add_desc.get_reg_allocated(t3)
+            
+            if reg2_list and reg3_list:
+                # Both in registers
+                self.emit(f'cmp {reg2_list[0][size]}, {reg3_list[0][size]}')
+            elif reg2_list and not reg3_list:
+                # t2 in register, t3 in memory
+                if t3 in self.address_map.addr_desc:
+                    address = self.address_map.get_address(t3)
+                    self.emit(f'cmp {reg2_list[0][size]}, {self.size_specifiers[size]} [rbp{address}]')
+                else:
+                    raise CompileException(f"Variable {t3} not found in memory")
+            elif not reg2_list and reg3_list:
+                # t2 in memory, t3 in register
+                if t2 in self.address_map.addr_desc:
+                    address = self.address_map.get_address(t2)
+                    self.emit(f'cmp {self.size_specifiers[size]} [rbp{address}], {reg3_list[0][size]}')
+                else:
+                    raise CompileException(f"Variable {t2} not found in memory")
+            else:
+                # Both in memory
+                addr2 = self.address_map.get_address(t2)
+                addr3 = self.address_map.get_address(t3)
+                temp_reg = self.reg_allocator.get_register(inst)[0]
+                self.emit(f'mov {temp_reg[size]}, {self.size_specifiers[size]} [rbp{addr2}]')
+                self.emit(f'cmp {temp_reg[size]}, {self.size_specifiers[size]} [rbp{addr3}]')
+        # NOW CMP PART IS DONE , WE NOW ADD THE SETL COMMAND
+        #assign new reg for t1
+        reg_t1, _ = self.reg_allocator.get_register(inst)
+        self.reg_allocator.add_desc.set_entry_to_reg(t1, reg_t1)
+        self.reg_allocator.reg_desc.add_var_to_register(reg_t1, t1)
+        size = self.get_size_idx(type=type)
+        # Clear this reg
+        self.emit(f'xor {reg_t1[size]}, {reg_t1[size]}')
+        set_instructions = {
+        '<': 'setl',
+        '<=': 'setle',
+        '>': 'setg',
+        '>=': 'setge',
+        '==': 'sete',
+        '!=': 'setne'
+        }
+        relop = inst.inst[4]
+        self.emit(f'{set_instructions[relop]} {reg_t1[3]}')
+        #3 because that stores the lower bytes in our reg class
+        self.emit(f'movzx {reg_t1[size]}, {reg_t1[3]}')
+
 
     def handle_assignment(self, inst):
         # check if second element is a variable or a constant
@@ -342,6 +539,18 @@ class CodeGenerator:
             '>=': 'jge',
             '==': 'je',
             '!=': 'jne'
+        }.get(relop, 'jmp')
+    def get_inverse_jump_instruction(self, relop: str) -> str:
+        """
+        Map relational operator to assembly jump instruction.
+        """
+        return {
+            '<': 'jge',
+            '<=': 'jg',
+            '>': 'jle',
+            '>=': 'jl',
+            '==': 'jne',
+            '!=': 'je'
         }.get(relop, 'jmp')
     
 def driver(filename, graphgen, address_map,size_map):

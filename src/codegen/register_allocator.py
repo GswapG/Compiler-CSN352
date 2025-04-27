@@ -32,7 +32,14 @@ class RegisterAllocator:
         Returns a list of registers (memory locations)
         """
         ret = []
-        
+
+        if inst.is_relop:  # Add this case first
+        # t1 = t2 (type) relop t3
+            t2 = inst.inst[2]
+            t3 = inst.inst[5]
+            size = self.code_generator.get_size_idx(inst.inst[3][1:-1])
+            return self.handle_two_var_reg(t2, t3, size)
+
         if inst.is_operation:
             # t1 = t2 op t3
             t3 = inst.inst[5]
@@ -54,7 +61,7 @@ class RegisterAllocator:
                 return self.get_lhs_register_for_assignment(t1)
             if t1[0] == '@':
                 # t1 is temp
-                reg1, = self.get_lhs_register_for_assignment(t1) 
+                reg1 = self.get_lhs_register_for_assignment(t1) 
                 return reg1 + self.get_rhs_register_for_assignment(t2, reg1)
             else:
                 # t1 is named
@@ -93,33 +100,35 @@ class RegisterAllocator:
         return (reg,)
 
 
-    def handle_one_var_reg(self, var: str,size = 0) -> tuple[Register]:
+    def handle_one_var_reg(self, var: str, size = 0) -> tuple[Register]:
         """
         Returns single register for the given variable.
         Updates the address descriptor and register descriptor accordingly.
         """
         # check if var is already in reg
         reg = self.add_desc.get_reg_allocated(var)
-        print(reg)
         if reg:
-            print(reg[0])
             self.add_desc.discard_reg_for_var(var, reg[0])
-            print(reg)
             return (reg[0],)
         
         # get free register
         reg = self.reg_desc.get_free_register()
-        self.reg_desc.add_var_to_register(reg, var)
-        # self.add_desc.set_entry_to_reg(var, reg)
-        # emit code for loading register
-        address = self.code_generator.address_map.get_address(var)
-        code = f'mov {reg[size]}, {self.code_generator.size_specifiers[size]} [rbp{address}]'
-        self.code_generator.emit(code)
         if not reg:
-            print(2)
             # need to spill some register
-            # TODO
+            # TODO: spill and get reg
             pass
+
+        self.reg_desc.add_var_to_register(reg, var)
+        
+        # Check if var is a constant before trying to load from memory
+        if self.code_generator.is_constant(var):
+            self.code_generator.emit(f'mov {reg[size]}, {var}')
+        else:
+            # emit code for loading register from memory
+            address = self.code_generator.address_map.get_address(var)
+            code = f'mov {reg[size]}, {self.code_generator.size_specifiers[size]} [rbp{address}]'
+            self.code_generator.emit(code)
+        
         return (reg,)
     
     def handle_two_var_reg(self, var1: str, var2: str, size = 0) -> tuple[Register, Register]:
@@ -127,37 +136,38 @@ class RegisterAllocator:
         Returns two registers for the given variables.
         Updates the address descriptor and register descriptor accordingly.
         """
-        # check if var1 is already in reg
+        # Handle var1
         reg1 = self.add_desc.get_reg_allocated(var1)
         if reg1:
             reg1 = reg1[0]
         else:
-            # get free register
             reg1 = self.reg_desc.get_free_register()
             if not reg1:
-                # need to spill some register
-                # TODO : spill and get reg1
+                # TODO: spill and get reg1
                 pass
-            # emit code for loading var1 to reg1
-            address = self.code_generator.address_map.get_address(var1)
-            code = f'mov {reg1[size]}, {self.code_generator.size_specifiers[size]} [rbp{address}]'
-            self.code_generator.emit(code)
-        # check if var2 is already in reg
+            # Check if var1 is a constant
+            if self.code_generator.is_constant(var1):
+                self.code_generator.emit(f'mov {reg1[size]}, {var1}')
+            else:
+                address = self.code_generator.address_map.get_address(var1)
+                self.code_generator.emit(f'mov {reg1[size]}, {self.code_generator.size_specifiers[size]} [rbp{address}]')
+
+        # Handle var2
         reg2 = self.add_desc.get_reg_allocated(var2)
         if reg2:
             reg2 = reg2[0]
         else:
-            # get free register
             reg2 = self.reg_desc.get_free_register()
             if not reg2:
-                # need to spill some register
-                # make sure not to spill reg1
-                # TODO
+                # TODO: spill and get reg2
                 pass
-            # emit code for loading var2 to reg2
-            address = self.code_generator.address_map.get_address(var2)
-            code = f'mov {reg2[size]}, {self.code_generator.size_specifiers[size]} [rbp{address}]'
-            self.code_generator.emit(code)
+            # Check if var2 is a constant
+            if self.code_generator.is_constant(var2):
+                self.code_generator.emit(f'mov {reg2[size]}, {var2}')
+            else:
+                address = self.code_generator.address_map.get_address(var2)
+                self.code_generator.emit(f'mov {reg2[size]}, {self.code_generator.size_specifiers[size]} [rbp{address}]')
+
         return (reg1, reg2)
 
     def spill_selector(self,uses: defaultdict):
