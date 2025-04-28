@@ -291,6 +291,8 @@ class CodeGenerator:
             self.handle_cast(inst)
         elif inst.is_operation:
             self.handle_operation(inst)
+        # elif inst.is_deref:
+        #     self.handle_deref(inst)
         # else:
         #     return
         #     raise Exception("Unknown instruction type")
@@ -300,6 +302,23 @@ class CodeGenerator:
     def handle_goto(self, inst):
         code = f'jmp {inst.inst[1]}'
         self.emit(code)
+
+    # def handle_deref(self, inst):
+    #     if inst.inst[0] == '*':
+    #         print(inst.inst)
+    #         # deref deref
+    #         # t1 = **t2
+    #         t1 = inst.inst[1]
+    #         t2 = inst.inst[2]
+    #         reg_list = self.reg_allocator.add_desc.get_reg_allocated(t2)
+    #         if reg_list:
+    #             reg = reg_list[0]
+    #             size = self.get_size_idx(size=8)
+    #             self.emit(f'mov {reg[size]}, {reg[size]}')
+    #             self.reg_allocator.add_desc.set_entry_to_reg(t1, reg)
+    #             self.reg_allocator.reg_desc.add_var_to_register(reg, t1)
+    #         else:
+    #             raise CompileException(f"Variable {t2} not found in registers or memory")
 
     def handle_cast(self, inst):
         pass
