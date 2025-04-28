@@ -1,12 +1,19 @@
 import os
 import re
+from .address_map import AddressMap
+from .size_map import SizeMap
+from .param_map import ParameterMap
 from collections import defaultdict
+from utils import get_size_from_type
 
 class IROptimizer:
-	def __init__(self, filename: str):
+	def __init__(self, filename: str, address_map: AddressMap, size_map: SizeMap, param_map: ParamMap):
 		self.IR = None
 		self.optimized_ir = []
 		self.temp_count = 0
+		self.address_map = address_map
+		self.size_map = size_map
+		self.param_map = param_map
 		self.constant_table = defaultdict(lambda: None)
 		filename = filename[:-1]
 		filename += 'tac'
@@ -18,6 +25,7 @@ class IROptimizer:
 		# self.constant_folding()
 		self.resolve_ptrs()
 		self.write_optimized_ir()
+		self.temp_update()
 
 	def constant_folding(self):
 		for line in self.IR.splitlines():
@@ -67,6 +75,48 @@ class IROptimizer:
 			self.optimized_ir.append(' '.join(mod_inst))
 		self.IR = '\n'.join(self.optimized_ir)
 		self.optimized_ir = []
+
+	def temp_update(self):
+		next_line_gives_size = False
+		offset_counter = 0
+		current_func_name = None
+		total_func_size = {}
+
+		for line in self.IR.splitlines():
+			line = line.strip()
+			if line.startswith("."):
+				next_line_gives_size = True
+				current_func_name = line[1:-1]
+				continue
+
+			if next_line_gives_size:
+				_, size = line.split(' ')
+
+				offset_counter = int(size)
+				next_line_gives_size = False
+
+				parameters = self.param_map[current_func_name]
+				for param, param_size in parameters:
+					self.size_map.add_var(param, param_size)
+					self.address_map.add_var(param, offset_counter + param_size)
+					offset_counter += param_size
+
+				continue 
+
+			if line.startswith("@"):
+				temp_var = line.split(' = ')[0]
+				# get the type from type_map 
+				type = ""
+				size = get_size_from_type(type)
+				self.size_map.add_var(temp_var, size)
+				self.address_map.add_var(temp_var, offset_counter + size)
+				offset_counter += size
+			
+			if line.startswith("EndFunc"):
+				total_func_size[current_func_name] = offset_counter
+
+		for func_name, func_size in total_func_size.items():
+			self.size_map.add_var(func_name, func_size)
 
 	def constant_propagation(self):
 		'''Parsing the IR to get only instructions and ignore labels and funcs'''

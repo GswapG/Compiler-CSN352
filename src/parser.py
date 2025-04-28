@@ -2591,14 +2591,17 @@ def parseFile(filename, ogfilename, treedir, symtabdir, irtreedir, graphgen=Fals
     address_map = AddressMap()
     size_map = SizeMap()
     param_map = ParameterMap()
+    
     for entry in symtab.table_entries:
         if entry.kind != 'function':
             continue
         param_list = symtab.search_params(entry.name)
         push_list = []
         for param in param_list:
-            push_list.append((param.name,param.type))
+            param_name = param.name + get_scope_number(param.scope_name)
+            push_list.append((param_name,param.type))
         param_map.add_param(entry.name,push_list)
+
     for entry in symtab.table_entries:
         if entry.kind != 'variable':
             continue
