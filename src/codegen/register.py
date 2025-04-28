@@ -79,3 +79,13 @@ def init_gpr() -> list[Register]:
         registers.append(reg)
 
     return registers
+
+
+def init_param_registers() -> list[Register]:
+	"""
+	Initializes registers rdi, rsi, rdx, rcx, r8, and r9 and returns them in a list.
+	"""
+	reg_names = ['rdi', 'rsi', 'rdx', 'rcx', 'r8', 'r9']
+	registers = [Register(name, 'int') for name in reg_names]
+	return registers
+

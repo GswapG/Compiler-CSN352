@@ -104,7 +104,7 @@ def p_primary_expression_identifier(p):
     ir_entry = p[1]
     if check is not None:
         if check.scope_name is not None:
-            ir_entry += get_scope_number(check.scope_name)
+            ir_entry += get_scope_number(check.node.scope_name)
         if "function" == check.kind:
             p[0].name = "function"
         elif "D-array" in check.kind:

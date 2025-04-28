@@ -136,7 +136,7 @@ class Instruction:
                 self.is_operation = False
                 self.is_relop = False
                 break
-            if elem.startswith('*') and elem is not '*':
+            if elem.startswith('*') and elem != '*':
                 self.is_deref = True
                 self.is_assignment = False
                 self.is_operation = False
@@ -168,14 +168,16 @@ class CodeGenerator:
     """
     All handler functions take in inst as input (even if they do not use it)
     """
-    def __init__(self, cfg: CFG, output_stream, address_map: AddressMap,size_map: SizeMap, param_map: ParameterMap):
+    def __init__(self, cfg: CFG, output_stream, address_map: AddressMap,size_map: SizeMap, param_map: ParameterMap, type_map):
         self.cfg = cfg
         self.out = output_stream
         self.address_map = address_map
         self.size_map = size_map
         self.param_map = param_map
+        self.type_map = type_map
         self.reg_allocator = RegisterAllocator(init_gpr(),self)
         self.curr_alignment = 0
+        self.param_regs = init_param_registers()
         self.size_specifiers = ['qword','dword','word','byte','byte']
         self.last_rel_op = None
         self.is_first_param = True
@@ -348,7 +350,7 @@ class CodeGenerator:
             address = self.address_map.get_address(t1)
             self.emit(f'cmp {self.size_specifiers[size]} [rbp{address}], 0')
 
-        if inst.inst[2] is '==':
+        if inst.inst[2] == '==':
             self.emit(f'je {jmp_label}')
         else:
             self.emit(f'jne {jmp_label}')
@@ -373,10 +375,7 @@ class CodeGenerator:
             self.emit(code)
 
     def handle_param(self, inst):
-        if self.is_first_param:
-            self.is_first_param = False
-            code = f'and rsp, -16'
-            self.emit(code)
+        pass
         
     def handle_return(self, inst):
         pass
@@ -572,16 +571,30 @@ class CodeGenerator:
         codel1 = f'{function_name}:'
         codel2 = f'push rbp'
         codel3 = f'mov rbp, rsp'
-        codel4 = f'sub rsp, $$$$'
+        size = self.size_map.get_size(self.cfg.func_name)
+        size = size + ((16-(size)%16) if size%16 != 0 else 0)
+        codel4 = f'sub rsp, {size}'
         self.emit(comment)
         self.emit(codel1)
         self.emit(codel2)
         self.emit(codel3)
         self.emit(codel4)
-    
+        # params ka kuch karna padega
+        for i, param in enumerate(self.param_map.get_params(self.cfg.func_name)):
+            param,_ = param
+            print(self.size_map)
+            print(param)
+            size = self.get_size_idx(size=self.size_map.get_size(param))
+            address = self.address_map.get_address(param)
+            reg = self.param_regs[i]
+            codel = f'mov {self.size_specifiers[size]} [rbp{address}], {reg[size]}'
+            self.emit(codel)
+        
     def handle_end(self, inst):
+        label = f'$end{self.cfg.func_name}:'
         codel1 = f'leave'
         codel2 = f'ret'
+        self.emit(label)
         self.emit(codel1)
         self.emit(codel2)
 
@@ -623,7 +636,7 @@ class CodeGenerator:
             '!=': 'je'
         }.get(relop, 'jmp')
     
-def driver(filename, graphgen, address_map,size_map,param_map):
+def driver(filename, graphgen, address_map,size_map,param_map,type_map):
     if filename[-2:] in ('.c','.C'):
         filename = filename[:-2]
     filename += '.tac'
@@ -655,12 +668,6 @@ def driver(filename, graphgen, address_map,size_map,param_map):
     for i, cfg in enumerate(cff.cfgs):
         print("In cfg : ", i)
         with open(output_path, 'a') as generated_asm:
-            generator = CodeGenerator(cfg,generated_asm,address_map,size_map,param_map)
-            size = generator.generate_code()
-        with open(output_path, 'r+') as generated_asm:
-            content = generated_asm.read()
-            content.replace('$$$$', str(size))
-            generated_asm.seek(0)
-            generated_asm.write(content)
-            generated_asm.truncate()
+            generator = CodeGenerator(cfg,generated_asm,address_map,size_map,param_map,type_map)
+            generator.generate_code()
         print("===================================")
