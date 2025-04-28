@@ -644,7 +644,7 @@ def driver(filename, graphgen, address_map,size_map,param_map):
         generated_asm.write("extern malloc\n")
         generated_asm.write("extern free\n")
         generated_asm.write("extern exit\n")
-        generated_asm.write("; Function _start:\n")
+        generated_asm.write("; Function _start\n")
         generated_asm.write("_start:\n")
         generated_asm.write("\tand rsp, -16\n")
         generated_asm.write("\tcall main\n")

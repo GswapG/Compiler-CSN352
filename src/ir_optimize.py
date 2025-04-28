@@ -48,13 +48,14 @@ class IROptimizer:
 			if not line:
 				self.optimized_ir.append("")
 				continue
-			if '=' not in line:
+			if '=' not in line.split(' '):
 				print('1')
 				self.optimized_ir.append(line)
 				continue
 			instruction = line.split(' = ')
 			lhs = instruction[0]
 			lhs = lhs.split(' ')
+			print(instruction)
 			instruction = instruction[1].split(' ')
 			for i in range(len(instruction)):
 				if instruction[i].startswith('*') and instruction[i] != '*':

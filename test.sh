@@ -38,9 +38,7 @@ for asm_file in "$ASM_DIR"/*.asm; do
 
     # Link the object file into an executable
     bin_file="$BIN_DIR/$base_name"
-    ld -dynamic-linker /lib64/ld-linux-x86-64.so.2 -lc \
-        /usr/lib/x86_64-linux-gnu/crt1.o /usr/lib/x86_64-linux-gnu/crti.o \
-        "$obj_file" /usr/lib/x86_64-linux-gnu/crtn.o -o "$bin_file"
+    ld -o "$bin_file" "$obj_file" -lc --dynamic-linker /lib64/ld-linux-x86-64.so.2
     if [ $? -ne 0 ]; then
         echo "Error: Failed to link $obj_file"
         continue
