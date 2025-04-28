@@ -7,19 +7,22 @@ from collections import defaultdict
 from utils import get_size_from_type
 
 class IROptimizer:
-	def __init__(self, filename: str, address_map: AddressMap, size_map: SizeMap, param_map: ParamMap):
+	def __init__(self, filename: str ,typemap , var_type_map, address_map: AddressMap, size_map: SizeMap, param_map: ParamMap):
 		self.IR = None
 		self.optimized_ir = []
 		self.temp_count = 0
 		self.address_map = address_map
 		self.size_map = size_map
 		self.param_map = param_map
+		self.type_map = typemap
+		self.var_type_map = var_type_map
 		self.constant_table = defaultdict(lambda: None)
 		filename = filename[:-1]
 		filename += 'tac'
 		self.ir_path = os.path.join('./generatedIR', filename)
-		with open(self.ir_path, 'r') as file:
-			self.IR = file.read()
+		try:
+			with open(self.ir_path, 'r') as file:
+				self.IR = file.read()
 			
 		# self.constant_propagation()
 		# self.constant_folding()
@@ -66,11 +69,17 @@ class IROptimizer:
 			print(instruction)
 			instruction = instruction[1].split(' ')
 			for i in range(len(instruction)):
-				if instruction[i].startswith('*') and instruction[i] != '*':
+				if instruction[i].startswith('*') and instruction[i] != '*' and 'To' not in instruction[i]:
 					code = f"@tt{self.temp_count} = {instruction[i]}"
+					old = instruction[i]
 					self.optimized_ir.append(code)
 					instruction[i] = f"@tt{self.temp_count}"
 					self.temp_count += 1
+					old = old[1:]
+					if old.startswith('@'):
+						self.type_map.set_var(instruction[i],self.type_map.get_var(old)[1:])
+					else:
+						self.type_map.set_var(instruction[i],self.var_type_map.get_var(old)[1:])
 			mod_inst = lhs + ['='] + instruction
 			self.optimized_ir.append(' '.join(mod_inst))
 		self.IR = '\n'.join(self.optimized_ir)
