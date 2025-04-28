@@ -1,5 +1,15 @@
 # helper functions for symbol table entries
 from .exceptions import *
+
+def get_type_max(symbol,symtab):
+    entries = symbol.child.entries
+    maximum_alignment = 0
+    for entry in entries:
+        maximum_alignment = max(maximum_alignment, entry.size)
+    for entry in entries:
+        if entry.size == maximum_alignment:
+            return entry.type
+    return None
 def compute_struct(symbol, symtab):
     entries = symbol.child.entries
     maximum_alignment = 0

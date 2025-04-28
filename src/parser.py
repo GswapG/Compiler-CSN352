@@ -4,12 +4,14 @@ from .utils import *
 from .lexer import *
 from .tree import *
 from .symtab_new import *
+from .symtab_helpers import get_type_max
 from .ir import *
 from .ir_codegen import *
 from .exceptions import *
 from .address_map import *
 from .size_map import *
 from .param_map import *
+from .var_type_map import *
 datatypeslhs=[]
 returns = set()
 constants = defaultdict(lambda: None)
@@ -310,8 +312,9 @@ def p_postfix_expression(p):
         p[0].rvalue = False
         # IR GENERATION
         f_offset = symtab.search_struct(struct_object, field_identifier)[1]
-
-        IrGen.struct_access(p[0].ir,p[1].ir,f_offset,isArray=member_being_accessed_is_array)
+        struct_name = symtab.lookup(struct_object).type.split(' ')[-1]
+        mx = get_type_max(symtab.lookup(struct_name),symtab)
+        IrGen.struct_access(p[0].ir,p[1].ir,f_offset,isArray=member_being_accessed_is_array,max_sz=mx)
 
     elif len(p) == 4 and p[2] == '->':
         p[0] = Node("postfix_expression", [p[1], p[3]])
@@ -346,8 +349,12 @@ def p_postfix_expression(p):
         p[0].lvalue = True
         p[0].rvalue = False
         #IR GENERATION
+
         f_offset = symtab.search_struct(struct_object, field_identifier)[1]
-        IrGen.struct_access(p[0].ir,p[1].ir,f_offset,isArrow=True,isArray=member_being_accessed_is_array)
+        print(struct_object)
+        struct_name = symtab.lookup(struct_object).type.split(' ')[-1]
+        mx = get_type_max(symtab.lookup(struct_name),symtab)
+        IrGen.struct_access(p[0].ir,p[1].ir,f_offset,isArrow=True,isArray=member_being_accessed_is_array,max_sz=mx)
     elif len(p) == 4:
         p[0] = Node("postfix_expression", [p[1]])
         p[0].iscall = 1
@@ -1488,7 +1495,9 @@ def p_init_declarator(p):
                 if p[3].ir.initializer_list is None:
                     raise CompileException("Not Allowed Empty Struct Declarators")
                 offset_list = symtab.search_struct_attributes(struct_name)
-                IrGen.struct_init_list(p[0].ir,p[1].ir,offset_list,p[3].ir.initializer_list)
+                mx = get_type_max(symtab.lookup(struct_name),symtab)
+
+                IrGen.struct_init_list(p[0].ir,p[1].ir,offset_list,p[3].ir.initializer_list, max_sz=mx)
             else:
                 notarray = (p[3].return_type == array_type_decay(p[3].return_type))
                             
@@ -2591,6 +2600,7 @@ def parseFile(filename, ogfilename, treedir, symtabdir, irtreedir, graphgen=Fals
     address_map = AddressMap()
     size_map = SizeMap()
     param_map = ParameterMap()
+    var_type_map = VarTypeMap()
     for entry in symtab.table_entries:
         if entry.kind != 'function':
             continue
@@ -2606,6 +2616,8 @@ def parseFile(filename, ogfilename, treedir, symtabdir, irtreedir, graphgen=Fals
         na = entry.name + get_scope_number(entry.scope_name)
         address_map.add_var(na, entry.offset + entry.size)
         size_map.add_var(na, entry.size)
+        var_type_map.set_var(na,entry.type)
+    # print(IrGen.type_map)
     if graphgen:
         treepath = os.path.join(treedir, ogfilename[:-2])
         symtabpath = os.path.join(symtabdir, ogfilename[:-2])
@@ -2623,4 +2635,4 @@ def parseFile(filename, ogfilename, treedir, symtabdir, irtreedir, graphgen=Fals
         print(f"Symbol table tree saved as renderedSymbolTables/{ogfilename[:-2]}.png")
         
     print("\n")
-    return address_map , size_map, param_map
+    return address_map , size_map, param_map , IrGen.type_map ,var_type_map

@@ -4,6 +4,7 @@ import copy
 from .exceptions import *
 from .utils import get_size_from_type
 from .compatible import dominating_type
+from .type_map import TypeMap
 DEFAULT_OUTPUT_DIRECTORY = "generatedIR"
 
 class IRGenerator:
@@ -15,6 +16,7 @@ class IRGenerator:
         self.output_directory = DEFAULT_OUTPUT_DIRECTORY
         self.outfile = ""
         self.generate = irgen
+        self.type_map = TypeMap()
         if not os.path.exists(self.output_directory):
             os.mkdir(self.output_directory)
 
@@ -24,10 +26,11 @@ class IRGenerator:
             return lambda *args, **kwargs: None
         return attr
 
-    def new_temp(self):
+    def new_temp(self,dtype=None):
         """Generate a new unique temporary variable."""
         temp_var = f'@t{self.temp_counter}'
         self.temp_counter += 1
+        self.type_map.set_var(temp_var,dtype)
         return temp_var
 
     def new_label(self, func_name=None):
@@ -185,20 +188,20 @@ class IRGenerator:
         self.debug_print(ir0)
 
     def arithmetic_expression(self, ir0, ir1, op, ir2):
-        ir0.place = self.new_temp()
         dom_type = self.dom_type(ir1.data_type, ir2.data_type)
+        ir0.place = self.new_temp(dom_type)
         gen1 = ""
         gen0 = ""
         if ir1.data_type != dom_type:
             t = ir1.place
-            ir1.place = self.new_temp()
+            ir1.place = self.new_temp(ir1.data_type)
             gen0 = f"{ir1.place} = {t}"
             cvt = self.convert(ir1.data_type,dom_type)
             gen1 = f"{ir1.place} = {cvt}  {ir1.place}"
             gen1 = self.join(gen0,gen1)
         if ir2.data_type != dom_type:
             t = ir2.place
-            ir2.place = self.new_temp()
+            ir2.place = self.new_temp(ir2.data_type)
             gen0 = f"{ir2.place} = {t}"
             cvt = self.convert(ir2.data_type,dom_type)
             gen1 = f"{ir2.place} = {cvt} {ir2.place}"
@@ -209,27 +212,29 @@ class IRGenerator:
         self.debug_print(ir0)
 
     def pointer_arithmetic_expression(self, ir0, ir1, op, ir2, c1, c2, d_size=None):
-        t_place = self.new_temp() # done if ir2 is an int.
-        ir0.place = self.new_temp()
+        t_place = self.new_temp('int') # done if ir2 is an int.
+        
         val = 8
         if c1 != 0: # ir1 is n-dimensional pointer
+            ir0.place = self.new_temp(ir1.data_type)
             if c1 == 1:
                 val = d_size
             gen0 = ""
             if ir2.data_type != 'int': # pointer arithmetic type conversion to int
                 cvt = f"{ir2.data_type}Toint"
-                type_cast_place = self.new_temp()
+                type_cast_place = self.new_temp('int')
                 gen0 = f"{type_cast_place} = {cvt} {ir2.place}"
                 ir2.place = type_cast_place
             gen0 = self.join(gen0 , f"{t_place} = {ir2.place} (long_long) * {val}")
             gen1 = f"{ir0.place} = {ir1.place} (long_long) {op} {t_place}"
         else:
+            ir0.place = self.new_temp(ir2.data_type)
             if c2 == 1: # ir2 is n-dimensional pointer
                val = d_size
             gen0 = ""
             if ir1.data_type != 'int':
                 cvt = f"{ir1.data_type}Toint"
-                type_cast_place = self.new_temp()
+                type_cast_place = self.new_temp('int')
                 gen0 = f"{type_cast_place} = {cvt} {ir1.place}"
                 ir1.place = type_cast_place
             gen0 = self.join(gen0, f"{t_place} = {ir1.place} (long_long) * {val}")
@@ -237,14 +242,14 @@ class IRGenerator:
         ir0.code = self.join(ir1.code, ir2.code, gen0 , gen1)
 
     def bitwise_expression(self, ir0, ir1, op, ir2):
-        ir0.place = self.new_temp()
+        ir0.place = self.new_temp(ir0.data_type)
         gen = f"{ir0.place} = {ir1.place} ({ir1.data_type}) {op} {ir2.place}"
         ir0.code = self.join(ir1.code, ir2.code, gen)
         self.debug_print(ir0)
     
     def relational_expression(self, ir0, ir1, op, ir2):
         print(ir1.data_type, ir2.data_type)
-        ir0.place = self.new_temp()
+        ir0.place = self.new_temp(ir0.data_type)
         dom_type = "" if "*" in ir1.data_type and "*" in ir2.data_type else self.dom_type(ir1.data_type, ir2.data_type).replace(' ','_') 
         gen1 = ""
 
@@ -254,7 +259,7 @@ class IRGenerator:
             # gen1 = f"{ir1_temp} = {cvt} {ir1.place}"
 
             t = ir1.place
-            ir1.place = self.new_temp()
+            ir1.place = self.new_temp(ir1.data_type)
             gen0 = f"{ir1.place} = {t}"
             cvt = self.convert(ir1.data_type,dom_type)
             gen1 = f"{ir1.place} = {cvt} {ir1.place}"
@@ -264,7 +269,7 @@ class IRGenerator:
             # cvt = self.convert(ir2.data_type,dom_type)
             # gen1 = f"{ir2.place} = {cvt} {ir2.place}"
             t = ir2.place
-            ir2.place = self.new_temp()
+            ir2.place = self.new_temp(ir2.data_type)
             gen0 = f"{ir2.place} = {t}"
             cvt = self.convert(ir2.data_type,dom_type)
             gen1 = f"{ir2.place} = {cvt} {ir2.place}"
@@ -278,7 +283,7 @@ class IRGenerator:
     def inc_dec(self, ir0, ir1, op, post=False):
         gen1 = ""
         if post:
-            ir0.place = self.new_temp()
+            ir0.place = self.new_temp(ir0.data_type)
             gen1 = f"{ir0.place} = {ir1.place}"
         else:
             ir0.place = ir1.place
@@ -288,7 +293,7 @@ class IRGenerator:
         one = 1
         if dom_type != 'int':
             t = one
-            one = self.new_temp()
+            one = self.new_temp(dom_type)
             gen0 = f"{one} = {t}"
             cvt = self.convert('int',dom_type)
             gen3 = f"{one} = {cvt} {one}"
@@ -298,7 +303,7 @@ class IRGenerator:
         self.debug_print(ir0)
 
     def unary(self, ir0, ir1, op):
-        ir0.place = self.new_temp()
+        ir0.place = self.new_temp(ir0.data_type)
         gen = f"{ir0.place} = {op} {ir1.place}"
         ir0.code = self.join(ir1.code, gen)
         self.debug_print(ir0)
@@ -346,7 +351,7 @@ class IRGenerator:
                     if argument_list[i] == func_params[j].type or func_params[j].type == '...':
                         new_param_list.append(ir2.parameters[i])
                     else:
-                        _temp = self.new_temp()
+                        _temp = self.new_temp(func_params[j].type)
                         cvt = self.convert(argument_list[i],func_params[j].type)
                         gen0 = self.join(gen0, f"{_temp} = {cvt} {ir2.parameters[i]}")
                         new_param_list.append(_temp)
@@ -359,14 +364,14 @@ class IRGenerator:
                 gen2 = f"call {ir1.place}, {str(len(ir2.parameters))}"
                 ir0.code = self.join(ir2.code, gen1, gen2,gen3)
             else:
-                ir0.place = self.new_temp()
+                ir0.place = self.new_temp(ir0.data_type)
                 gen0 = ""
                 j = 0
                 for i in range(0,len(ir2.parameters)):
                     if argument_list[i] == func_params[j].type or func_params[j].type == '...':
                         new_param_list.append(ir2.parameters[i])
                     else:
-                        _temp = self.new_temp()
+                        _temp = self.new_temp(func_params[j].type)
                         cvt = self.convert(argument_list[i],func_params[j].type)
                         gen0 = self.join(gen0, f"{_temp} = {cvt} {ir2.parameters[i]}")
                         new_param_list.append(_temp)
@@ -382,7 +387,7 @@ class IRGenerator:
             if ret == 'void':
                 ir0.code = "call " + ir1.place
             else:
-                ir0.place = self.new_temp()
+                ir0.place = self.new_temp(ir0.data_type)
                 gen2 = ir0.place + " = call " + ir1.place + ', ' + str(0)
                 ir0.code = self.join(gen2)
 
@@ -401,16 +406,16 @@ class IRGenerator:
             self.resolve_exp(ir1)
         gen1 = f"{ir0.begin}:"
 
-        new_temp = self.new_temp()
+        new_temp = self.new_temp('int')
+        gen22 = ""
         if ir1.data_type != "int":
-            gen11 = f"{new_temp} = {self.convert(ir1.data_type, 'int')} {ir1.place}"
+            gen22 = f"{new_temp} = {self.convert(ir1.data_type, 'int')} {ir1.place}"
             ir1.place = new_temp
-            gen1 = self.join(gen1, gen11)
 
         gen2 = f"if {ir1.place} == 0 goto {ir0.after}"
         gen3 = f"goto {ir0.begin}"
         gen4 = f"{ir0.after}:"
-        ir0.code = self.join(gen1, ir1.code, gen2, ir2.code, gen3, gen4)
+        ir0.code = self.join(gen1, ir1.code,gen22, gen2, ir2.code, gen3, gen4)
         for c in ir0.truelist: #handle continue
             self.backpatch(ir0,c,ir0.begin)
         for c in ir0.falselist: #handle break
@@ -425,16 +430,16 @@ class IRGenerator:
             self.resolve_exp(ir1)
         gen1 = f"{ir0.begin}:"
 
-        new_temp = self.new_temp()
+        new_temp = self.new_temp('int')
+        gen22=""
         if ir1.data_type != "int":
-            gen11 = f"{new_temp} = {self.convert(ir1.data_type, 'int')} {ir1.place}"
+            gen22 = f"{new_temp} = {self.convert(ir1.data_type, 'int')} {ir1.place}"
             ir1.place = new_temp
-            gen1 = self.join(gen1, gen11)
 
         gen2 = f"if {ir1.place} == 0 goto {ir0.after}"
         gen3 = f"goto {ir0.begin}"
         gen4 = f"{ir0.after}:"
-        ir0.code = self.join(gen1,ir2.code,ir1.code,gen2,gen3,gen4)
+        ir0.code = self.join(gen1,ir2.code,ir1.code,gen22,gen2,gen3,gen4)
         for c in ir0.truelist: #handle continue
             self.backpatch(ir0,c,ir0.begin)
         for c in ir0.falselist: #handle break
@@ -449,16 +454,16 @@ class IRGenerator:
             self.resolve_exp(ir1)
         gen1 = f"{ir0.begin}:"
 
-        new_temp = self.new_temp()
+        new_temp = self.new_temp('int')
+        gen11=""
         if ir1.data_type != "int":
             gen11 = f"{new_temp} = {self.convert(ir1.data_type, 'int')} {ir1.place}"
             ir1.place = new_temp
-            gen1 = self.join(gen1, gen11)
 
         gen2 = f"if {ir1.place} != 0 goto {ir0.after}"
         gen3 = f"goto {ir0.begin}"
         gen4 = f"{ir0.after}:"
-        ir0.code = self.join(gen1,ir2.code,ir1.code,gen2,gen3,gen4)
+        ir0.code = self.join(gen1,ir2.code,ir1.code,gen11,gen2,gen3,gen4)
         for c in ir0.truelist: #handle continue
             self.backpatch(ir0,c,ir0.begin)
         for c in ir0.falselist: #handle break
@@ -474,20 +479,20 @@ class IRGenerator:
         if ir2.bpneed>0:
             self.resolve_exp(ir2)
 
-        new_temp = self.new_temp()
-        if ir2.data_type != "int":
+        new_temp = self.new_temp('int')
+        gen11=""
+        if ir2.data_type != "int" and ir2.data_type is not None:
             gen11 = f"{new_temp} = {self.convert(ir2.data_type, 'int')} {ir1.place}"
             ir2.place = new_temp
-            gen1 = self.join(gen1, gen11)
         
         gen2 = f"if {ir2.place} == 0 goto {ir0.after}"
         gen5 = f"{ir0.cont}:"    
         gen3 = f"goto {ir0.begin}"
         gen4 = f"{ir0.after}:"
         if ir3 is not None:
-            ir0.code = self.join(ir1.code,gen1,ir2.code,gen2,ir4.code,gen5,ir3.code,gen3,gen4)
+            ir0.code = self.join(ir1.code,gen1,ir2.code,gen11,gen2,ir4.code,gen5,ir3.code,gen3,gen4)
         else:
-            ir0.code = self.join(ir1.code,gen1,ir2.code,gen2,ir4.code,gen5,gen3,gen4)
+            ir0.code = self.join(ir1.code,gen1,ir2.code,gen11,gen2,ir4.code,gen5,gen3,gen4)
 
         for c in ir0.truelist: #handle continue
             self.backpatch(ir0,c,ir0.cont)
@@ -504,17 +509,17 @@ class IRGenerator:
             gen4 = f"{ir0.after}:"
         ir0.else_ = self.new_label()
 
-        new_temp = self.new_temp()
+        new_temp = self.new_temp('int')
+        gen11=""
         if ir1.data_type != "int":
             gen11 = f"{new_temp} = {self.convert(ir1.data_type, 'int')} {ir1.place}"
             ir1.place = new_temp
-            gen1 = self.join(gen1, gen11)
 
         gen1 = f"if {ir1.place} == 0 goto {ir0.else_}"
         gen2 = f"goto {ir0.after}"
         gen3 = f"{ir0.else_}:"
         self.manage_lists(ir0,ir2,ir3)
-        ir0.code = self.join(ir1.code,gen1,ir2.code,gen2,gen3,ir3.code,gen4)
+        ir0.code = self.join(ir1.code,gen11,gen1,ir2.code,gen2,gen3,ir3.code,gen4)
     
     def if_no_else(self, ir0, ir1, ir2):
         ir0.after = self.new_label()
@@ -522,17 +527,17 @@ class IRGenerator:
         if ir1.bpneed>0:
             self.resolve_exp(ir1)
 
-        new_temp = self.new_temp()
+        new_temp = self.new_temp('int')
+        gen11=""
         if ir1.data_type != "int":
             gen11 = f"{new_temp} = {self.convert(ir1.data_type, 'int')} {ir1.place}"
             ir1.place = new_temp
-            gen1 = self.join(gen1, gen11)
 
         gen1 = f"if {ir1.place} == 0 goto {ir0.after}"
         gen2 = "" #f"goto {ir0.after}"
         gen4 = f"{ir0.after}:"
         self.manage_lists(ir0,ir2)
-        ir0.code = self.join(ir1.code,gen1,ir2.code,gen2,gen4)
+        ir0.code = self.join(ir1.code,gen11,gen1,ir2.code,gen2,gen4)
 
     def ternary(self,ir0,ir1,ir2,ir3): #1 is condition , 2 is true , 3 is false
         if ir1.bpneed>0:
@@ -543,13 +548,13 @@ class IRGenerator:
             self.resolve_exp(ir3)
         false = self.new_label()
         after = self.new_label()
-        ir0.place = self.new_temp() 
+        ir0.place = self.new_temp(ir0.data_type) 
 
-        new_temp = self.new_temp()
+        new_temp = self.new_temp('int')
+        gen11=""
         if ir1.data_type != "int":
             gen11 = f"{new_temp} = {self.convert(ir1.data_type, 'int')} {ir1.place}"
             ir1.place = new_temp
-            gen1 = self.join(gen1, gen11)
 
         gen1 = f"if {ir1.place} == 0 goto {false}"
         gen2 = f"{ir0.place} = {ir2.place}" #true
@@ -557,20 +562,20 @@ class IRGenerator:
         gen4 = f"{false}:"
         gen5 = f"{ir0.place} = {ir3.place}" #false
         gen6 = f"{after}:"
-        ir0.code = self.join(ir1.code,gen1,ir2.code,gen2,gen3,gen4,ir3.code,gen5,gen6)
+        ir0.code = self.join(ir1.code,gen11,gen1,ir2.code,gen2,gen3,gen4,ir3.code,gen5,gen6)
 
     def resolve_exp(self,ir1): #falselist truelist assign them to its place , new label
         true = self.new_label()
         false = self.new_label()
         start = self.new_label()
-        var = self.new_temp()
+        var = self.new_temp('int')
         gen0 = ""
 
-        new_temp = self.new_temp()
+        new_temp = self.new_temp('int')
+        gen11=""
         if ir1.data_type != "int":
             gen11 = f"{new_temp} = {self.convert(ir1.data_type, 'int')} {ir1.place}"
             ir1.place = new_temp
-            gen1 = self.join(gen1, gen11)
 
         gen1 = f"if {ir1.place} == 0 goto {false}"
         gen2 = f"{true}:"
@@ -585,17 +590,17 @@ class IRGenerator:
             self.backpatch(ir1,c,true)
         for c in ir1.falselist:
             self.backpatch(ir1,c,false)
-        ir1.code = self.join(ir1.code,gen0,gen1,gen2,gen3,gen4,gen5,gen6,gen7,gen8)
+        ir1.code = self.join(ir1.code,gen0,gen11,gen1,gen2,gen3,gen4,gen5,gen6,gen7,gen8)
     
     def logical_and(self,ir0,ir1,op,ir2):
         falsego = self.bp_label() #go outside if, forloop
         mid = self.new_label() #where && ka lhs should jump if true
         
-        new_temp = self.new_temp()
+        new_temp = self.new_temp('int')
+        gen11=""
         if ir1.data_type != "int":
             gen11 = f"{new_temp} = {self.convert(ir1.data_type, 'int')} {ir1.place}"
             ir1.place = new_temp
-            gen1 = self.join(gen1, gen11)
         
         gen = f"if {ir1.place} == 0 goto {falsego}" #lhs false go out
         ir0.falselist += [falsego] #lhs false then go out , will be backpatced in IF
@@ -609,7 +614,7 @@ class IRGenerator:
         ir0.bpneed += ir1.bpneed + ir2.bpneed + 1
         gen2 = f"{mid}:"
         ir0.place = ir2.place #ir1 is true so pass ir2 for further eval
-        ir0.code = self.join(ir1.code,gen,gen2,ir2.code)
+        ir0.code = self.join(ir1.code,gen11,gen,gen2,ir2.code)
         self.debug_print(ir0)
 
     def logical_or(self,ir0,ir1,op,ir2): # when true then we jump to the inside scope , using truelist
@@ -617,11 +622,11 @@ class IRGenerator:
         ir0.bpneed += ir1.bpneed + ir2.bpneed + 1
         mid = self.new_label()
 
-        new_temp = self.new_temp()
+        new_temp = self.new_temp('int')
+        gen11=""
         if ir1.data_type != "int":
             gen11 = f"{new_temp} = {self.convert(ir1.data_type, 'int')} {ir1.place}"
             ir1.place = new_temp
-            gen1 = self.join(gen1, gen11)
 
         gen = f"if {ir1.place} != 0 goto {truego}" #first statement true so go inside scope
         gen2 = f"{mid}:"
@@ -631,15 +636,15 @@ class IRGenerator:
         ir0.truelist += ir1.truelist + ir2.truelist
         ir0.falselist += ir2.falselist
         ir0.place = ir2.place #ir1 is false so pass ir2 and if that false then jump
-        ir0.code = self.join(ir1.code,gen,gen2,ir2.code)
+        ir0.code = self.join(ir1.code,gen11,gen,gen2,ir2.code)
         return 
 
     def backpatch(self,ir1,find,target):
         ir1.code = ir1.code.replace(find, target)
 
     def unary_not(self, ir0, ir1, op):
-        ir0.place = self.new_temp()
-        new_temp = self.new_temp()
+        ir0.place = self.new_temp('int') # check here ?
+        new_temp = self.new_temp('int')
 
         gen1 = ""
         if ir1.data_type != "int":
@@ -655,7 +660,7 @@ class IRGenerator:
     def unary_ptr(self, ir0, ir1, op):
         gen1=""
         if ir1.place[0] == '*':
-            temp1 = self.new_temp()
+            temp1 = self.new_temp(ir1.data_type)
             gen1 = f"{temp1} = {ir1.place}"
             ir0.place=f"*{temp1}"
         else:
@@ -665,7 +670,8 @@ class IRGenerator:
     def call_array_position(self, ir0, ir1, ir2, dimensions):
         gen2=""
         # print(ir0.place,ir1.place,ir2.place)
-        ir0.place = self.new_temp()
+        ir0.place = self.new_temp('long_long')
+        print(ir0.data_type,'jhbdfsgfffffffffffdsh')
         if ir1.place[0] != "@":
             gen1 = f"{ir0.place} = {ir2.place}"
         else:
@@ -677,7 +683,7 @@ class IRGenerator:
         self.debug_print(ir0)
 
     def unary_array(self, ir0, ir1, var,size):
-        new_temp = self.new_temp()
+        new_temp = self.new_temp('*'+ir0.data_type)
         ir0.place = f"*{new_temp}"
         gen = f"{ir1.place} = {ir1.place} * {size}"
         gen1 = f"{new_temp} = {var} (long_long) + {ir1.place}"
@@ -708,10 +714,10 @@ class IRGenerator:
         ptr = 0
         if ptr < len(ir2.initializer_list):
             for _ in range(int(max_size)):
-                label = self.new_temp()
-                gen = f"{label} = {ptr} * {type_size}\n"
+                label = self.new_temp('long_long')
+                gen = f"{label} = {ptr} (long_long) * {type_size}\n"
                 
-                new_temp = self.new_temp()
+                new_temp = self.new_temp('*'+ir1.data_type)
                 gen += f"{new_temp} = {array} (long_long) + {label}\n"
                 
                 gen += f"*{new_temp}"
@@ -771,14 +777,16 @@ class IRGenerator:
                 dominating_type = self.dom_type(place_data_type, ir1.data_type)
                 
                 gen0 = ""
-                new_temp = self.new_temp()
                 if dominating_type != ir1.data_type:
+                    new_temp = self.new_temp(dominating_type)
                     gen0 = f"{new_temp} = ({self.convert(ir1.data_type, dominating_type)}) {ir1.place}"
                 elif dominating_type != place_data_type:
+                    new_temp = self.new_temp(place_data_type)
                     gen0 = f"{new_temp} = {place}"
-                    gen3 = f"{new_temp} = ({self.convert(place_data_type, dominating_type)}) {new_temp}"
+                    new_temp2 = self.new_temp(dominating_type)
+                    gen3 = f"{new_temp2} = ({self.convert(place_data_type, dominating_type)}) {new_temp}"
                     gen0 = self.join(gen0, gen3)
-                    place = new_temp
+                    place = new_temp2
 
                 gen2 = f"if {place} == {ir1.place} goto {true}"
                 gen1 = self.join(gen0,gen1,up,gen2)
@@ -792,8 +800,8 @@ class IRGenerator:
             self.backpatch(ir2,c,temp)
         ir0.code = self.join(ir1.code,gen1,ir2.code,gen3)
 
-    def struct_access(self,ir0,ir1,offset,isArrow=False,isArray=False):
-        ir0.place = self.new_temp()
+    def struct_access(self,ir0,ir1,offset,isArrow=False,isArray=False,max_sz=None):
+        ir0.place = self.new_temp('*'+max_sz)
         if isArrow:
             gen1 = f"{ir0.place} = {ir1.place}"
         else:
@@ -804,8 +812,8 @@ class IRGenerator:
             ir0.place = '*'+ir0.place
         ir0.code = self.join(gen1,gen2)
 
-    def struct_init_list(self,ir0,ir1,offset_list,init_list):
-        ir0.place = self.new_temp()
+    def struct_init_list(self,ir0,ir1,offset_list,init_list,max_sz = None):
+        ir0.place = self.new_temp('*'+ max_sz)
         gen1 = f"{ir0.place} = & {ir1.place}"
         for i in range(0,len(init_list)):
             #size of this is always <= size of offset since we have done semantic checks
@@ -815,7 +823,7 @@ class IRGenerator:
         ir0.code = gen1
 
     def cast_expression(self, ir0, cast_type ,ir1):
-        ir0.place = self.new_temp()
+        ir0.place = self.new_temp(cast_type)
         gen = ""
         if cast_type != ir1.data_type:
             cvt = self.convert(ir1.data_type,cast_type)
