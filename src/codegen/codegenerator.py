@@ -75,7 +75,7 @@ class Instruction:
         return result
 
     def parse_inst(self):
-        inst = self.text.split(' ')
+        inst = self.split_instruction(self.text)
         self.inst = inst
         self.map = ('==','!=','<=','>=','<','>')
         if inst[0][-1] == ':':
@@ -115,7 +115,7 @@ class Instruction:
             # some operator or call
             if 'call' in inst:
                 self.is_assignment = False
-                self.is_call = False
+                self.is_function_call = False
                 self.is_assigned_call = True
             else:
                 # some operator
@@ -149,15 +149,17 @@ class CodeGenerator:
     """
     All handler functions take in inst as input (even if they do not use it)
     """
-    def __init__(self, cfg: CFG, output_stream, address_map: AddressMap,size_map: SizeMap):
+    def __init__(self, cfg: CFG, output_stream, address_map: AddressMap,size_map: SizeMap, param_map: ParameterMap):
         self.cfg = cfg
         self.out = output_stream
         self.address_map = address_map
         self.size_map = size_map
+        self.param_map = param_map
         self.reg_allocator = RegisterAllocator(init_gpr(),self)
         self.curr_alignment = 0
         self.size_specifiers = ['qword','dword','word','byte','byte']
         self.last_rel_op = None
+        self.is_first_param = True
     
     def join(self,*args):
         """
@@ -255,6 +257,8 @@ class CodeGenerator:
             self.handle_return(inst)
         elif inst.is_function_call:
             self.handle_call(inst)
+        elif inst.is_assigned_call:
+            self.handle_assigned_call(inst)
         elif inst.is_relop:
             # self.handle_relop_SET(inst)
             self.handle_relop(inst)
@@ -324,14 +328,22 @@ class CodeGenerator:
             self.emit(code)
 
     def handle_param(self, inst):
-        pass
+        if self.is_first_param:
+            self.is_first_param = False
+            code = f'and rsp, -16'
+            self.emit(code)
+        
     def handle_return(self, inst):
         pass
+
     def handle_call(self, inst):
         code = f'call {inst.inst[1][:-1]}'
         self.emit(code)
 
-
+    def handle_assigned_call(self, inst):
+        code = f'call {inst.inst[3][:-1]}'
+        self.emit(code)
+        # TODO: check if return value is in rax or xmm0 or something else
     
     def handle_relop(self, inst):
         # t1 = t2 (type) relop t3
@@ -563,7 +575,7 @@ class CodeGenerator:
             '!=': 'je'
         }.get(relop, 'jmp')
     
-def driver(filename, graphgen, address_map,size_map):
+def driver(filename, graphgen, address_map,size_map,param_map):
     if filename[-2:] in ('.c','.C'):
         filename = filename[:-2]
     filename += '.tac'
@@ -587,6 +599,6 @@ def driver(filename, graphgen, address_map,size_map):
     for i, cfg in enumerate(cff.cfgs):
         print("In cfg : ", i)
         with open(output_path, 'a') as generated_asm:
-            generator = CodeGenerator(cfg,generated_asm,address_map,size_map)
+            generator = CodeGenerator(cfg,generated_asm,address_map,size_map,param_map)
             generator.generate_code()
         print("===================================")
