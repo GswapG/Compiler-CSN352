@@ -4,5 +4,5 @@ int func(int a, int b){
 }
 int main(){
 	int x,y = 2;
-	func(2,3);
+	func(2,y);
 }

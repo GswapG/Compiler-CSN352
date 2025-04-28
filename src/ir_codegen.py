@@ -368,7 +368,7 @@ class IRGenerator:
                     if j < len(func_params)-1:
                         j += 1                        
                 gen1 = ""
-                for param in reversed(new_param_list):
+                for param in new_param_list:
                     gen1 = self.join(gen1, f"param {param}")
                 gen1 = self.join(gen0, gen1)
                 gen2 = f"call {ir1.place}, {str(len(ir2.parameters))}"
@@ -388,7 +388,7 @@ class IRGenerator:
                     if j < len(func_params)-1:
                         j += 1                        
                 gen1 = ""
-                for param  in reversed(new_param_list):
+                for param  in new_param_list:
                     gen1 = self.join(gen1, f"param {param}")
                 gen1 = self.join(gen0, gen1)
                 gen2 = f"{ir0.place} = call {ir1.place}, {str(len(ir2.parameters))}"
