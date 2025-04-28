@@ -123,7 +123,7 @@ class SymbolTable:
 
     def function_enter_scope(self):
         self.current_scope_level += 1
-        self.scope_id_counter +=1
+        # self.scope_id_counter +=1
         self.current_scope_name = f"block@{self.scope_id_counter}"
 
         if not self.function_definition:

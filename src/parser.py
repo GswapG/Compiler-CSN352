@@ -103,8 +103,7 @@ def p_primary_expression_identifier(p):
     check = symtab.lookup(cpy)
     ir_entry = p[1]
     if check is not None:
-        if check.scope_name is not None:
-            ir_entry += get_scope_number(symtab.current_scope_name)
+        ir_entry += get_scope_number(check.node.scope_name)
         if "function" == check.kind:
             p[0].name = "function"
         elif "D-array" in check.kind:
@@ -532,7 +531,8 @@ def p_unary_expression(p):
                 type_size = symtab.get_size(base_type)
                 arr_name = p[0].vars[0].split('[')[0]
                 if symtab.lookup(arr_name) is not None:
-                    arr_name += get_scope_number(symtab.current_scope_name)
+                    entry = symtab.lookup(arr_name)
+                    arr_name += get_scope_number(entry.node.scope_name)
                 IrGen.unary_array(p[0].ir,p[1].ir,arr_name,type_size)
         elif p[1].name == "pointer":
             var = p[1].vars[0]
@@ -551,7 +551,8 @@ def p_unary_expression(p):
             type_size = symtab.get_size(base_type)
             arr_name = p[0].vars[0].split('[')[0]
             if symtab.lookup(arr_name) is not None:
-                arr_name += get_scope_number(symtab.current_scope_name)
+                entry = symtab.lookup(arr_name)
+                arr_name += get_scope_number(entry.node.scope_name)
             IrGen.unary_array(p[0].ir,p[1].ir,arr_name,type_size)
             # else:
 
@@ -1887,7 +1888,12 @@ def p_direct_declarator(p):
         p[0] = Node("direct_declarator", [p[1]])
         p[0].vars.append(p[1])
         # IR
-        IrGen.identifier(p[0].ir, p[1]+get_scope_number(symtab.current_scope_name))
+        print(p[1])
+        entry = symtab.lookup(p[1])
+        if entry is not None:
+            IrGen.identifier(p[0].ir, p[1] + get_scope_number(entry.node.scope_name))
+        else:
+            IrGen.identifier(p[0].ir, p[1] + get_scope_number(symtab.current_scope_name))
     elif len(p) == 3:
         #REF
         p[0] = Node("direct_declarator",[p[1],p[2]])
