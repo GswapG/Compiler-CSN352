@@ -102,11 +102,12 @@ def process_file(filename,source_dir=testcase_dir):
         print(f"Preprocessed: {filename} -> {temp_file.name}")
 
     # Pass the temporary file to the parser.
-    address_map = parseFile(temp_file.name,filename,TREE_PATH,SYMBOL_TABLE_PATH,IR_TREE_PATH,graphgen,irgen)
+    address_map , size_map = parseFile(temp_file.name,filename,TREE_PATH,SYMBOL_TABLE_PATH,IR_TREE_PATH,graphgen,irgen)
     print(address_map)
     add_file(input_path)
+    ir_opt = IROptimizer(filename)
     if not no_asm:
-        CodeGen.driver(filename,graphgen, address_map)
+        CodeGen.driver(filename,graphgen,address_map,size_map)
     return temp_file.name
 
 def process_directory(source_dir=testcase_dir):

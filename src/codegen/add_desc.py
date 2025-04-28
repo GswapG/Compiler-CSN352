@@ -30,14 +30,16 @@ class AddressDescriptor:
                 self.address[var][0].append(reg)
         else:
             self.create_entry(var)
-            
+            if reg not in self.address.get(var)[0]: ## REDUNDANT CHECK??
+                self.address[var][0].append(reg)
+
     def discard_reg_for_var(self, var: str, reg: Register):
         """
         Removes single specified reg from list of assigned registers
         """
         if var not in self.address.keys():
             raise CompileException(f"No matching Address Descriptor entry found for {var}")
-        self.address[var].remove(reg)
+        self.address[var][0].remove(reg)
 
     def set_entry_to_reg(self, var: str, reg: Register):
         """
@@ -48,7 +50,15 @@ class AddressDescriptor:
             self.address[var] = [[reg],None]
         else:
             self.create_entry(var)
+            self.address[var] = [[reg],None]
 
+    def set_mem(self, var: str):
+        if var in self.address.keys():
+            self.address[var][1] = 1
+        else:
+            self.create_entry(var)
+            self.address[var][1] = 1
+        
     def get_mem_location(self, var: str):
         """
         Returns memory location (if stored)
@@ -62,6 +72,11 @@ class AddressDescriptor:
                 return None
         else:
             self.create_entry(var)
+            temp = self.address.get(var)
+            if temp[1]:
+                return temp[1][0]
+            else: 
+                return None
 
     def in_mem(self, var:str):
         """
@@ -76,6 +91,11 @@ class AddressDescriptor:
                 return False
         else:
             self.create_entry(var)
+            temp = self.address.get(var)
+            if temp[1]:
+                return True
+            else: 
+                return False
 
     def get_reg_allocated(self, var:str) -> list[Register] | None:
         """
@@ -85,19 +105,26 @@ class AddressDescriptor:
         temp = self.address.get(var)
         if temp:
             if temp[0]:
-                return temp[0]
+                return temp[0].copy()
             else:
                 return None
         else:
             self.create_entry(var)
+            temp = self.address.get(var)
+            if temp[0]:
+                return temp[0].copy()
+            else:
+                return None
 
     def __str__(self):
         """
         Returns a string representation of the AddressDescriptor's state.
         """
-        result = "Address Descriptor State:\n"
+        result = "=====Address Descriptor State:\n"
         for var, (registers, mem) in self.address.items():
             reg_list = ', '.join(str(reg) for reg in registers) if registers else "None"
             mem_location = mem if mem is not None else "None"
             result += f"Variable: {var}, Registers: [{reg_list}], Memory: {mem_location}\n"
+        if len(self.address) == 0:
+            result += "No entries in Address Descriptor."
         return result
