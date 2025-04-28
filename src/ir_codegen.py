@@ -221,8 +221,8 @@ class IRGenerator:
                 type_cast_place = self.new_temp()
                 gen0 = f"{type_cast_place} = {cvt} {ir2.place}"
                 ir2.place = type_cast_place
-            gen0 = self.join(gen0 , f"{t_place} = {ir2.place} * {val}")
-            gen1 = f"{ir0.place} = {ir1.place} {op} {t_place}"
+            gen0 = self.join(gen0 , f"{t_place} = {ir2.place} (long_long) * {val}")
+            gen1 = f"{ir0.place} = {ir1.place} (long_long) {op} {t_place}"
         else:
             if c2 == 1: # ir2 is n-dimensional pointer
                val = d_size
@@ -232,8 +232,8 @@ class IRGenerator:
                 type_cast_place = self.new_temp()
                 gen0 = f"{type_cast_place} = {cvt} {ir1.place}"
                 ir1.place = type_cast_place
-            gen0 = self.join(gen0, f"{t_place} = {ir1.place} * {val}")
-            gen1 = f"{ir0.place} = {ir2.place} {op} {t_place}"
+            gen0 = self.join(gen0, f"{t_place} = {ir1.place} (long_long) * {val}")
+            gen1 = f"{ir0.place} = {ir2.place} (long_long) {op} {t_place}"
         ir0.code = self.join(ir1.code, ir2.code, gen0 , gen1)
 
     def bitwise_expression(self, ir0, ir1, op, ir2):
@@ -247,7 +247,8 @@ class IRGenerator:
         ir0.place = self.new_temp()
         dom_type = "" if "*" in ir1.data_type and "*" in ir2.data_type else self.dom_type(ir1.data_type, ir2.data_type).replace(' ','_') 
         gen1 = ""
-        if ir1.data_type.replace(' ','_') != dom_type:
+
+        if ir1.data_type!= dom_type:
             # cvt = self.convert(ir1.data_type,dom_type)
             # ir1_temp = self.new_temp()
             # gen1 = f"{ir1_temp} = {cvt} {ir1.place}"
@@ -258,7 +259,8 @@ class IRGenerator:
             cvt = self.convert(ir1.data_type,dom_type)
             gen1 = f"{ir1.place} = {cvt} {ir1.place}"
             gen1 = self.join(gen0,gen1)
-        if ir2.data_type.replace(' ','_') != dom_type:
+        
+        elif ir2.data_type != dom_type:
             # cvt = self.convert(ir2.data_type,dom_type)
             # gen1 = f"{ir2.place} = {cvt} {ir2.place}"
             t = ir2.place
@@ -267,6 +269,7 @@ class IRGenerator:
             cvt = self.convert(ir2.data_type,dom_type)
             gen1 = f"{ir2.place} = {cvt} {ir2.place}"
             gen1 = self.join(gen0,gen1)
+            
         op = f"({ir0.data_type}) {op}"
         gen2 = f"{ir0.place} = {ir1.place} {op} {ir2.place}"
         ir0.code = self.join(ir1.code, ir2.code, gen1,gen2)
@@ -674,9 +677,11 @@ class IRGenerator:
         self.debug_print(ir0)
 
     def unary_array(self, ir0, ir1, var,size):
-        ir0.place = f"{var}[{ir1.place}]"
+        new_temp = self.new_temp()
+        ir0.place = f"*{new_temp}"
         gen = f"{ir1.place} = {ir1.place} * {size}"
-        ir0.code = self.join(ir1.code,gen)
+        gen1 = f"{new_temp} = {var} (long_long) + {ir1.place}"
+        ir0.code = self.join(ir1.code,gen, gen1)
         self.debug_print(ir0)
 
     def initializer(self, ir0, ir1):
@@ -705,7 +710,11 @@ class IRGenerator:
             for _ in range(int(max_size)):
                 label = self.new_temp()
                 gen = f"{label} = {ptr} * {type_size}\n"
-                gen += f"{array}[{label}]"
+                
+                new_temp = self.new_temp()
+                gen += f"{new_temp} = {array} (long_long) + {label}\n"
+                
+                gen += f"*{new_temp}"
                 gen += f" = {ir2.initializer_list[ptr]}"
 
                 initializations.append(gen)
