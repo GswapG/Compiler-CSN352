@@ -211,7 +211,7 @@ class RegisterAllocator:
         Called before function call.
         Any caller saved register in use will be stored onto the stack.
         """
-        pass
+        
     
     def pop_caller_saved(self):
         """

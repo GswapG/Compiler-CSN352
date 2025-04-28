@@ -13,7 +13,7 @@ class RegisterDescriptor:
 		Gets the values stored in a register.
 		"""
 		return self.registers[register].copy()
-  
+	
 	def set_register_values(self, register, val):
 		"""
 		Sets the value of a register to a new value. removes all others
