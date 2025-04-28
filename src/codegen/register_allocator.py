@@ -33,6 +33,11 @@ class RegisterAllocator:
         """
         ret = []
 
+        if inst.is_addr:
+            t1 = inst.inst[0]
+            r1 = self.get_lhs_register_for_assignment(t1)
+            return r1 + (None,)
+
         if inst.is_relop:  # Add this case first
         # t1 = t2 (type) relop t3
             t1 = inst.inst[0]
@@ -201,14 +206,14 @@ class RegisterAllocator:
         """
         pass
 
-    def push_regs_to_stack(self):
+    def push_caller_saved(self):
         """
         Called before function call.
         Any caller saved register in use will be stored onto the stack.
         """
         pass
     
-    def pop_regs_from_stack(self):
+    def pop_caller_saved(self):
         """
         Called after function call to restore state of caller saved registers.
         """

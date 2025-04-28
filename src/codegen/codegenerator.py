@@ -15,6 +15,7 @@ class Instruction:
         self.is_goto = False
         self.is_if = False
         self.is_param = False
+        self.is_addr = False
         self.is_function_call = False
         self.is_return = False
         self.is_pop = False
@@ -25,8 +26,10 @@ class Instruction:
         self.is_cast = False
         self.is_operation = False
         self.is_relop = False
+        self.is_array_deref = False
         self.label = None
         self.used_vars = []
+        self.is_deref = False
         self.parse_inst()
         self.update_use()
 
@@ -101,7 +104,6 @@ class Instruction:
             self.is_if = True
         elif 'goto' in inst:
             self.is_goto = True
-
         if '=' not in inst:
             return 
         # = hai
@@ -128,6 +130,23 @@ class Instruction:
                 self.is_assignment = False # maybe not needed because of order of calls but just to be sure
                 self.is_operation = False
                 break
+            if '&' in elem:
+                self.is_addr = True
+                self.is_assignment = False
+                self.is_operation = False
+                self.is_relop = False
+                break
+            if elem.startswith('*') and elem is not '*':
+                self.is_deref = True
+                self.is_assignment = False
+                self.is_operation = False
+                """
+                
+                t0 =
+                t0 = *t1 + 1
+
+                """
+
                 
     def update_use(self):
         if '=' in self.inst:
@@ -259,6 +278,8 @@ class CodeGenerator:
             self.handle_call(inst)
         elif inst.is_assigned_call:
             self.handle_assigned_call(inst)
+        elif inst.is_addr:
+            self.handle_addr(inst)
         elif inst.is_relop:
             # self.handle_relop_SET(inst)
             self.handle_relop(inst)
@@ -282,11 +303,35 @@ class CodeGenerator:
         pass
 
 
+    def handle_addr(self, inst):
+        '''lea into the reg/mem corresponding to t1'''
+        '''arrays unsure?'''
+        # t1 = & t2
+        t1 = inst.inst[0]
+        t2 = inst.inst[3]
+        # check if t1 is in reg
+        size = self.get_size_idx(size=8)
+
+        reg_list = self.reg_allocator.add_desc.get_reg_allocated(t1)
+        if reg_list:
+            reg = reg_list[0]
+        else:
+            # Assign a new register for t1
+            reg,_ = self.reg_allocator.get_register(inst)
+            self.reg_allocator.add_desc.set_entry_to_reg(t1, reg)
+            self.reg_allocator.reg_desc.add_var_to_register(reg, t1)
+            # Emit the LEA instruction to load the address of t2 into the register
+        address = self.address_map.get_address(t2)
+        self.emit(f"lea {reg[size]}, [rbp{address}]")
+
     def handle_array(self,inst):
         '''Parsing of this is left!!'''
         #3AC of arr can be of 2 forms:
+        # t1[t2] = t3[t4]
         # t1[t2] = t3
-        # t1 = t2[t3]
+        '''
+        *(p+1) = *(p+2)
+        '''
         pass
 
     def handle_if_SET(self, inst):
@@ -527,10 +572,12 @@ class CodeGenerator:
         codel1 = f'{function_name}:'
         codel2 = f'push rbp'
         codel3 = f'mov rbp, rsp'
+        codel4 = f'sub rsp, $$$$'
         self.emit(comment)
         self.emit(codel1)
         self.emit(codel2)
         self.emit(codel3)
+        self.emit(codel4)
     
     def handle_end(self, inst):
         codel1 = f'leave'
@@ -562,6 +609,7 @@ class CodeGenerator:
             '==': 'je',
             '!=': 'jne'
         }.get(relop, 'jmp')
+    
     def get_inverse_jump_instruction(self, relop: str) -> str:
         """
         Map relational operator to assembly jump instruction.
@@ -590,15 +638,29 @@ def driver(filename, graphgen, address_map,size_map,param_map):
     output_path = os.path.join(output_path,filename)
     with open(output_path, 'w') as generated_asm:
         generated_asm.write("section .text\n")
-        generated_asm.write("global main\n")
+        generated_asm.write("global _start\n")
         generated_asm.write("extern printf\n")
         generated_asm.write("extern scanf\n")
         generated_asm.write("extern malloc\n")
         generated_asm.write("extern free\n")
         generated_asm.write("extern exit\n")
+        generated_asm.write("; Function _start:\n")
+        generated_asm.write("_start:\n")
+        generated_asm.write("\tand rsp, -16\n")
+        generated_asm.write("\tcall main\n")
+        generated_asm.write("\tmov rdi, rax\n")
+        generated_asm.write("\tcall exit\n")
+
+
     for i, cfg in enumerate(cff.cfgs):
         print("In cfg : ", i)
         with open(output_path, 'a') as generated_asm:
             generator = CodeGenerator(cfg,generated_asm,address_map,size_map,param_map)
-            generator.generate_code()
+            size = generator.generate_code()
+        with open(output_path, 'r+') as generated_asm:
+            content = generated_asm.read()
+            content.replace('$$$$', str(size))
+            generated_asm.seek(0)
+            generated_asm.write(content)
+            generated_asm.truncate()
         print("===================================")

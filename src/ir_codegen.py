@@ -643,7 +643,7 @@ class IRGenerator:
 
         gen1 = ""
         if ir1.data_type != "int":
-            gen1 = f"{new_temp} = {self.convert(ir1.data_type, "int")} {ir1.place}"
+            gen1 = f"{new_temp} = {self.convert(ir1.data_type, 'int')} {ir1.place}"
             ir1.place = new_temp
         gen = f"{ir0.place} = {op} {ir1.place}"
         ir0.truelist = ir1.falselist
