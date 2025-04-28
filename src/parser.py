@@ -2606,8 +2606,10 @@ def parseFile(filename, ogfilename, treedir, symtabdir, irtreedir, graphgen=Fals
             continue
         param_list = symtab.search_params(entry.name)
         push_list = []
+        func_body = symtab.lookup(entry.name).child.scope_name
+
         for param in param_list:
-            param_name = param.name + get_scope_number(param.scope_name)
+            param_name = param.name + get_scope_number(func_body)
             push_list.append((param_name,param.type))
         param_map.add_param(entry.name,push_list)
 

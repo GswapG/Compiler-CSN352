@@ -264,10 +264,6 @@ class IRGenerator:
         gen1 = ""
 
         if ir1.data_type!= dom_type:
-            # cvt = self.convert(ir1.data_type,dom_type)
-            # ir1_temp = self.new_temp()
-            # gen1 = f"{ir1_temp} = {cvt} {ir1.place}"
-
             t = ir1.place
             ir1.place = self.new_temp(ir1.data_type)
             gen0 = f"{ir1.place} = {t}"
@@ -278,8 +274,6 @@ class IRGenerator:
             gen1 = self.join(gen0,gen1)
         
         elif ir2.data_type != dom_type:
-            # cvt = self.convert(ir2.data_type,dom_type)
-            # gen1 = f"{ir2.place} = {cvt} {ir2.place}"
             t = ir2.place
             ir2.place = self.new_temp(ir2.data_type)
             gen0 = f"{ir2.place} = {t}"
@@ -539,7 +533,6 @@ class IRGenerator:
     
     def if_no_else(self, ir0, ir1, ir2):
         ir0.after = self.new_label()
-        # ir0.else_ = ir0.after
         if ir1.bpneed>0:
             self.resolve_exp(ir1)
 

@@ -14,3 +14,5 @@ class SizeMap:
             return self.size_map[var]
         else:
             raise CompileException("Trying to get size for a variable that is not assigned any!!")
+    def __str__(self):
+        return str(dict(self.size_map))
