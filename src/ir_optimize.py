@@ -3,11 +3,12 @@ import re
 from .address_map import AddressMap
 from .size_map import SizeMap
 from .param_map import ParameterMap
+from .type_map import TypeMap
 from collections import defaultdict
 from .utils import get_size_from_type
 
 class IROptimizer:
-	def __init__(self, filename: str ,typemap , var_type_map, address_map: AddressMap, size_map: SizeMap, param_map: ParameterMap):
+	def __init__(self, filename: str ,typemap: TypeMap , var_type_map, address_map: AddressMap, size_map: SizeMap, param_map: ParameterMap):
 		self.IR = None
 		self.optimized_ir = []
 		self.temp_count = 0

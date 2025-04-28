@@ -22,25 +22,45 @@ class Register:
         self.callee_saved = False
 
     def build_variant_names(self, id: str):
-        mapping = {
-            'rax': ['rax', 'eax', 'ax', 'al', 'ah'],
-            'rbx': ['rbx', 'ebx', 'bx', 'bl', 'bh'],
-            'rcx': ['rcx', 'ecx', 'cx', 'cl', 'ch'],
-            'rdx': ['rdx', 'edx', 'dx', 'dl', 'dh'],
-            'rsi': ['rsi', 'esi', 'si', 'sil', None],
-            'rdi': ['rdi', 'edi', 'di', 'dil', None],
-            'rbp': ['rbp', 'ebp', 'bp', 'bpl', None],
-            'rsp': ['rsp', 'esp', 'sp', 'spl', None],
-            'r8':  ['r8', 'r8d', 'r8w', 'r8b', None],
-            'r9':  ['r9', 'r9d', 'r9w', 'r9b', None],
-            'r10':  ['r10', 'r10d', 'r10w', 'r10b', None],
-            'r11':  ['r11', 'r11d', 'r11w', 'r11b', None],
-            'r12':  ['r12', 'r12d', 'r12w', 'r12b', None],
-            'r13':  ['r13', 'r13d', 'r13w', 'r13b', None],
-            'r14':  ['r14', 'r14d', 'r14w', 'r14b', None],
-            'r15':  ['r15', 'r15d', 'r15w', 'r15b', None]
+        if self.type == "int":
+            mapping = {
+                'rax': ['rax', 'eax', 'ax', 'al', 'ah'],
+                'rbx': ['rbx', 'ebx', 'bx', 'bl', 'bh'],
+                'rcx': ['rcx', 'ecx', 'cx', 'cl', 'ch'],
+                'rdx': ['rdx', 'edx', 'dx', 'dl', 'dh'],
+                'rsi': ['rsi', 'esi', 'si', 'sil', None],
+                'rdi': ['rdi', 'edi', 'di', 'dil', None],
+                'rbp': ['rbp', 'ebp', 'bp', 'bpl', None],
+                'rsp': ['rsp', 'esp', 'sp', 'spl', None],
+                'r8':  ['r8', 'r8d', 'r8w', 'r8b', None],
+                'r9':  ['r9', 'r9d', 'r9w', 'r9b', None],
+                'r10':  ['r10', 'r10d', 'r10w', 'r10b', None],
+                'r11':  ['r11', 'r11d', 'r11w', 'r11b', None],
+                'r12':  ['r12', 'r12d', 'r12w', 'r12b', None],
+                'r13':  ['r13', 'r13d', 'r13w', 'r13b', None],
+                'r14':  ['r14', 'r14d', 'r14w', 'r14b', None],
+                'r15':  ['r15', 'r15d', 'r15w', 'r15b', None]
+            }
+            return mapping.get(id, [id]*5)
+        float_mapping = {
+            'xmm0': ['xmm0'],
+            'xmm1': ['xmm1'],
+            'xmm2': ['xmm2'],
+            'xmm3': ['xmm3'],
+            'xmm4': ['xmm4'],
+            'xmm5': ['xmm5'],
+            'xmm6': ['xmm6'],
+            'xmm7': ['xmm7'],
+            'xmm8': ['xmm8'],
+            'xmm9': ['xmm9'],
+            'xmm10': ['xmm10'],
+            'xmm11': ['xmm11'],
+            'xmm12': ['xmm12'],
+            'xmm13': ['xmm13'],
+            'xmm14': ['xmm14'],
+            'xmm15': ['xmm15'],
         }
-        return mapping.get(id, [id]*5)
+        return float_mapping.get(id)
 
     def __getitem__(self, idx):
         """
@@ -58,28 +78,49 @@ class Register:
     def __str__(self):
         return self[0]  # default 64-bit for display
 
-
-def init_gpr() -> list[Register]:
-    reg_names = [
+def init_gpr(type: str) -> list[Register]:
+    int_reg_names = [
         'rax', 'rbx', 'rcx', 'rdx',
         'rsi', 'rdi', 'rbp', 'rsp',
         'r8', 'r9', 'r10', 'r11',
         'r12', 'r13', 'r14', 'r15'
     ]
 
+    float_reg_names = [
+        'xmm0', 'xmm1', 'xmm2', 'xmm3',
+        'xmm4', 'xmm5', 'xmm6', 'xmm7',
+        'xmm8', 'xmm9', 'xmm10', 'xmm11',
+        'xmm12', 'xmm13', 'xmm14', 'xmm15'
+    ]
+
     # Define caller- and callee-saved sets
-    caller_saved = {'rax', 'rcx', 'rdx', 'rsi', 'rdi', 'r8', 'r9', 'r10', 'r11'}
-    callee_saved = {'rbx', 'rbp', 'r12', 'r13', 'r14', 'r15'}
+    int_caller_saved = {'rax', 'rcx', 'rdx', 'rsi', 'rdi', 'r8', 'r9', 'r10', 'r11'}
+    int_callee_saved = {'rbx', 'rbp', 'r12', 'r13', 'r14', 'r15'}
+
+    float_caller_saved = {
+        'xmm0', 'xmm1', 'xmm2', 'xmm3',
+        'xmm4', 'xmm5', 'xmm6', 'xmm7',
+    }
+
+    float_callee_saved = {
+        'xmm8', 'xmm9', 'xmm10', 'xmm11',
+        'xmm12', 'xmm13', 'xmm14', 'xmm15'
+    }
 
     registers = []
-    for name in reg_names:
-        reg = Register(name, 'int')
-        reg.caller_saved = name in caller_saved
-        reg.callee_saved = name in callee_saved
-        registers.append(reg)
+    if type == "int":
+        for name in int_reg_names:
+            reg = Register(name, type)
+            reg.caller_saved = name in int_caller_saved
+            reg.callee_saved = name in int_callee_saved
+            registers.append(reg)
+    else:
+        for name in float_reg_names:
+            reg = Register(name, "float")
+            reg.caller_saved = name in float_caller_saved
+            reg.callee_saved = name in float_callee_saved
 
     return registers
-
 
 def init_param_registers() -> list[Register]:
 	"""
