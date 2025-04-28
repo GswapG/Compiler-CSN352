@@ -35,10 +35,12 @@ class RegisterAllocator:
 
         if inst.is_relop:  # Add this case first
         # t1 = t2 (type) relop t3
+            t1 = inst.inst[0]
             t2 = inst.inst[2]
             t3 = inst.inst[5]
             size = self.code_generator.get_size_idx(inst.inst[3][1:-1])
-            return self.handle_two_var_reg(t2, t3, size)
+            r1 = self.get_lhs_register_for_assignment(t1)
+            return r1 + (None,)
 
         if inst.is_operation:
             # t1 = t2 op t3

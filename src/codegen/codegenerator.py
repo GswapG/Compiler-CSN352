@@ -405,6 +405,7 @@ class CodeGenerator:
                 addr2 = self.address_map.get_address(t2)
                 addr3 = self.address_map.get_address(t3)
                 temp_reg = self.reg_allocator.get_register(inst)[0]
+                print("+++++++++++++++++++")
                 self.emit(f'mov {temp_reg[size]}, {self.size_specifiers[size]} [rbp{addr2}]')
                 self.emit(f'cmp {temp_reg[size]}, {self.size_specifiers[size]} [rbp{addr3}]')
         # NOW CMP PART IS DONE , WE NOW ADD THE SETL COMMAND
