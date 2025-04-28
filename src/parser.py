@@ -1540,9 +1540,8 @@ def p_init_declarator(p):
         
             else:
                 type_ = p[3].return_type
-                        
                 if not (trim_value(base_type, "const").split(" ")[0] == "enum" and type_ == "int"):
-                    if implicit_type_compatibility(base_type, type_, True):
+                    if argument_type_compatibility(base_type, type_):
                         if p[3].name != "constant" and not "*" in base_type:
                             raise CompileTypeError(f"Type mismatch in declaration of {p[0].vars[0]}\n| base_type = {base_type} |\n| rhs_type = {type_} |")
             IrGen.assignment(p[0].ir, p[1].ir, p[3].ir)
