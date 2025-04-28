@@ -4,10 +4,10 @@ from .address_map import AddressMap
 from .size_map import SizeMap
 from .param_map import ParameterMap
 from collections import defaultdict
-from utils import get_size_from_type
+from .utils import get_size_from_type
 
 class IROptimizer:
-	def __init__(self, filename: str ,typemap , var_type_map, address_map: AddressMap, size_map: SizeMap, param_map: ParamMap):
+	def __init__(self, filename: str ,typemap , var_type_map, address_map: AddressMap, size_map: SizeMap, param_map: ParameterMap):
 		self.IR = None
 		self.optimized_ir = []
 		self.temp_count = 0
@@ -20,15 +20,16 @@ class IROptimizer:
 		filename = filename[:-1]
 		filename += 'tac'
 		self.ir_path = os.path.join('./generatedIR', filename)
-		try:
-			with open(self.ir_path, 'r') as file:
-				self.IR = file.read()
-			
-		# self.constant_propagation()
-		# self.constant_folding()
+
+		with open(self.ir_path, 'r') as file:
+			self.IR = file.read()
+		
+	# self.constant_propagation()
+		self.constant_folding()
 		self.resolve_ptrs()
 		self.write_optimized_ir()
 		self.temp_update()
+
 
 	def constant_folding(self):
 		for line in self.IR.splitlines():
@@ -104,18 +105,19 @@ class IROptimizer:
 				offset_counter = int(size)
 				next_line_gives_size = False
 
-				parameters = self.param_map[current_func_name]
-				for param, param_size in parameters:
-					self.size_map.add_var(param, param_size)
-					self.address_map.add_var(param, offset_counter + param_size)
-					offset_counter += param_size
+				parameters = self.param_map.get_params(current_func_name)
+				for param, param_type in parameters:
+					size = get_size_from_type(param_type)
+					self.size_map.add_var(param, size)
+					self.address_map.add_var(param, offset_counter + size)
+					offset_counter += size
 
 				continue 
 
 			if line.startswith("@"):
 				temp_var = line.split(' = ')[0]
 				# get the type from type_map 
-				type = ""
+				type = self.type_map.get_var(temp_var)
 				size = get_size_from_type(type)
 				self.size_map.add_var(temp_var, size)
 				self.address_map.add_var(temp_var, offset_counter + size)

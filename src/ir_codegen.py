@@ -171,10 +171,14 @@ class IRGenerator:
         gen1 = ""
         if ir1.data_type.replace(' ','_') != dom_type:
             cvt = self.convert(ir1.data_type,dom_type)
-            gen1 = f"{ir1.place} = {cvt} {ir1.place}"
+            new_temp = self.new_temp(dom_type)
+            gen1 = f"{new_temp} = {cvt} {ir1.place}"
+            ir1.place = new_temp
         if ir2.data_type.replace(' ','_') != dom_type:
             cvt = self.convert(ir1.data_type,dom_type)
-            gen1 = f"{ir2.place} = {cvt} {ir2.place}"
+            new_temp = self.new_temp(dom_type)
+            gen1 = f"{new_temp} = {cvt} {ir2.place}"
+            ir2.place = new_temp
         if op.endswith('='):
             op = op[:-1]
         op = f"({dom_type}) {op}"
@@ -182,7 +186,9 @@ class IRGenerator:
         gen3 = ""
         if gen1 != "":
             cvt = self.convert(dom_type,ir1.data_type)
-            gen3 = f"{ir1.place} = {cvt} {ir1.place}"
+            new_temp = self.new_temp(ir1.data_type)
+            gen3 = f"{new_temp} = {cvt} {ir1.place}"
+            ir1.place = new_temp
         ir0.code = self.join(ir2.code, gen1, gen2,gen3)
         ir0.place = ir1.place
         self.debug_print(ir0)
@@ -197,14 +203,18 @@ class IRGenerator:
             ir1.place = self.new_temp(ir1.data_type)
             gen0 = f"{ir1.place} = {t}"
             cvt = self.convert(ir1.data_type,dom_type)
-            gen1 = f"{ir1.place} = {cvt}  {ir1.place}"
+            new_temp = self.new_temp(dom_type)
+            gen1 = f"{new_temp} = {cvt}  {ir1.place}"
+            ir1.place = new_temp
             gen1 = self.join(gen0,gen1)
         if ir2.data_type != dom_type:
             t = ir2.place
             ir2.place = self.new_temp(ir2.data_type)
             gen0 = f"{ir2.place} = {t}"
             cvt = self.convert(ir2.data_type,dom_type)
-            gen1 = f"{ir2.place} = {cvt} {ir2.place}"
+            new_temp = self.new_temp(dom_type)
+            gen1 = f"{new_temp} = {cvt} {ir2.place}"
+            ir2.place = new_temp
             gen1 = self.join(gen0,gen1)
         op = f"({dom_type}) {op}"
         gen2 = f"{ir0.place} = {ir1.place} {op} {ir2.place}"
@@ -262,7 +272,9 @@ class IRGenerator:
             ir1.place = self.new_temp(ir1.data_type)
             gen0 = f"{ir1.place} = {t}"
             cvt = self.convert(ir1.data_type,dom_type)
-            gen1 = f"{ir1.place} = {cvt} {ir1.place}"
+            new_temp = self.new_temp(dom_type)
+            gen1 = f"{new_temp} = {cvt} {ir1.place}"
+            ir1.place = new_temp
             gen1 = self.join(gen0,gen1)
         
         elif ir2.data_type != dom_type:
@@ -272,7 +284,9 @@ class IRGenerator:
             ir2.place = self.new_temp(ir2.data_type)
             gen0 = f"{ir2.place} = {t}"
             cvt = self.convert(ir2.data_type,dom_type)
-            gen1 = f"{ir2.place} = {cvt} {ir2.place}"
+            new_temp = self.new_temp(dom_type)
+            gen1 = f"{new_temp} = {cvt} {ir2.place}"
+            ir2.place = new_temp
             gen1 = self.join(gen0,gen1)
             
         op = f"({ir0.data_type}) {op}"
@@ -296,7 +310,9 @@ class IRGenerator:
             one = self.new_temp(dom_type)
             gen0 = f"{one} = {t}"
             cvt = self.convert('int',dom_type)
-            gen3 = f"{one} = {cvt} {one}"
+            new_temp = self.new_temp(dom_type)
+            gen3 = f"{new_temp} = {cvt} {one}"
+            one = new_temp
             gen3 = self.join(gen0,gen3)
         gen2 = f"{ir1.place} = {ir1.place} ({ir0.data_type}) {op} {one}"
         ir0.code = self.join(gen1, gen3, gen2)
