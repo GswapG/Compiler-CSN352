@@ -156,6 +156,7 @@ class IRGenerator:
             cvt = self.convert(ir2.data_type,ir1.data_type)
             gen =  f"{ir1.place} = {cvt} {ir2.place}"
         ir0.code = self.join(ir1.code, ir2.code, gen)
+        ir0.place = ir1.place
         self.debug_print(ir0)
     
     def multiple_assignment(self, ir0, ir1, ir2):
@@ -180,6 +181,7 @@ class IRGenerator:
             cvt = self.convert(dom_type,ir1.data_type)
             gen3 = f"{ir1.place} = {cvt} {ir1.place}"
         ir0.code = self.join(ir2.code, gen1, gen2,gen3)
+        ir0.place = ir1.place
         self.debug_print(ir0)
 
     def arithmetic_expression(self, ir0, ir1, op, ir2):
@@ -188,11 +190,11 @@ class IRGenerator:
         gen1 = ""
         gen0 = ""
         if ir1.data_type.replace(' ','_') != dom_type:
-            t = ir1.place
-            ir1.place = self.new_temp()
-            gen0 = f"{ir1.place} = {t}"
-            cvt = self.convert(ir1.data_type,dom_type)
-            gen1 = f"{ir1.place} = {cvt} {ir1.place}"
+            t = ir2.place
+            ir2.place = self.new_temp()
+            gen0 = f"{ir2.place} = {t}"
+            cvt = self.convert(ir2.data_type,dom_type)
+            gen1 = f"{ir2.place} = {cvt} {ir2.place}"
             gen1 = self.join(gen0,gen1)
         if ir2.data_type.replace(' ','_') != dom_type:
             t = ir2.place
@@ -236,20 +238,35 @@ class IRGenerator:
 
     def bitwise_expression(self, ir0, ir1, op, ir2):
         ir0.place = self.new_temp()
-        gen = f"{ir0.place} = {ir1.place} {op} {ir2.place}"
+        gen = f"{ir0.place} = {ir1.place} ({ir1.data_type}) {op} {ir2.place}"
         ir0.code = self.join(ir1.code, ir2.code, gen)
         self.debug_print(ir0)
     
     def relational_expression(self, ir0, ir1, op, ir2):
+        print(ir1.data_type, ir2.data_type)
         ir0.place = self.new_temp()
-        dom_type = self.dom_type(ir1,ir2).replace(' ','_')
+        dom_type = "" if "*" in ir1.data_type and "*" in ir2.data_type else self.dom_type(ir1,ir2).replace(' ','_') 
         gen1 = ""
         if ir1.data_type.replace(' ','_') != dom_type:
+            # cvt = self.convert(ir1.data_type,dom_type)
+            # ir1_temp = self.new_temp()
+            # gen1 = f"{ir1_temp} = {cvt} {ir1.place}"
+
+            t = ir1.place
+            ir1.place = self.new_temp()
+            gen0 = f"{ir1.place} = {t}"
             cvt = self.convert(ir1.data_type,dom_type)
             gen1 = f"{ir1.place} = {cvt} {ir1.place}"
+            gen1 = self.join(gen0,gen1)
         if ir2.data_type.replace(' ','_') != dom_type:
+            # cvt = self.convert(ir2.data_type,dom_type)
+            # gen1 = f"{ir2.place} = {cvt} {ir2.place}"
+            t = ir2.place
+            ir2.place = self.new_temp()
+            gen0 = f"{ir2.place} = {t}"
             cvt = self.convert(ir2.data_type,dom_type)
             gen1 = f"{ir2.place} = {cvt} {ir2.place}"
+            gen1 = self.join(gen0,gen1)
         op = f"({ir0.data_type}) {op}"
         gen2 = f"{ir0.place} = {ir1.place} {op} {ir2.place}"
         ir0.code = self.join(ir1.code, ir2.code, gen1,gen2)
@@ -263,8 +280,18 @@ class IRGenerator:
         else:
             ir0.place = ir1.place
         op = op[0]
-        gen2 = f"{ir1.place} = {ir1.place} {op} 1"
-        ir0.code = self.join(gen1, gen2)
+        dom_type = self.dom_type(ir0, ir1)
+        gen3=""
+        one = 1
+        if dom_type != 'int':
+            t = one
+            one = self.new_temp()
+            gen0 = f"{one} = {t}"
+            cvt = self.convert('int',dom_type)
+            gen3 = f"{one} = {cvt} {one}"
+            gen3 = self.join(gen0,gen3)
+        gen2 = f"{ir1.place} = {ir1.place} ({ir0.data_type}) {op} {one}"
+        ir0.code = self.join(gen1, gen3, gen2)
         self.debug_print(ir0)
 
     def unary(self, ir0, ir1, op):
@@ -596,17 +623,18 @@ class IRGenerator:
         max_size = size
 
         ptr = 0
-        for _ in range(int(max_size)):
-            label = self.new_temp()
-            gen = f"{label} = {ptr} * {type_size}\n"
-            gen += f"{array}[{label}]"
-            gen += f" = {ir2.initializer_list[ptr]}"
+        if ptr < len(ir2.initializer_list):
+            for _ in range(int(max_size)):
+                label = self.new_temp()
+                gen = f"{label} = {ptr} * {type_size}\n"
+                gen += f"{array}[{label}]"
+                gen += f" = {ir2.initializer_list[ptr]}"
 
-            initializations.append(gen)
+                initializations.append(gen)
 
-            ptr += 1
-            if ptr == len(ir2.initializer_list):
-                break
+                ptr += 1
+                if ptr == len(ir2.initializer_list):
+                    break
 
         ir0.code = self.join(ir1.code, ir2.code)
         for initialization in initializations:

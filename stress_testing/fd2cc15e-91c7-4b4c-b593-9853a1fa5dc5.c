@@ -1,0 +1,2 @@
+long *get_pointer();
+

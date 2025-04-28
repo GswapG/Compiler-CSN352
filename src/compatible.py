@@ -105,6 +105,7 @@ def dominating_type(type1, type2):
     types1 = type1.split(' ')
     types2 = type2.split(' ')
 
+
     if "double" in types1 and "double" in types2:
         return True
     else:
@@ -437,11 +438,18 @@ def subtraction_compatibility(type1, type2):
 
         type1 = type1.lstrip("*")
 
-        if type1 == type2:
+        allowed_int = ['signed', 'unsigned', 'short', 'long', 'int', 'char']
+
+        label2 = None
+
+        if any(t in allowed_int for t in type2.split()):
+            label2 = "int"
+
+        if label2 == "int":
             return save_type1
         
         else:
-            raise CompileTypeError(f"Incompatible types {save_type1} {save_type2} for the operation addition")
+            raise CompileTypeError(f"Incompatible types {save_type1} and {save_type2} for the operation subtraction")
 
     raise CompileException(f"This method should only be called when either one of the types is a pointer to an object, but the types passed were: {save_type1} and {save_type2}")    
 
@@ -484,9 +492,7 @@ def compatible_cast(cast_type, expression_type):
     # handle other casting between other types apart from struct or union here if required
     return True   
 
-def ternary_type_compatibility(type1, type2, type3):
-    if get_label(type1.replace("*", "")) is None:
-        raise CompileException("First type in ternary operators should be a scalar type")
 
-    return implicit_type_compatibility(type2, type3, True)
+
+
 

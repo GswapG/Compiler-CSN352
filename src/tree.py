@@ -79,7 +79,7 @@ class Node:
         if new_value is not None and new_value.split(' ')[0] == 'enum':
             new_value = 'int'
         self._return_type = new_value
-        self.ir.data_type = self._return_type
+        self.ir.data_type = None if self._return_type is None else self._return_type.replace(' ','_')
 
     def to_graph(self, graph=None):
         if graph is None:
