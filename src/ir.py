@@ -8,6 +8,7 @@ class IR:
         self.switchup = []
         self.bpneed = 0
         self.switchplace = []
+        self.switchdatatype = []
         self.begin = ""
         self.after = ""
         self.parameters = []

@@ -102,9 +102,8 @@ def validate_c_datatype(data_type, symtab):
     return True
 
 def dominating_type(type1, type2):
-    types1 = type1.split(' ')
-    types2 = type2.split(' ')
-
+    types1 = type1.split(' ') if ' ' in type1 else type1.split('_')
+    types2 = type2.split(' ') if ' ' in type2 else type2.split('_')
 
     if "double" in types1 and "double" in types2:
         return True
