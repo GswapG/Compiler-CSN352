@@ -4,6 +4,6 @@ int main()
     int *ptr = &x;
     int **ptr2 = &ptr;
     ptr = ptr+x ;
-    x = *ptr;
+    // x = *ptr;
     // *ptr=*ptr;
 }
