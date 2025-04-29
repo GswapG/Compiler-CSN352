@@ -27,6 +27,7 @@ class IROptimizer:
 	# self.constant_propagation()
 		self.constant_folding()
 		self.resolve_ptrs()
+		self.param_resolve()
 		self.write_optimized_ir()
 		self.temp_update()
 
@@ -52,6 +53,54 @@ class IROptimizer:
 						print(rhs, 'rhs')
 			opt = ' '.join(instruction)
 			self.optimized_ir.append(opt)
+		self.IR = '\n'.join(self.optimized_ir)
+		self.optimized_ir = []
+
+	def param_resolve(self):
+		for line in self.IR.splitlines():
+			line = line.strip()
+			if not line:
+				self.optimized_ir.append("")
+				continue
+				
+			# Check if it's a param instruction
+			if line.startswith('param'):
+				instruction = line.split()
+				param = instruction[1]
+				
+				# Check if param is a pointer dereference
+				if param.startswith('*'):
+					# Create new temp for dereferenced value
+					temp = f"@tt{self.temp_count}"
+					self.temp_count += 1
+					
+					# Add deref instruction first
+					deref_inst = f"{temp} = {param}"
+					self.optimized_ir.append(deref_inst)
+					
+					# Update type map for new temp - remove one level of pointer
+					orig_var = param[1:]  # remove the *
+					if orig_var.startswith('@'):
+						# For temporary variables
+						orig_type = self.type_map.get_var(orig_var)
+						if orig_type:
+							self.type_map.set_var(temp, orig_type[1:])  # Remove one * from type
+					else:
+						# For program variables
+						orig_type = self.var_type_map.get_var(orig_var)
+						if orig_type:
+							self.type_map.set_var(temp, orig_type[1:])
+					
+					# Add modified param instruction
+					self.optimized_ir.append(f"param {temp}")
+				else:
+					# If not a pointer deref, keep original instruction
+					self.optimized_ir.append(line)
+			else:
+				# Not a param instruction, keep as is
+				self.optimized_ir.append(line)
+				
+		# Update IR with optimized version
 		self.IR = '\n'.join(self.optimized_ir)
 		self.optimized_ir = []
 
