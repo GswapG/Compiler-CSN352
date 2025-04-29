@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # filepath: d:\DevProjects\Compiler-CSN352\generatedASM\test.sh
 
 # Directory containing the assembly files

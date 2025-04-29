@@ -1,12 +1,11 @@
 int main(){
-    int hello = -3;
-    const long long h;
-    int const * c,d;
-    int ** const a,b;
-    int z = sizeof(int);
-    int a = (int)(a,b);
-    do{
-        chm();
-    }
-    until(1==2);
+    int x=10;
+    int y=20;
+    int *ptr = &y;
+    int **ptr2 = &ptr;
+    *ptr2 = ptr;
+    // *ptr2 = ptr;
+    x = *ptr;
+    *ptr=*ptr;
+    printf("x is %d",x);
 }
