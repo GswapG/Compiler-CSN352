@@ -50,10 +50,11 @@ class Preprocessor:
         try:
             if not self.prototypes_written:
                 prototypes = (
-                    "void print_int(int x);\n"
-                    "void print_float(float x);\n"
-                    "void print_char(char x);\n"
-                    "void print_string(const char *s);\n"
+                    # "void print_int(int x);\n"
+                    # "void print_float(float x);\n"
+                    # "void print_char(char x);\n"
+                    # "void print_string(const char *s);\n"
+                    "int printf(const char* ptr, ...);"
                     "void* malloc(int size);\n"
                     "void free(void* ptr);\n\n"
                 )
@@ -88,11 +89,11 @@ class Preprocessor:
                     else:
                         if self.current_inclusion:
                             # Check if the line is a printf statement that needs to be expanded.
-                            if stripped.startswith("printf"):
-                                expanded = self._process_printf((line,line_num))
-                                output_file.write(expanded + "\n")
-                            else:
-                                output_file.write(self._apply_macros(line))
+                            # if stripped.startswith("printf"):
+                            #     expanded = self._process_printf((line,line_num))
+                            #     output_file.write(expanded + "\n")
+                            # else:
+                            output_file.write(self._apply_macros(line))
         except IOError as e:
             raise CompileException(f"Error processing {input_path}: {e}")
 

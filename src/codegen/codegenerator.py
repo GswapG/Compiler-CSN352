@@ -8,6 +8,9 @@ from ..param_map import ParameterMap
 from ..size_map import SizeMap
 from ..utils import get_size_from_type
 
+data_section = []
+str_count = 0
+
 class Instruction:
     def __init__(self, inst):
         self.text = str(inst)
@@ -181,6 +184,7 @@ class CodeGenerator:
         self.size_specifiers = ['qword','dword','word','byte','byte']
         self.last_rel_op = None
         self.is_first_param = True
+        self.int_param_idx = 0
     
     def join(self,*args):
         """
@@ -206,6 +210,48 @@ class CodeGenerator:
             1:3
         }.get(sz)
     
+    def parse_string(self, input_string):
+        """
+        Parses a string literal with escape characters and returns a formatted string
+        for the data section in assembly.
+
+        Args:
+            input_string (str): The input string literal (e.g., '"hello\\n"').
+
+        Returns:
+            str: A formatted string for the data section (e.g., '"hello", 10').
+        """
+        # Remove the surrounding quotes
+        input_string = input_string.encode('utf-8').decode('unicode-escape')
+        if input_string[0] == '"' and input_string[-1] == '"':
+            input_string = input_string[1:-1]
+
+        # Map of escape sequences to their ASCII values
+        escape_sequences = {
+            '\\n': 10,  # Newline
+            '\\t': 9,   # Tab
+            '\\r': 13,  # Carriage return
+            '\\0': 0,   # Null character
+            '\\\\': 92, # Backslash
+            '\\"': 34   # Double quote
+        }
+
+        result = []
+        i = 0
+        while i < len(input_string):
+            if input_string[i] == '\\' and i + 1 < len(input_string):
+                # Check for escape sequence
+                seq = input_string[i:i+2]
+                if seq in escape_sequences:
+                    result.append(str(escape_sequences[seq]))
+                    i += 2
+                    continue
+            # Add regular characters as ASCII values or as-is
+            result.append(f'"{input_string[i]}"' if input_string[i].isprintable() else str(ord(input_string[i])))
+            i += 1
+
+        return ', '.join(result)
+
     def is_constant(self, t2):
         if t2.isnumeric():
             # int constant
@@ -296,19 +342,24 @@ class CodeGenerator:
         # else:
         #     return
         #     raise Exception("Unknown instruction type")
-        # print(self.reg_allocator.add_desc)
-        # print(self.reg_allocator.reg_desc)
+        print(self.reg_allocator.add_desc)
+        print(self.reg_allocator.reg_desc)
         
     def handle_goto(self, inst):
         code = f'jmp {inst.inst[1]}'
         self.emit(code)
 
     def handle_deref(self, inst):
-        if inst.inst[2][0] == '*':
-
-            pass
+        if inst.inst[2][0] == '*': #rhs has ptr ke andar ka value is to be put in here []
+            ptr_reg = self.reg_allocator.get_rhs_register_for_assignment(inst.inst[2][1:])[0]
+            lhs_reg = self.reg_allocator.get_lhs_register_for_assignment(inst.inst[0])[0]
+            size = self.get_size_idx(size=self.size_map.get_size(inst.inst[0]))
+            self.emit(f'mov {lhs_reg[size]}, {self.size_specifiers[size]} [{ptr_reg}]')
         else:
-            pass
+            ptr_reg = self.reg_allocator.get_rhs_register_for_assignment(inst.inst[2])[0]
+            lhs_reg = self.reg_allocator.get_lhs_register_for_assignment(inst.inst[0][1:])[0]
+            size = self.get_size_idx(size=self.size_map.get_size(inst.inst[2]))
+            self.emit(f'mov {self.size_specifiers[size]} [{lhs_reg}], {ptr_reg[size]}')
 
     def handle_cast(self, inst):
         pass
@@ -384,20 +435,61 @@ class CodeGenerator:
             self.emit(code)
 
     def handle_param(self, inst):
-        pass
-        
+        global str_count
+        global data_section
+        if self.int_param_idx == 0:
+            # first param
+            # push caller saved regs
+            self.reg_allocator.push_caller_saved()
+        param = inst.inst[1]
+        # if param is constant
+        reg = self.param_regs[self.int_param_idx]
+        if self.is_constant(param):
+            if param[0] == "'":
+                param = ord(param[1])
+            elif param[0] == '"':
+                # string literal
+                # need to go to data section
+                label = f'str{str_count}'
+                str_count += 1
+                print(param)
+                data_section.append(f"{label} db {self.parse_string(param)}, 0")
+                param = label
+            code = f'mov {reg}, {param}'
+            self.emit(code)
+        else:
+            size = self.get_size_idx(size=self.size_map.get_size(param))
+            # if in register, return register
+            reg2 = self.reg_allocator.get_register(inst)
+            code = ""
+            if reg2 is not None:
+                code = f'mov {reg[size]}, {reg2[size]}'
+            else:
+                address = self.address_map.get_address(param)
+                code = f'mov {reg[size]}, {self.size_specifiers[size]} [rbp{address}]'
+            self.emit(code)
+        self.int_param_idx += 1
+
     def handle_return(self, inst):
         pass
 
     def handle_call(self, inst):
-        code = f'call {inst.inst[1][:-1]}'
+        func_name = inst.inst[1][:-1].split('#')[0]
+        code = f'call {func_name}'
         self.emit(code)
+        self.right_after_call()
 
     def handle_assigned_call(self, inst):
-        code = f'call {inst.inst[3][:-1]}'
+        func_name = inst.inst[3][:-1].split('#')[0]
+        code = f'call {func_name}'
         self.emit(code)
         # TODO: check if return value is in rax or xmm0 or something else
+        self.right_after_call()
     
+    def right_after_call(self):
+        self.int_param_idx = 0
+        self.reg_allocator.pop_caller_saved()
+
     def handle_relop(self, inst):
         # t1 = t2 (type) relop t3
         self.last_rel_op = inst.inst[4]
@@ -646,6 +738,7 @@ class CodeGenerator:
         }.get(relop, 'jmp')
     
 def driver(filename, graphgen, address_map,size_map,param_map,type_map):
+    print(address_map)
     if filename[-2:] in ('.c','.C'):
         filename = filename[:-2]
     filename += '.tac'
@@ -680,3 +773,6 @@ def driver(filename, graphgen, address_map,size_map,param_map,type_map):
             generator = CodeGenerator(cfg,generated_asm,address_map,size_map,param_map,type_map)
             generator.generate_code()
         print("===================================")
+    with open(output_path, 'a') as f:
+        f.write('\nsection .data\n')
+        f.write('\n'.join(data_section))

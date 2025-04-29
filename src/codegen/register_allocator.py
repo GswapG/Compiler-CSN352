@@ -33,6 +33,10 @@ class RegisterAllocator:
         """
         ret = []
 
+        if inst.is_param:
+            param = inst.inst[1]
+            return self.handle_param(param)
+
         if inst.is_addr:
             t1 = inst.inst[0]
             r1 = self.get_lhs_register_for_assignment(t1)
@@ -53,8 +57,15 @@ class RegisterAllocator:
             ret = None
             if self.code_generator.is_constant(t3):
                 ret = self.handle_one_var_reg(inst.inst[2], self.code_generator.get_size_idx(inst.inst[3][1:-1]))
+            elif self.code_generator.is_constant(t3):
+                ret = self.handle_one_var_reg(inst.inst[5], self.code_generator.get_size_idx(inst.inst[3][1:-1]))
             else:
                 ret = self.handle_two_var_reg(inst.inst[2], inst.inst[5], self.code_generator.get_size_idx(inst.inst[3][1:-1]))
+            # need to remove register for lhs from all other add desc
+            for y in self.reg_desc.get_register_values(ret[0]):
+                if y == inst.inst[2]:
+                    continue
+                self.add_desc.discard_reg_for_var(y,ret[0])
             self.reg_desc.set_register_values(ret[0], inst.inst[0])
             self.add_desc.set_entry_to_reg(inst.inst[0],ret[0])
             return ret
@@ -75,6 +86,15 @@ class RegisterAllocator:
                 return self.get_rhs_register_for_assignment(t2)
         return None
     
+    def handle_param(self, param):
+        # if allocated, return reg
+        reg = self.add_desc.get_reg_allocated(param)
+        if reg:
+            return reg[0]
+        else:
+            return None
+        # else return None
+
     def get_lhs_register_for_assignment(self, var: str) -> tuple[Register]:
         reg = self.add_desc.get_reg_allocated(var)
         if reg is not None:
@@ -211,10 +231,24 @@ class RegisterAllocator:
         Called before function call.
         Any caller saved register in use will be stored onto the stack.
         """
-        
+        for reg in self.reg_desc.registers:
+            if reg.caller_saved:
+                # push to stack
+                self.regs_on_stack.append(reg)
+                code = f'push {reg[0]}'
+                self.code_generator.emit(code)
+        # 9 registers must have been pushed to stack
+        # need to sub rsp 8
+        code = f'sub rsp, 8'
+        self.code_generator.emit(code)
     
     def pop_caller_saved(self):
         """
         Called after function call to restore state of caller saved registers.
         """
-        pass
+        code = f'add rsp, 8'
+        self.code_generator.emit(code)
+        for reg in reversed(self.regs_on_stack):
+            code = f'pop {reg[0]}'
+            self.code_generator.emit(code)
+        self.regs_on_stack = []

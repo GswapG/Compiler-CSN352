@@ -46,6 +46,8 @@ class IROptimizer:
 					rhs = self.evaluate_constants(op, vars[0], vars[1])
 					if rhs is not None:
 						instruction = instruction[:2]
+						if str(rhs).startswith('-'):
+							rhs = '- ' + str(rhs)[1:]
 						instruction.append(rhs)
 						print(rhs, 'rhs')
 			opt = ' '.join(instruction)
