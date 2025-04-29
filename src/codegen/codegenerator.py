@@ -350,16 +350,48 @@ class CodeGenerator:
         self.emit(code)
 
     def handle_deref(self, inst):
-        if inst.inst[2][0] == '*': #rhs has ptr ke andar ka value is to be put in here []
+        # if inst.inst[2][0] == '*': #rhs has ptr ke andar ka value is to be put in here []
+        #     ptr_reg = self.reg_allocator.get_rhs_register_for_assignment(inst.inst[2][1:])[0]
+        #     lhs_reg = self.reg_allocator.get_lhs_register_for_assignment(inst.inst[0])[0]
+        #     size = self.get_size_idx(size=self.size_map.get_size(inst.inst[2][1:]))
+        #     print(f"ptr_reg |{ptr_reg}| lhs_reg |{lhs_reg}| size=|{size}|",)
+        #     self.emit(f'mov {lhs_reg[size]}, {self.size_specifiers[size]} [{ptr_reg}]')
+        # else:
+        #     abc = False
+        #     try:
+        #         ptr_reg = self.reg_allocator.get_rhs_register_for_assignment(inst.inst[2])[0]
+        #     except Exception as e:
+        #         ptr_reg = inst.inst[2]
+        #         abc= True
+
+        #     lhs_reg = self.reg_allocator.get_lhs_register_for_assignment(inst.inst[0][1])[0]
+            
+        #     size = self.get_size_idx(size=self.size_map.get_size(inst.inst[0][1:]))
+        #     print("ptr_reg",size)
+
+        #     if abc==False:
+        #         self.emit(f'mov {self.size_specifiers[size]} [{lhs_reg}], {ptr_reg[size]}')
+        #     else:
+        #         self.emit(f'mov {self.size_specifiers[size]} [{lhs_reg}], {ptr_reg}')
+        # def handle_deref(self, inst):
+        if inst.inst[2][0] == '*':  # rhs has ptr ke andar ka value is to be put in here []
             ptr_reg = self.reg_allocator.get_rhs_register_for_assignment(inst.inst[2][1:])[0]
             lhs_reg = self.reg_allocator.get_lhs_register_for_assignment(inst.inst[0])[0]
-            size = self.get_size_idx(size=self.size_map.get_size(inst.inst[0]))
+            size = self.get_size_idx(size=self.size_map.get_size(inst.inst[2][1:]))
             self.emit(f'mov {lhs_reg[size]}, {self.size_specifiers[size]} [{ptr_reg}]')
         else:
-            ptr_reg = self.reg_allocator.get_rhs_register_for_assignment(inst.inst[2])[0]
-            lhs_reg = self.reg_allocator.get_lhs_register_for_assignment(inst.inst[0][1:])[0]
-            size = self.get_size_idx(size=self.size_map.get_size(inst.inst[2]))
-            self.emit(f'mov {self.size_specifiers[size]} [{lhs_reg}], {ptr_reg[size]}')
+            # *t1 = t2 case
+            ptr_reg = self.reg_allocator.get_reg_for_deref(inst.inst[0][1:])[0]
+            
+            if self.is_constant(inst.inst[2]):
+                # Handle constant value
+                size = self.get_size_idx(size=self.size_map.get_size(inst.inst[0][1:]))
+                self.emit(f'mov {self.size_specifiers[size]} [{ptr_reg}], {inst.inst[2]}')
+            else:
+                # Handle variable value
+                rhs_reg = self.reg_allocator.get_rhs_register_for_assignment(inst.inst[2])[0]
+                size = self.get_size_idx(size=self.size_map.get_size(inst.inst[0][1:]))
+                self.emit(f'mov {self.size_specifiers[size]} [{ptr_reg}], {rhs_reg[size]}')
 
     def handle_cast(self, inst):
         pass
@@ -660,6 +692,8 @@ class CodeGenerator:
             code = f'{opcode} {reg[size]}, {t3}'
             self.emit(code)
         else:
+            print("asdasdasdasd")
+            # print(self.address_map)
             reg1, reg2 = self.reg_allocator.get_register(inst)
             size = self.get_size_idx(inst.inst[3][1:-1])
             opcode = self.get_arithmetic_instruction(op)

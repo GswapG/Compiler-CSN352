@@ -8,5 +8,7 @@ int main()
     // // *ptr2 = ptr;
     // x = *ptr;
     // *ptr=*ptr;
-    int arr[10][10]={{1,2},{3,4}};
+    int arr[10] = {0,1,2,3};
+    int x = arr[2];
+    // printf("%d\n", arr[2]);
 }
