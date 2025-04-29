@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # filepath: d:\DevProjects\Compiler-CSN352\generatedASM\test.sh
 
 # Directory containing the assembly files
@@ -51,5 +51,4 @@ done
 for bin_file in "$BIN_DIR"/*; do
     echo "Running $bin_file..."
     "$bin_file"
-    echo "-----------------------------------"
 done

@@ -2,7 +2,7 @@ int main(){
     int i = 0;
     int j = 10;
     while(i < j){
-        if(i >= j){
+        if(i<j/2){
             printf("i is less than j\n");
         }
         else{
