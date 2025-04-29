@@ -62,14 +62,14 @@ class Register:
 def init_gpr() -> list[Register]:
     reg_names = [
         'rax', 'rbx', 'rcx', 'rdx',
-        'rsi', 'rdi', 'rbp', 'rsp',
+        'rsi', 'rdi',
         'r8', 'r9', 'r10', 'r11',
         'r12', 'r13', 'r14', 'r15'
     ]
 
     # Define caller- and callee-saved sets
     caller_saved = {'rax', 'rcx', 'rdx', 'rsi', 'rdi', 'r8', 'r9', 'r10', 'r11'}
-    callee_saved = {'rbx', 'rbp', 'r12', 'r13', 'r14', 'r15'}
+    callee_saved = {'rbx', 'r12', 'r13', 'r14', 'r15'}
 
     registers = []
     for name in reg_names:

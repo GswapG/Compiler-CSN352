@@ -2620,13 +2620,11 @@ def parseFile(filename, ogfilename, treedir, symtabdir, irtreedir, graphgen=Fals
         param_map.add_param(entry.name,push_list)
 
     for entry in symtab.table_entries:
-        if entry.kind != 'variable':
-            continue
-
-        na = entry.name + get_scope_number(entry.scope_name)
-        address_map.add_var(na, entry.offset + entry.size)
-        size_map.add_var(na, entry.size)
-        var_type_map.set_var(na,entry.type)
+        if entry.kind == 'variable' or 'D-array'  in entry.kind:       
+            na = entry.name + get_scope_number(entry.scope_name)
+            address_map.add_var(na, entry.offset + entry.size)
+            size_map.add_var(na, entry.size)
+            var_type_map.set_var(na,entry.type)
     print(var_type_map)
     # print(IrGen.type_map)
     if graphgen:

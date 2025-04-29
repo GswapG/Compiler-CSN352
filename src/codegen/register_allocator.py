@@ -108,6 +108,58 @@ class RegisterAllocator:
         self.reg_desc.set_register_values(reg, var)
         self.add_desc.set_entry_to_reg(var, reg)
         return (reg,)
+    
+    def get_lhs_register_for_assignment2(self, var: str,ptr_reg: Register) -> tuple[Register]:
+        reg = self.add_desc.get_reg_allocated(var)
+        if reg is not None:
+            return (reg[0],)
+        # get free register
+        reg = self.reg_desc.get_free_register()
+        # gen11 = f"lea {reg[0]}, [{ptr_reg}]"
+        # self.code_generator.emit(gen11)
+        if reg is None:
+            # need to spill some register
+            # TODO : spill and get reg
+            pass
+        self.reg_desc.set_register_values(reg, var)
+        self.add_desc.set_entry_to_reg(var, reg)
+        return (reg,)
+
+
+    def get_reg_for_deref(self, ptr_var: str) -> tuple[Register]:
+        """
+        Get register for pointer dereferencing operations (*t1 = t2).
+        Allocates a new register and loads the memory value of the pointer into it.
+        
+        Args:
+            ptr_var: The pointer variable (without the * operator)
+        Returns:
+            tuple containing the allocated register
+        """
+        # First check if ptr_var already has an allocated register
+        reg = self.add_desc.get_reg_allocated(ptr_var)
+        if reg is not None:
+            return (reg[0],)
+
+        # Get a free register for the pointer
+        reg = self.reg_desc.get_free_register()
+        if reg is None:
+            # TODO: implement spilling if no free register
+            pass
+
+        # Load the address/value from ptr_var into the register
+        size = self.code_generator.get_size_idx(size=self.code_generator.size_map.get_size(ptr_var))
+        address = self.code_generator.address_map.get_address(ptr_var)
+        
+        # Load the value of ptr_var into the register
+        self.code_generator.emit(f'mov {reg[size]}, {self.code_generator.size_specifiers[size]} [rbp{address}]')
+        
+        # Update register descriptors
+        self.reg_desc.set_register_values(reg, ptr_var)
+        self.add_desc.set_entry_to_reg(ptr_var, reg)
+
+        return (reg,)
+
 
     def get_rhs_register_for_assignment(self, var: str, reg_to_not_spill = None) -> tuple[Register]:
         regs = self.add_desc.get_reg_allocated(var)
@@ -118,7 +170,8 @@ class RegisterAllocator:
         if reg is None:
             # need to spill some register
             # TODO : spill and get reg
-            pass   
+            pass 
+        print(var)  
         size = self.code_generator.get_size_idx(size=self.code_generator.size_map.get_size(var))
         code = f'mov {reg[size]}, {self.code_generator.size_specifiers[size]} [rbp{self.code_generator.address_map.get_address(var)}]'
         self.code_generator.emit(code)
@@ -176,6 +229,8 @@ class RegisterAllocator:
             if self.code_generator.is_constant(var1):
                 self.code_generator.emit(f'mov {reg1[size]}, {var1}')
             else:
+                print("asdasda12")
+                print(self.code_generator.address_map)
                 address = self.code_generator.address_map.get_address(var1)
                 self.code_generator.emit(f'mov {reg1[size]}, {self.code_generator.size_specifiers[size]} [rbp{address}]')
 

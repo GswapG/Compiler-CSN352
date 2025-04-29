@@ -682,21 +682,25 @@ class IRGenerator:
         ir0.place = self.new_temp('long_long')
         print(ir0.data_type,'jhbdfsgfffffffffffdsh')
         if ir1.place[0] != "@":
+            # gen0 
             gen1 = f"{ir0.place} = {ir2.place}"
         else:
-            gen1 = f"{ir0.place} = {ir1.place} + {ir2.place}"
+            gen1 = f"{ir0.place} = {ir1.place} (long_long) + {ir2.place}"
             
         if(len(dimensions)>0):
-            gen2 = f"{ir0.place} = {ir0.place} * {dimensions[0]}"
+            gen2 = f"{ir0.place} = {ir0.place} (long_long) * {dimensions[0]}"
         ir0.code = self.join(ir1.code,ir2.code,gen1,gen2) 
         self.debug_print(ir0)
 
     def unary_array(self, ir0, ir1, var,size):
         new_temp = self.new_temp('*'+ir0.data_type)
         ir0.place = f"*{new_temp}"
-        gen = f"{ir1.place} = {ir1.place} * {size}"
+        gen = f"{ir1.place} = {ir1.place} (long_long) * {size}"
+        arra= self.new_temp('long_long')
+        gen11 = f"{arra} = & {var}"
+        var = arra
         gen1 = f"{new_temp} = {var} (long_long) + {ir1.place}"
-        ir0.code = self.join(ir1.code,gen, gen1)
+        ir0.code = self.join(ir1.code,gen, gen11,gen1)
         self.debug_print(ir0)
 
     def initializer(self, ir0, ir1):
@@ -815,7 +819,7 @@ class IRGenerator:
             gen1 = f"{ir0.place} = {ir1.place}"
         else:
             gen1 = f"{ir0.place} = & {ir1.place}"
-        gen2 = f"{ir0.place} = {ir0.place} + {offset}"
+        gen2 = f"{ir0.place} = {ir0.place} (long_long) + {offset}"
         # gen3 = f"*{ir0.place}"
         if not isArray: 
             ir0.place = '*'+ir0.place
@@ -826,7 +830,7 @@ class IRGenerator:
         gen1 = f"{ir0.place} = & {ir1.place}"
         for i in range(0,len(init_list)):
             #size of this is always <= size of offset since we have done semantic checks
-            gen_temp = f"{ir0.place} = {ir0.place} + {offset_list[i]}"
+            gen_temp = f"{ir0.place} = {ir0.place} (long_long) + {offset_list[i]}"
             gen_temp2 = f"*{ir0.place} = {init_list[i]}"
             gen1 = self.join(gen1,gen_temp,gen_temp2)
         ir0.code = gen1
