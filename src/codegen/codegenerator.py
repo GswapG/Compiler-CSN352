@@ -297,6 +297,7 @@ class CodeGenerator:
                 instr = Instruction(instruction)
                 print(instr)
                 self.handle_instruction(instr)
+            self.reg_allocator.store_all()
 
     
     def handle_instruction(self, inst: Instruction):
@@ -582,6 +583,7 @@ class CodeGenerator:
         '!=': 'setne'
         }
         relop = inst.inst[4]
+        print(reg_t1)
         self.emit(f'{set_instructions[relop]} {reg_t1[3]}')
         #3 because that stores the lower bytes in our reg class
         self.emit(f'movzx {reg_t1[size]}, {reg_t1[3]}')

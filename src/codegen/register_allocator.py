@@ -206,25 +206,27 @@ class RegisterAllocator:
         """
         pass
 
-    def spill(self, var: str) -> Register:
+    def spill(self, reg) -> Register:
         """
         Spills register corresponding to given var.
         Updates descriptors accordingly
         """
-        regs = self.add_desc.get_reg_allocated(var)
-        if regs is None:
-            raise CompileException(f"No register contains var, yet an attempt was made to spill it")
-        
-        reg = regs[0]
-        self.reg_desc.clear_register(reg)
-        self.add_desc.discard_reg_for_var(var, reg)
-        return reg
-    
+        vars = self.reg_desc.get_register_values(reg)
+        for var in vars:
+            size = self.code_generator.get_size_idx(size=self.code_generator.size_map.get_size(var))
+            address = self.code_generator.address_map.get_address(var)
+            code = f'mov {self.code_generator.size_specifiers[size]} [rbp{address}], {reg[size]}'
+            self.emit(code)
+            self.add_desc.discard_reg_for_var(var,reg)
+            self.add_desc.set_mem(var)
+        self.reg_desc.clear_register(reg)    
+
     def store_all(self):
         """
         To be called at the end of a block to store all variables in memory and free all registers.
         """
-        pass
+        for var in self.add_desc.address.keys():
+            self.spill(var)
 
     def push_caller_saved(self):
         """
