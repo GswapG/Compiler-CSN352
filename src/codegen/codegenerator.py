@@ -495,11 +495,11 @@ class CodeGenerator:
             # if in register, return register
             reg2 = self.reg_allocator.get_register(inst)
             code = ""
-            if reg2 is not None:
-                code = f'mov {reg[size]}, {reg2[size]}'
-            else:
-                address = self.address_map.get_address(param)
-                code = f'mov {reg[size]}, {self.size_specifiers[size]} [rbp{address}]'
+            # if reg2 is not None:
+            #     code = f'mov {reg[size]}, {reg2[size]}'
+            # else:
+            address = self.address_map.get_address(param)
+            code = f'mov {reg[size]}, {self.size_specifiers[size]} [rbp{address}]'
             self.emit(code)
         self.int_param_idx += 1
 
@@ -551,7 +551,7 @@ class CodeGenerator:
                 # t3 is in register
                 reg3 = reg3_list[0]
                 self.emit(f'cmp {t2}, {reg3[size]}')
-            elif t3 in self.address_map.addr_desc:
+            elif t3 in self.address_map.map:
                 # t3 is in memory
                 address = self.address_map.get_address(t3)
                 self.emit(f'cmp {self.size_specifiers[size]} [rbp{address}], {t2}')
@@ -573,39 +573,37 @@ class CodeGenerator:
             reg2_list = self.reg_allocator.add_desc.get_reg_allocated(t2)
             reg3_list = self.reg_allocator.add_desc.get_reg_allocated(t3)
             
-            if reg2_list and reg3_list:
-                # Both in registers
-                self.emit(f'cmp {reg2_list[0][size]}, {reg3_list[0][size]}')
-            elif reg2_list and not reg3_list:
-                # t2 in register, t3 in memory
-                if t3 in self.address_map.addr_desc:
-                    address = self.address_map.get_address(t3)
-                    self.emit(f'cmp {reg2_list[0][size]}, {self.size_specifiers[size]} [rbp{address}]')
-                else:
-                    raise CompileException(f"Variable {t3} not found in memory")
-            elif not reg2_list and reg3_list:
-                # t2 in memory, t3 in register
-                if t2 in self.address_map.addr_desc:
-                    address = self.address_map.get_address(t2)
-                    self.emit(f'cmp {self.size_specifiers[size]} [rbp{address}], {reg3_list[0][size]}')
-                else:
-                    raise CompileException(f"Variable {t2} not found in memory")
-            else:
-                # Both in memory
-                addr2 = self.address_map.get_address(t2)
-                addr3 = self.address_map.get_address(t3)
-                temp_reg = self.reg_allocator.get_register(inst)[0]
-                print("+++++++++++++++++++")
-                self.emit(f'mov {temp_reg[size]}, {self.size_specifiers[size]} [rbp{addr2}]')
-                self.emit(f'cmp {temp_reg[size]}, {self.size_specifiers[size]} [rbp{addr3}]')
+            # if reg2_list and reg3_list:
+            #     # Both in registers
+            #     self.emit(f'cmp {reg2_list[0][size]}, {reg3_list[0][size]}')
+            # elif reg2_list and not reg3_list:
+            #     # t2 in register, t3 in memory
+            #     if t3 in self.address_map.map:
+            #         address = self.address_map.get_address(t3)
+            #         self.emit(f'cmp {reg2_list[0][size]}, {self.size_specifiers[size]} [rbp{address}]')
+            #     else:
+            #         raise CompileException(f"Variable {t3} not found in memory")
+            # elif not reg2_list and reg3_list:
+            #     # t2 in memory, t3 in register
+            #     if t2 in self.address_map.map:
+            #         address = self.address_map.get_address(t2)
+            #         self.emit(f'cmp {self.size_specifiers[size]} [rbp{address}], {reg3_list[0][size]}')
+            #     else:
+            #         raise CompileException(f"Variable {t2} not found in memory")
+            # else:
+            #     # Both in memory
+            addr2 = self.address_map.get_address(t2)
+            addr3 = self.address_map.get_address(t3)
+            temp_reg = self.reg_allocator.get_register(inst)[0]
+            print("+++++++++++++++++++")
+            self.emit(f'mov {temp_reg[size]}, {self.size_specifiers[size]} [rbp{addr2}]')
+            self.emit(f'cmp {temp_reg[size]}, {self.size_specifiers[size]} [rbp{addr3}]')
         # NOW CMP PART IS DONE , WE NOW ADD THE SETL COMMAND
         #assign new reg for t1
         reg_t1, _ = self.reg_allocator.get_register(inst)
         self.reg_allocator.add_desc.set_entry_to_reg(t1, reg_t1)
         self.reg_allocator.reg_desc.add_var_to_register(reg_t1, t1)
         size = self.get_size_idx(type=type)
-        # Clear this reg
-        self.emit(f'xor {reg_t1[size]}, {reg_t1[size]}')
         set_instructions = {
         '<': 'setl',
         '<=': 'setle',
@@ -629,12 +627,23 @@ class CodeGenerator:
         t1 = inst.inst[0]
         if t2[0] == '@' or '#' in t2:
             if t1[0] == '@':
-                # t1 is temp
+                # t1 is temp and t2 is variable
                 reg1, reg2 = self.reg_allocator.get_register(inst)
                 # dono register me hai to inke bas register aur address descriptors update karne hain, no code emitted
                 # reg2 ko t1 ke reg ke liye use karna hai
                 self.reg_allocator.add_desc.set_entry_to_reg(t1, reg2)
                 self.reg_allocator.reg_desc.add_var_to_register(reg2, t1)
+
+                t1_address = self.address_map.get_address(t1)
+                t2_address = self.address_map.get_address(t2)
+                # size = self.get_size_idx(size=self.size_map.get_size(t2))
+                # code = f'mov {reg2[size]}, {self.size_specifiers[size]} [rbp{t2_address}]\n'
+
+                size = self.get_size_idx(size=self.size_map.get_size(t1))
+                code = f'mov {self.size_specifiers[size]} [rbp{t1_address}], {reg2[size]}'
+
+                self.emit(code)
+
             else:
                 # t1 is named
                 address = self.address_map.get_address(t1)
@@ -691,7 +700,10 @@ class CodeGenerator:
             reg, = self.reg_allocator.get_register(inst)
             size = self.get_size_idx(inst.inst[3][1:-1])
             opcode = self.get_arithmetic_instruction(op)
+            address = self.address_map.get_address(t1)
             code = f'{opcode} {reg[size]}, {t3}'
+            self.emit(code)
+            code = f'mov {self.size_specifiers[size]} [rbp{address}], {reg[size]}'
             self.emit(code)
         else:
             print("asdasdasdasd")
