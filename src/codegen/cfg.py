@@ -76,7 +76,7 @@ class CFG:
         goto_pattern = r"goto (.+)"
         for i, line in enumerate(self.IR):
             line = line.strip()
-            if ':' in line:
+            if line[-1] == ':':
                 label = ""
                 i = 0; 
                 while(line[i]!=':'):
@@ -102,7 +102,7 @@ class CFG:
         i = 0
         res_IR = []
         while(i<(len(ret_contents)-1)):
-            if ':' in ret_contents[i]:
+            if ret_contents[i][-1] == ':':
                 # general label
                 res_IR.append(ret_contents[i] + " " + ret_contents[i+1])
                 self.label_to_index[ret_contents[i][:-1]] = len(res_IR)-1

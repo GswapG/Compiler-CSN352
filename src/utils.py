@@ -390,6 +390,8 @@ def get_size_from_type(c_type):
     
     for modifier in modifiers:
         clean_type = clean_type.replace(modifier, "").strip()
+    if '*' in clean_type:
+        return 8
     if "char" in clean_type:
         return 1
     elif "short" in clean_type or "int16_t" in clean_type:

@@ -39,7 +39,8 @@ class AddressDescriptor:
         """
         if var not in self.address.keys():
             raise CompileException(f"No matching Address Descriptor entry found for {var}")
-        self.address[var][0].remove(reg)
+        if reg in self.address[var][0]:
+            self.address[var][0].remove(reg)
 
     def set_entry_to_reg(self, var: str, reg: Register):
         """

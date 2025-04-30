@@ -305,6 +305,8 @@ class CodeGenerator:
         Calls different handlers based on different instruction type
         """
         print("Handling instruction: ", inst.text)
+        for reg in self.reg_allocator.reg_desc.registers.keys():
+                self.reg_allocator.spill(reg)
         if inst.has_label():
             label = inst.label
             code = f'{label}:'
