@@ -1,11 +1,12 @@
 from src.parser import *
 from src.cpp import *
-
 import os
 import sys
 import tempfile
 import pickle
 from Crypto.Hash import SHA256
+import src.codegen.codegenerator as CodeGen
+from src.ir_optimize import *
 # from tqdm import tqdm
 import uuid
 # from rich.progress import track
@@ -50,7 +51,9 @@ if "-g" in strargv or "--graph" in strargv:
 irgen = True
 if "--no-ir" in strargv:
     irgen = False
-
+no_asm = False
+if '--no-asm' in strargv:
+    no_asm = True
 # Utils
 def strip_file(file):
     lines = file.split('\n')
@@ -99,9 +102,16 @@ def process_file(filename,source_dir=testcase_dir):
         print(f"Preprocessed: {filename} -> {temp_file.name}")
 
     # Pass the temporary file to the parser.
-    parseFile(temp_file.name,filename,TREE_PATH,SYMBOL_TABLE_PATH,IR_TREE_PATH,graphgen,irgen)
-
+    address_map, size_map, param_map, type_map, var_type_map = parseFile(temp_file.name,filename,TREE_PATH,SYMBOL_TABLE_PATH,IR_TREE_PATH,graphgen,irgen)
+    print(address_map)
     add_file(input_path)
+
+    print(address_map)
+    ir_opt = IROptimizer(filename, type_map, var_type_map, address_map, size_map, param_map)
+    print(address_map)
+
+    if not no_asm:
+        CodeGen.driver(filename,graphgen,address_map,size_map,param_map,type_map)
     return temp_file.name
 
 def process_directory(source_dir=testcase_dir):
@@ -131,7 +141,7 @@ def process_directory(source_dir=testcase_dir):
             pretty_print_test_output("Compilation Error!", "red")
             # print(e)
             errors.append((filename,e))
-            raise e
+            # continue
         finally:
             temp_files.append(ret)
 

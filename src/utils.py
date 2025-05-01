@@ -21,7 +21,7 @@ def count_deref_ref(var):
             break
     return deref_count, ref_count, var
 
-def validate_relational_operands(left_vars, right_vars, symtab, allow_int_float):
+def validate_relational_operands(left_vars, right_vars, symtab):
     # Validate left variables exist in the symbol table.
     for var in left_vars:
         braces_count = 0
@@ -46,9 +46,7 @@ def validate_relational_operands(left_vars, right_vars, symtab, allow_int_float)
         for var2 in right_vars:
             d2, r2, clean_var2 = count_deref_ref(var2)
             right_type = get_type_from_var(clean_var2, d2, r2, symtab)
-            print(left_type)
-            print(right_type)
-            if implicit_type_compatibility(left_type, right_type, allow_int_float):
+            if argument_type_compatibility(left_type, right_type):
                 raise CompileValueError(f"Incompatible relational op with '{clean_var}' and '{clean_var2}'")
 
 def get_type_from_var(var, deref_count, ref_count, symtab, kind_check=None):
@@ -210,8 +208,8 @@ def argument_param_match(argument_list, func_params):
             argument_ptr += 1
             pass
         else:
-            #print(argument_list[argument_ptr],func_params[params_ptr].type)
-            if implicit_type_compatibility(func_params[params_ptr].type, argument_list[argument_ptr], True):
+            print(argument_list[argument_ptr],func_params[params_ptr].type)
+            if argument_type_compatibility(func_params[params_ptr].type, argument_list[argument_ptr]):
                 raise CompileException(f"Invalid Function Parameters => {trim_value(func_params[params_ptr].type, 'const')} | {trim_value(argument_list[argument_ptr], 'const')}")
             else:
                 argument_ptr += 1 
@@ -226,6 +224,165 @@ def argument_param_match(argument_list, func_params):
 
         else:
             raise CompileException("Invalid Function Parameter Length")
+        
+def argument_type_compatibility(type1, type2):
+    """
+        type1 -> func param
+        type2 -> argument param
+    """
+    ## implicit type conversion
+    if type1 is None:
+        raise CompileException("lvalue is None")
+    
+    if type2 is None:
+        raise CompileException("rvalue is None")
+
+    if type1 == type2:
+        return False
+    
+    ptr1 = True if type1.startswith("*") else False
+    ptr2 = True if type2.startswith("*") else False
+
+    deref_count1 = 0
+    clean_ptr1 = type1
+
+    deref_count2 = 0
+    clean_ptr2 = type2
+
+    while isinstance(clean_ptr1, str) and clean_ptr1.startswith("*"):
+        deref_count1 += 1
+        clean_ptr1 = clean_ptr1[1:]
+
+    while isinstance(clean_ptr2, str) and clean_ptr2.startswith("*"):
+        deref_count2 += 1
+        clean_ptr2 = clean_ptr2[1:]
+
+    if not ptr1 and not ptr2:
+        type1 = trim_value(type1, "const")
+        type1 = trim_value(type1, "unsigned")
+        type1 = trim_value(type1, "signed")
+        type1 = trim_value(type1, "static")
+        
+        if "enum" in type1:
+            type1 = "int"
+
+        type2 = trim_value(type2, "const")
+        type2 = trim_value(type2, "unsigned")
+        type2 = trim_value(type2, "signed")
+        type2 = trim_value(type2, "static")
+
+        if "enum" in type2:
+            type2 = "int"
+
+        types1 = type1.split(' ')
+        types2 = type2.split(' ')
+        
+        allowed_int = ['signed', 'unsigned', 'short', 'long', 'int', 'char']
+
+        label1 = None
+        label2 = None
+
+        if ("float" in types1) or ("double" in types1):
+            label1 = "float"
+        elif any(t in allowed_int for t in types1):
+            label1 = "int"
+
+        if ("float" in types2) or ("double" in types2):
+            label2 = "float"
+        elif any(t in allowed_int for t in types2):
+            label2 = "int"
+
+        if label1 is not None and label2 is not None:
+            return False
+        else:
+            return True
+
+    elif ptr1 and not ptr2:
+        allowed_int = ['signed', 'unsigned', 'short', 'long', 'int', 'char']
+        
+        type2 = trim_value(type2, "const")
+        type2 = trim_value(type2, "unsigned")
+        type2 = trim_value(type2, "signed")
+        type2 = trim_value(type2, "static")
+
+        if "enum" in type2:
+            type2 = "int"
+
+        types2 = type2.split(' ')
+
+        label1 = None
+        label2 = None
+
+        if ("float" in types2) or ("double" in types2):
+            label2 = "float"
+        elif any(t in allowed_int for t in types2):
+            label2 = "int"
+
+        if label2 != "int":
+            return True
+        else:
+            return False
+
+    elif ptr2 and not ptr1:
+        allowed_int = ['signed', 'unsigned', 'short', 'long', 'int', 'char']
+        
+        type1 = trim_value(type1, "const")
+        type1 = trim_value(type1, "unsigned")
+        type1 = trim_value(type1, "signed")
+        type1 = trim_value(type1, "static")
+
+        if "enum" in type1:
+            type1 = "int"
+
+        types1 = type1.split(' ')
+
+        label1 = None
+        label2 = None
+
+        if ("float" in types1) or ("double" in types1):
+            label1 = "float"
+        elif any(t in allowed_int for t in types1):
+            label1 = "int"
+
+        if label1 != "int":
+            return True
+        else:
+            return False
+    
+    elif ptr1 and ptr2:
+        
+
+        return False
+        
+    return True
+
+def ternary_type_compatibility(type1, type2, type3):
+    if get_label(type1.replace("*", "")) is None:
+        raise CompileException("First type in ternary operators should be a scalar type")
+
+    return argument_type_compatibility(type2, type3)
+
+def same_class_compatibility(type1, type2):
+    if "*" in type1 or "*" in type2:
+        return True
+    
+    types1 = type1.split(' ')
+    types2 = type2.split(' ')
+
+    label1 = None
+    label2 = None
+
+    allowed_int = ['signed', 'unsigned', 'short', 'long', 'int', 'char']
+    if any(t in allowed_int for t in types1):
+        label1 = "int"
+
+    if any(t in allowed_int for t in types2):
+        label2 = "int"
+
+    if label1 == label2 and label1 == "int":
+        return False
+    
+    return True
 
 def get_size_from_type(c_type):
     modifiers = ["const", "static", "volatile", "register", "extern", "auto", "restrict"]
@@ -233,6 +390,8 @@ def get_size_from_type(c_type):
     
     for modifier in modifiers:
         clean_type = clean_type.replace(modifier, "").strip()
+    if '*' in clean_type:
+        return 8
     if "char" in clean_type:
         return 1
     elif "short" in clean_type or "int16_t" in clean_type:
@@ -255,3 +414,12 @@ def get_size_from_type(c_type):
         return 0
     
     raise CompileValueError(f"Unknown type for size calculation: {c_type}")
+def get_scope_number(scope_name):
+    if scope_name == "global":
+        return '#0'
+    if '@' in scope_name:
+        try:
+            return '#' + scope_name.split('@')[-1] 
+        except ValueError:
+            pass
+    raise CompileException(f"Invalid scope name format: {scope_name}")

@@ -102,8 +102,8 @@ def validate_c_datatype(data_type, symtab):
     return True
 
 def dominating_type(type1, type2):
-    types1 = type1.split(' ')
-    types2 = type2.split(' ')
+    types1 = type1.split(' ') if ' ' in type1 else type1.split('_')
+    types2 = type2.split(' ') if ' ' in type2 else type2.split('_')
 
     if "double" in types1 and "double" in types2:
         return True
@@ -113,28 +113,38 @@ def dominating_type(type1, type2):
                 return True
             else:
                 if "float" not in types1 and "float" not in types2:
-                    if "int" in types1 and "int" in types2:
+                    if "long" in types1 and "long" in types2:
                         return True
+                
                     else:
-                        if "int" not in types1 and "int" not in types2:
-                            if "short" in types1 and "short" in types2:
+                        if "long" not in types1 and "long" not in types2:
+                            if "int" in types1 and "int" in types2:
                                 return True
                             else:
-                                if "short" not in types1 and "short" not in types2:
-                                    if "char" in types1 and "char" in types2:
+                                if "int" not in types1 and "int" not in types2:
+                                    if "short" in types1 and "short" in types2:
                                         return True
                                     else:
-                                        if type1 == type2:
-                                            return True
+                                        if "short" not in types1 and "short" not in types2:
+                                            if "char" in types1 and "char" in types2:
+                                                return True
+                                            else:
+                                                if type1 == type2:
+                                                    return True
+                                                else:
+                                                    raise CompileException(f"Unexpected types received {types1} {types2}")
                                         else:
-                                            raise CompileException(f"Unexpected types received {types1} {types2}")
+                                            if "short" in types1:
+                                                return True
+                                            else:
+                                                return False
                                 else:
-                                    if "short" in types1:
+                                    if "int" in types1:
                                         return True
                                     else:
                                         return False
                         else:
-                            if "int" in types1:
+                            if "long" in types1:
                                 return True
                             else:
                                 return False
@@ -427,11 +437,18 @@ def subtraction_compatibility(type1, type2):
 
         type1 = type1.lstrip("*")
 
-        if type1 == type2:
+        allowed_int = ['signed', 'unsigned', 'short', 'long', 'int', 'char']
+
+        label2 = None
+
+        if any(t in allowed_int for t in type2.split()):
+            label2 = "int"
+
+        if label2 == "int":
             return save_type1
         
         else:
-            raise CompileTypeError(f"Incompatible types {save_type1} {save_type2} for the operation addition")
+            raise CompileTypeError(f"Incompatible types {save_type1} and {save_type2} for the operation subtraction")
 
     raise CompileException(f"This method should only be called when either one of the types is a pointer to an object, but the types passed were: {save_type1} and {save_type2}")    
 
@@ -474,9 +491,7 @@ def compatible_cast(cast_type, expression_type):
     # handle other casting between other types apart from struct or union here if required
     return True   
 
-def ternary_type_compatibility(type1, type2, type3):
-    if get_label(type1.replace("*", "")) is None:
-        raise CompileException("First type in ternary operators should be a scalar type")
 
-    return implicit_type_compatibility(type2, type3, True)
+
+
 

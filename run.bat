@@ -57,4 +57,8 @@ if exist renderedIRTrees (
     del /q /f renderedIRTrees\*
     echo Cleared renderedIRTrees folder.
 )
+if exist generatedASM (
+    del /q /f generatedASM\*
+    echo Cleared generatedASM folder.
+)
 exit /b
