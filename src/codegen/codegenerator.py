@@ -507,6 +507,7 @@ class CodeGenerator:
 
     def handle_return(self, inst):
         code = f'mov rax, {inst.inst[1]}' if self.is_constant(inst.inst[1]) else f'mov {init_gpr()[0][self.get_size_idx(size=self.size_map.get_size(inst.inst[1]))]}, {self.size_specifiers[self.get_size_idx(size=self.size_map.get_size(inst.inst[1]))]} [rbp{self.address_map.get_address(inst.inst[1])}]'
+        code += '\n' + f'jmp $end{self.cfg.func_name}'
         self.emit(code)
     def handle_call(self, inst):
         func_name = inst.inst[1][:-1].split('#')[0]
