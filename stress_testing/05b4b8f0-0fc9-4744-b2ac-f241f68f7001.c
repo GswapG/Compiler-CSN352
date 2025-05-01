@@ -7,6 +7,5 @@ int func(int a, int b){
 }
 
 int main(){
-    int x = func(1,2);
-    printf("x is %d", x);
+    func(1,2);
 }

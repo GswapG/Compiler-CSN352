@@ -506,8 +506,8 @@ class CodeGenerator:
         self.int_param_idx += 1
 
     def handle_return(self, inst):
-        pass
-
+        code = f'mov rax, {inst.inst[1]}' if self.is_constant(inst.inst[1]) else f'mov {init_gpr()[0][self.get_size_idx(size=self.size_map.get_size(inst.inst[1]))]}, {self.size_specifiers[self.get_size_idx(size=self.size_map.get_size(inst.inst[1]))]} [rbp{self.address_map.get_address(inst.inst[1])}]'
+        self.emit(code)
     def handle_call(self, inst):
         func_name = inst.inst[1][:-1].split('#')[0]
         code = f'call {func_name}'
@@ -518,7 +518,7 @@ class CodeGenerator:
         func_name = inst.inst[3][:-1].split('#')[0]
         code = f'call {func_name}'
         self.emit(code)
-        # TODO: check if return value is in rax or xmm0 or something else
+        self.emit(f'mov {self.size_specifiers[self.get_size_idx(size=self.size_map.get_size(inst.inst[0]))]} [rbp{self.address_map.get_address(inst.inst[0])}], {init_gpr()[0][self.get_size_idx(size=self.size_map.get_size(inst.inst[0]))]}')
         self.right_after_call()
     
     def right_after_call(self):
